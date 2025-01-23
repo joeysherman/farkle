@@ -10,15 +10,12 @@ const DICE_URL = "https://dl.dropboxusercontent.com/scl/fi/n0ogooke4kstdcwo7lryy
 // Scene constants
 const ARENA_SIZE = 8; // Size of the play area
 const WALL_HEIGHT = 20; // Height of invisible walls
-const DROP_HEIGHT = 10; // Height from which dice are dropped
+const DROP_HEIGHT = 2; // Lowered from 10 to 2 for more controlled drop
 
 // Preload the dice model
 useGLTF.preload(DICE_URL);
 
-function Dice({ position, rotation }: { 
-  position: [number, number, number];
-  rotation: [number, number, number];
-}) {
+function Dice() {
   const diceRef = useRef<RigidBodyType>(null);
   const { scene } = useGLTF(DICE_URL);
   
@@ -29,10 +26,11 @@ function Dice({ position, rotation }: {
     <RigidBody 
       ref={diceRef} 
       colliders="cuboid" 
-      position={position}
-      rotation={rotation}
-      restitution={0.7} 
-      friction={0.5}
+      position={[0, 1, 0]}  // Fixed position above ground
+      rotation={[-Math.PI / 2, 0, 0]}  // -90 degrees around X axis
+      type="fixed"          // Make it static (no physics)
+      restitution={0} 
+      friction={0}
     >
       <primitive object={clonedScene} scale={[1, 1, 1]} />
     </RigidBody>
@@ -132,24 +130,9 @@ export function Scene(): JSX.Element {
   const rollDice = () => {
     const dices: JSX.Element[] = [];
     
-    // For a single die, position it in the center
-    const x = 0;
-    const y = DROP_HEIGHT;
-    const z = 0;
-    
-    // Rotation for 6 facing up (rotate 180 degrees around X axis)
-    const rotation = [
-      Math.PI, // 180 degrees around X axis
-      0,       // no rotation around Y
-      0        // no rotation around Z
-    ] as [number, number, number];
-    
+    // Single static die with no rotation
     dices.push(
-      <Dice 
-        key={0} 
-        position={[x, y, z]} 
-        rotation={rotation}
-      />
+      <Dice key={0} />
     );
     
     return dices;
