@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { FunctionComponent } from "../common/types";
 import { Scene, SceneRef } from "../_game/test";
 
 export const Home = (): FunctionComponent => {
 	const { t, i18n } = useTranslation();
 	const sceneRef = useRef<SceneRef>(null);
+	const [desiredNumber, setDesiredNumber] = useState(6);
 
 	const onTranslateButtonClick = async (): Promise<void> => {
 		if (i18n.resolvedLanguage === "en") {
@@ -16,24 +17,37 @@ export const Home = (): FunctionComponent => {
 	};
 
 	const handleRollClick = () => {
-		sceneRef.current?.roll();
+		sceneRef.current?.roll(desiredNumber);
+	};
+
+	const handleNumberChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const value = parseInt(event.target.value);
+		if (value >= 1 && value <= 6) {
+			setDesiredNumber(value);
+		}
 	};
 
 	return (
 		<div className="bg-blue-300 font-bold w-screen h-screen flex flex-col justify-center items-center">
-			<p className="text-white text-6xl">{t("home.greeting")}</p>
-			<button type="submit" onClick={onTranslateButtonClick}>
-				translate
-			</button>
 			<div className="w-full max-w-2xl mt-8 aspect-square">
 				<Scene ref={sceneRef} />
 			</div>
-			<button 
-				onClick={handleRollClick}
-				className="mt-4 px-8 py-4 text-2xl bg-white rounded-lg shadow-lg hover:bg-gray-100 transition-colors"
-			>
-				Roll Dice
-			</button>
+			<div className="flex items-center gap-4 mt-4">
+				<input
+					type="number"
+					min="1"
+					max="6"
+					value={desiredNumber}
+					onChange={handleNumberChange}
+					className="w-16 px-3 py-4 text-2xl text-center bg-white rounded-lg shadow-lg"
+				/>
+				<button 
+					onClick={handleRollClick}
+					className="px-8 py-4 text-2xl bg-white rounded-lg shadow-lg hover:bg-gray-100 transition-colors"
+				>
+					Roll Dice
+				</button>
+			</div>
 		</div>
 	);
 };

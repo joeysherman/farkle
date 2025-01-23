@@ -9,14 +9,14 @@ import { useGLTF } from "@react-three/drei";
 useGLTF.preload(DICE_URL);
 
 export interface SceneRef {
-  roll: () => void;
+  roll: (desiredNumber?: number) => void;
 }
 
 export const Scene = forwardRef<SceneRef>((_, ref) => {
-  const [dices, setDices] = useState<JSX.Element[]>(() => [<Dice key={Date.now()} />]);
+  const [dices, setDices] = useState<JSX.Element[]>(() => [<Dice key={Date.now()} desiredNumber={6} />]);
 
-  const rollDice = () => {
-    setDices([<Dice key={Date.now()} />]); // New key forces remount
+  const rollDice = (desiredNumber: number = 6) => {
+    setDices([<Dice key={Date.now()} desiredNumber={desiredNumber} />]);
   };
 
   // Expose roll function via ref
@@ -27,7 +27,7 @@ export const Scene = forwardRef<SceneRef>((_, ref) => {
   return (
     <div className="relative w-full h-full bg-white rounded-lg shadow-lg overflow-hidden">
       {/* Controls Overlay */}
-      <div className="absolute bottom-0 left-0 w-full z-10">
+      {/* <div className="absolute bottom-0 left-0 w-full z-10">
         <section className="flex justify-center w-full pointer-events-none">
           <div className="flex gap-6">
             <button 
@@ -38,7 +38,7 @@ export const Scene = forwardRef<SceneRef>((_, ref) => {
             </button>
           </div>
         </section>
-      </div>
+      </div> */}
 
       {/* Three.js Canvas */}
       <Canvas shadows className="w-full h-full">

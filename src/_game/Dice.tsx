@@ -8,6 +8,10 @@ import { DICE_URL, DROP_HEIGHT } from "./constants";
 // Preload the dice model
 useGLTF.preload(DICE_URL);
 
+interface DiceProps {
+  desiredNumber?: number;
+}
+
 /**
  * Helper function to generate random initial position for the die
  */
@@ -20,10 +24,33 @@ function getRandomPosition() {
 }
 
 /**
- * Dice component that handles the physics and animation of a single die
- * Includes automatic correction to ensure it lands with 6 facing up
+ * Get the rotation needed for a specific number to face up
+ * In a standard die, opposite faces sum to 7
  */
-export function Dice() {
+function getRotationForNumber(number: number): [number, number, number] {
+  switch (number) {
+    case 1: // 6 on top
+      return [0, 0, 0];
+    case 2: // 5 on top
+      return [0, 0, Math.PI / 2];
+    case 3: // 4 on top
+      return [Math.PI / 2, 0, 0];
+    case 4: // 3 on top
+      return [-Math.PI / 2, 0, 0];
+    case 5: // 2 on top
+      return [0, 0, -Math.PI / 2];
+    case 6: // 1 on top
+      return [Math.PI, 0, 0];
+    default:
+      return [0, 0, 0];
+  }
+}
+
+/**
+ * Dice component that handles the physics and animation of a single die
+ * Includes automatic correction to ensure it lands with the desired number facing up
+ */
+export function Dice({ desiredNumber = 6 }: DiceProps) {
   const diceRef = useRef<any>(null);
   const { scene } = useGLTF(DICE_URL);
   const isSettling = useRef(false);
@@ -65,16 +92,16 @@ export function Dice() {
 
       // If we're settling, smoothly rotate to correct orientation
       if (isSettling.current && startTime.current) {
-        const elapsedTime = (Date.now() - startTime.current) / 1000; // Convert to seconds
-        const duration = 0.5; // Half second transition
+        const elapsedTime = (Date.now() - startTime.current) / 1000;
+        const duration = 0.5;
         
         if (elapsedTime <= duration) {
           const progress = elapsedTime / duration;
-          const smoothProgress = Math.sin((progress * Math.PI) / 2); // Smooth easing
+          const smoothProgress = Math.sin((progress * Math.PI) / 2);
           
           const currentQuat = new THREE.Quaternion();
           const targetQuat = new THREE.Quaternion().setFromEuler(
-            new THREE.Euler(-Math.PI / 2, 0, 0)
+            new THREE.Euler(...getRotationForNumber(desiredNumber))
           );
           
           currentQuat.slerpQuaternions(
