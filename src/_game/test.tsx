@@ -5,13 +5,31 @@ import { useGLTF, OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import * as THREE from "three";
 import { RigidBody as RigidBodyType } from "@dimforge/rapier3d-compat";
 
-function Dice({ position }: { position: [number, number, number] }) {
+const DICE_URL = "https://dl.dropboxusercontent.com/scl/fi/n0ogooke4kstdcwo7lryy/dice_highres_red.glb?rlkey=i15sotl674m294bporeumu5d3&st=fss6qosg";
+
+// Preload the dice model
+useGLTF.preload(DICE_URL);
+
+function Dice({ position, rotation }: { 
+  position: [number, number, number];
+  rotation: [number, number, number];
+}) {
   const diceRef = useRef<RigidBodyType>(null);
-  const gltf = useGLTF("https://dl.dropboxusercontent.com/scl/fi/n0ogooke4kstdcwo7lryy/dice_highres_red.glb?rlkey=i15sotl674m294bporeumu5d3&st=fss6qosg");
+  const { scene } = useGLTF(DICE_URL);
+  
+  // Clone the scene for each die instance
+  const clonedScene = scene.clone(true);
 
   return (
-    <RigidBody ref={diceRef} colliders="cuboid" position={position} restitution={0.7} friction={0.5}>
-      <primitive object={gltf.scene} scale={[1, 1, 1]} />
+    <RigidBody 
+      ref={diceRef} 
+      colliders="cuboid" 
+      position={position}
+      rotation={rotation}
+      restitution={0.7} 
+      friction={0.5}
+    >
+      <primitive object={clonedScene} scale={[1, 1, 1]} />
     </RigidBody>
   );
 }
@@ -71,7 +89,19 @@ export function Scene(): JSX.Element {
       const x = Math.random() * 4 - 2;
       const y = 15;
       const z = Math.random() * 4 - 2;
-      dices.push(<Dice key={i} position={[x, y, z]} />);
+      const rotation = [
+        Math.random() * Math.PI * 2,
+        Math.random() * Math.PI * 2,
+        Math.random() * Math.PI * 2
+      ] as [number, number, number];
+      
+      dices.push(
+        <Dice 
+          key={i} 
+          position={[x, y, z]} 
+          rotation={rotation}
+        />
+      );
     }
     return dices;
   };
