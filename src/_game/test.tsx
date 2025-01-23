@@ -8,9 +8,9 @@ import { RigidBody as RigidBodyType } from "@dimforge/rapier3d-compat";
 const DICE_URL = "https://dl.dropboxusercontent.com/scl/fi/n0ogooke4kstdcwo7lryy/dice_highres_red.glb?rlkey=i15sotl674m294bporeumu5d3&st=fss6qosg";
 
 // Scene constants
-const ARENA_SIZE = 8; // Size of the play area
-const WALL_HEIGHT = 20; // Height of invisible walls
-const DROP_HEIGHT = 2; // Lowered from 10 to 2 for more controlled drop
+const ARENA_SIZE = 16;    // Doubled the size of the play area
+const WALL_HEIGHT = 20;   // Height of invisible walls
+const DROP_HEIGHT = 8;    // Increased drop height for more dramatic roll
 
 // Preload the dice model
 useGLTF.preload(DICE_URL);
@@ -22,15 +22,26 @@ function Dice() {
   // Clone the scene for each die instance
   const clonedScene = scene.clone(true);
 
+  useEffect(() => {
+    if (diceRef.current) {
+      // Adjusted velocities for better control
+      diceRef.current.setAngvel({ x: 2, y: 3, z: 2 }, true);
+      diceRef.current.setLinvel({ x: 1, y: 3, z: 2 }, true);
+    }
+  }, []);
+
   return (
     <RigidBody 
       ref={diceRef} 
-      colliders="cuboid" 
-      position={[0, 1, 0]}  // Fixed position above ground
-      rotation={[-Math.PI / 2, 0, 0]}  // -90 degrees around X axis
-      type="fixed"          // Make it static (no physics)
-      restitution={0} 
-      friction={0}
+      colliders="cuboid"
+      mass={1}              // Explicit mass
+      position={[0, DROP_HEIGHT, 0]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      restitution={0.5}     // Reduced bounce
+      friction={0.8}        // Increased friction
+      angularDamping={0.8}
+      linearDamping={0.8}
+      ccd={true}           // Enable Continuous Collision Detection
     >
       <primitive object={clonedScene} scale={[1, 1, 1]} />
     </RigidBody>
@@ -74,10 +85,15 @@ function Walls() {
 
 function Ground() {
   return (
-    <RigidBody type="fixed" restitution={0.7} friction={0.5}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
+    <RigidBody type="fixed" restitution={0.6} friction={0.7}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[ARENA_SIZE, ARENA_SIZE]} />
         <meshStandardMaterial color="#e9e464" />
+      </mesh>
+      {/* Add an invisible box collider with thickness */}
+      <mesh rotation={[0, 0, 0]} position={[0, -0.5, 0]}>
+        <boxGeometry args={[ARENA_SIZE, 1, ARENA_SIZE]} />
+        <meshStandardMaterial transparent opacity={0} />
       </mesh>
     </RigidBody>
   );
@@ -100,7 +116,7 @@ function DiceScene({ dices }: { dices: JSX.Element[] }) {
       />
       <PerspectiveCamera 
         makeDefault 
-        position={[-ARENA_SIZE * 1.5, ARENA_SIZE * 2.5, ARENA_SIZE * 1.5]} 
+        position={[-ARENA_SIZE * 1.2, ARENA_SIZE * 1.8, ARENA_SIZE * 1.2]} 
         fov={45}
       />
       <ambientLight intensity={2} />
@@ -114,7 +130,7 @@ function DiceScene({ dices }: { dices: JSX.Element[] }) {
         shadow-camera-top={ARENA_SIZE}
         shadow-camera-bottom={-ARENA_SIZE}
       />
-      <Physics gravity={[0, -29.4, 0]}>
+      <Physics gravity={[0, -29.4, 0]} timeStep="vary">
         <Ground />
         <Walls />
         {dices}
@@ -129,12 +145,7 @@ export function Scene(): JSX.Element {
 
   const rollDice = () => {
     const dices: JSX.Element[] = [];
-    
-    // Single static die with no rotation
-    dices.push(
-      <Dice key={0} />
-    );
-    
+    dices.push(<Dice key={Date.now()} />); // New key to force remount
     return dices;
   };
 
