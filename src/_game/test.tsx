@@ -126,39 +126,39 @@ function DiceScene({ dices }: { dices: JSX.Element[] }) {
 }
 
 export function Scene(): JSX.Element {
-  const [diceCount, setDiceCount] = useState(6);
+  // Fixed to 1 die
+  const [diceCount] = useState(1);
 
   const rollDice = () => {
     const dices: JSX.Element[] = [];
-    for (let i = 0; i < diceCount; i++) {
-      // Calculate random position within the arena bounds
-      const x = (Math.random() - 0.5) * (ARENA_SIZE * 0.8); // 80% of arena size to keep dice away from walls
-      const y = DROP_HEIGHT;
-      const z = (Math.random() - 0.5) * (ARENA_SIZE * 0.8);
-      
-      const rotation = [
-        Math.random() * Math.PI * 2,
-        Math.random() * Math.PI * 2,
-        Math.random() * Math.PI * 2
-      ] as [number, number, number];
-      
-      dices.push(
-        <Dice 
-          key={i} 
-          position={[x, y, z]} 
-          rotation={rotation}
-        />
-      );
-    }
+    
+    // For a single die, position it in the center
+    const x = 0;
+    const y = DROP_HEIGHT;
+    const z = 0;
+    
+    // Rotation for 6 facing up (rotate 180 degrees around X axis)
+    const rotation = [
+      Math.PI, // 180 degrees around X axis
+      0,       // no rotation around Y
+      0        // no rotation around Z
+    ] as [number, number, number];
+    
+    dices.push(
+      <Dice 
+        key={0} 
+        position={[x, y, z]} 
+        rotation={rotation}
+      />
+    );
+    
     return dices;
   };
 
   const [dices, setDices] = useState<JSX.Element[]>(() => rollDice());
 
-  useEffect(() => {
-    setDices(rollDice());
-  }, [diceCount]);
-
+  // Remove the useEffect since diceCount never changes
+  
   return (
     <div className="relative w-full h-full bg-white rounded-lg shadow-lg overflow-hidden">
       {/* UI Overlay */}
@@ -181,26 +181,9 @@ export function Scene(): JSX.Element {
           <div className="flex gap-6">
             <button 
               className="p-2 mb-8 text-6xl text-[#3c390f] opacity-75 hover:opacity-100 transition-opacity duration-250 pointer-events-auto"
-              onClick={() => setDiceCount(Math.max(diceCount - 1, 1))}
+              onClick={() => setDices(rollDice())}
             >
-              -
-            </button>
-            <div>
-              <p className="mb-[-0.5rem] text-center text-[#3c390f] opacity-50">
-                AMOUNT: <span>{diceCount}</span>
-              </p>
-              <button 
-                className="p-2 mb-8 text-6xl text-[#3c390f] opacity-75 hover:opacity-100 transition-opacity duration-250 pointer-events-auto"
-                onClick={() => setDices(rollDice())}
-              >
-                ROLL
-              </button>
-            </div>
-            <button 
-              className="p-2 mb-8 text-6xl text-[#3c390f] opacity-75 hover:opacity-100 transition-opacity duration-250 pointer-events-auto"
-              onClick={() => setDiceCount(Math.min(diceCount + 1, 12))}
-            >
-              +
+              ROLL
             </button>
           </div>
         </section>
