@@ -180,7 +180,10 @@ function DiceScene({ dices }: { dices: JSX.Element[] }) {
         dampingFactor={0.05}
         rotateSpeed={0.5}
         enablePan={false}
-        enableZoom={false}
+        enableZoom={true}        // Enable zoom
+        minDistance={10}         // Minimum zoom distance
+        maxDistance={ARENA_SIZE * 2}  // Maximum zoom distance
+        zoomSpeed={0.5}         // Slower zoom for more control
       />
       <PerspectiveCamera 
         makeDefault 
