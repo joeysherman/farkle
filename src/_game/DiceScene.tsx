@@ -1,20 +1,26 @@
 import { useRef } from "react";
 import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
-import { Physics } from "@react-three/rapier";
-import { Ground } from "./Ground";
-import { Walls } from "./Walls";
 import { ARENA_SIZE } from "./constants";
+import { Dice } from "./Dice";
 
 /**
- * Main scene component that sets up the 3D environment for the dice
- * Includes camera controls, lighting, and physics world
+ * Main scene component that displays 6 dice in a row
  */
-export function DiceScene({ dices }: { dices: JSX.Element[] }) {
+export function DiceScene({ diceStates }: { diceStates: { number: number }[] }) {
   const controls = useRef<any>(null);
+
+  // Calculate positions for 6 dice in a row with more spacing
+  const dicePositions: [number, number, number][] = [
+    [-10, 0, -5],
+    [-10, 0, 5],
+    [0, 0, -5],
+    [0, 0, 5],
+    [10, 0, -5],
+    [10, 0, 5]
+  ];
 
   return (
     <>
-      {/* Camera Controls */}
       <OrbitControls 
         ref={controls}
         minPolarAngle={0}
@@ -29,35 +35,34 @@ export function DiceScene({ dices }: { dices: JSX.Element[] }) {
         zoomSpeed={0.5}
       />
       
-      {/* Main Camera */}
       <PerspectiveCamera 
         makeDefault 
-        position={[-ARENA_SIZE * 1.1, ARENA_SIZE * 1.6, ARENA_SIZE * 1.1]} 
+        position={[-ARENA_SIZE * 0.8, ARENA_SIZE * 0.8, ARENA_SIZE * 0.8]} 
         fov={50}
       />
 
-      {/* Scene Lighting */}
       <ambientLight intensity={2} />
       <directionalLight
         position={[-50, 75, -50]}
         intensity={2.5}
         castShadow
         shadow-mapSize={[4096, 4096]}
-        shadow-camera-left={-ARENA_SIZE}
-        shadow-camera-right={ARENA_SIZE}
-        shadow-camera-top={ARENA_SIZE}
-        shadow-camera-bottom={-ARENA_SIZE}
       />
 
-      {/* Physics World */}
-      <Physics 
-        gravity={[0, -29.4, 0]}
-        timeStep="vary"
-      >
-        <Ground />
-        <Walls />
-        {dices}
-      </Physics>
+      {/* Render 6 dice with their current numbers */}
+      {diceStates.map((state, index) => (
+        <Dice 
+          key={index}
+          desiredNumber={state.number}
+          position={dicePositions[index]}
+        />
+      ))}
+
+      {/* Ground plane */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
+        <planeGeometry args={[ARENA_SIZE, ARENA_SIZE]} />
+        <meshStandardMaterial color="#e9e464" />
+      </mesh>
     </>
   );
 }

@@ -1,143 +1,51 @@
-import { useRef, useEffect } from "react";
-import { useFrame } from "@react-three/fiber";
-import { RigidBody } from "@react-three/rapier";
+import { useRef } from "react";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
-import { DICE_URL, DROP_HEIGHT } from "./constants";
+import { DICE_URL } from "./constants";
 
 // Preload the dice model
 useGLTF.preload(DICE_URL);
 
 interface DiceProps {
   desiredNumber?: number;
-}
-
-/**
- * Helper function to generate random initial position for the die
- */
-function getRandomPosition() {
-  return {
-    x: (Math.random() * 4 - 2),  // -2 to 2
-    y: DROP_HEIGHT,
-    z: (Math.random() * 4 - 2)   // -2 to 2
-  };
+  position?: [number, number, number];
 }
 
 /**
  * Get the rotation needed for a specific number to face up
- * In a standard die, opposite faces sum to 7
  */
 function getRotationForNumber(number: number): [number, number, number] {
   switch (number) {
-    case 1: // 6 on top
-      return [0, 0, 0];
-    case 2: // 5 on top
-      return [0, 0, Math.PI / 2];
-    case 3: // 4 on top
-      return [Math.PI / 2, 0, 0];
-    case 4: // 3 on top
-      return [-Math.PI / 2, 0, 0];
-    case 5: // 2 on top
-      return [0, 0, -Math.PI / 2];
-    case 6: // 1 on top
-      return [Math.PI, 0, 0];
+    case 1:
+      return [Math.PI / 2, 0, 0];    // Working - shows 1
+    case 2:
+      return [-Math.PI / 2, Math.PI, 0];  // New rotation for 2
+    case 3:
+      return [Math.PI / 2, Math.PI, 0];   // New rotation for 3
+    case 4:
+      return [Math.PI / 2, 0, Math.PI];   // New rotation for 4
+    case 5:
+      return [-Math.PI / 2, 0, Math.PI];  // New rotation for 5
+    case 6:
+      return [-Math.PI / 2, 0, 0];   // Working - shows 6
     default:
-      return [0, 0, 0];
+      return [-Math.PI / 2, 0, 0];   // Default to 6
   }
 }
 
 /**
- * Dice component that handles the physics and animation of a single die
- * Includes automatic correction to ensure it lands with the desired number facing up
+ * Static Dice component that shows a specific number facing up
  */
-export function Dice({ desiredNumber = 6 }: DiceProps) {
-  const diceRef = useRef<any>(null);
+export function Dice({ desiredNumber = 6, position = [0, 0, 0] }: DiceProps) {
   const { scene } = useGLTF(DICE_URL);
-  const isSettling = useRef(false);
-  const startTime = useRef<number | null>(null);
-  
-  // Clone the scene for each die instance
   const clonedScene = scene.clone(true);
 
-  useEffect(() => {
-    if (diceRef.current) {
-      const pos = getRandomPosition();
-      diceRef.current.setTranslation({ x: pos.x, y: pos.y, z: pos.z }, true);
-      
-      // Simple initial spin
-      diceRef.current.setAngvel(
-        { 
-          x: Math.random() * 2 - 1,    // Gentle spin
-          y: Math.random() * 2 - 1, 
-          z: Math.random() * 2 - 1
-        }, 
-        true
-      );
-    }
-  }, []);
-
-  useFrame((_, delta) => {
-    if (diceRef.current) {
-      const velocity = diceRef.current.linvel();
-      const position = diceRef.current.translation();
-
-      // Check if die has mostly stopped and is near the ground
-      if (!isSettling.current && 
-          Math.abs(velocity.y) < 0.1 && 
-          position.y < 1.0) {
-        
-        isSettling.current = true;
-        startTime.current = Date.now();
-      }
-
-      // If we're settling, smoothly rotate to correct orientation
-      if (isSettling.current && startTime.current) {
-        const elapsedTime = (Date.now() - startTime.current) / 1000;
-        const duration = 0.5;
-        
-        if (elapsedTime <= duration) {
-          const progress = elapsedTime / duration;
-          const smoothProgress = Math.sin((progress * Math.PI) / 2);
-          
-          const currentQuat = new THREE.Quaternion();
-          const targetQuat = new THREE.Quaternion().setFromEuler(
-            new THREE.Euler(...getRotationForNumber(desiredNumber))
-          );
-          
-          currentQuat.slerpQuaternions(
-            diceRef.current.rotation() as THREE.Quaternion,
-            targetQuat,
-            smoothProgress
-          );
-          
-          diceRef.current.setRotation(currentQuat, true);
-          
-          // Gradually reduce angular velocity
-          const currentAngVel = diceRef.current.angvel();
-          diceRef.current.setAngvel({
-            x: currentAngVel.x * (1 - smoothProgress),
-            y: currentAngVel.y * (1 - smoothProgress),
-            z: currentAngVel.z * (1 - smoothProgress)
-          }, true);
-        }
-      }
-    }
-  });
-
   return (
-    <RigidBody 
-      ref={diceRef} 
-      colliders="cuboid"
-      mass={2}
-      position={[0, DROP_HEIGHT, 0]}
-      rotation={[0, 0, 0]}
-      restitution={0.3}    // Less bounce
-      friction={0.8}       // More friction
-      angularDamping={0.8} // More angular damping
-      linearDamping={0.8}  // More linear damping
-      ccd={true}          // Continuous collision detection
+    <mesh
+      position={position}
+      rotation={getRotationForNumber(desiredNumber)}
     >
       <primitive object={clonedScene} scale={[1, 1, 1]} />
-    </RigidBody>
+    </mesh>
   );
 } 

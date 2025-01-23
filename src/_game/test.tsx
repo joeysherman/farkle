@@ -1,7 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { DiceScene } from "./DiceScene";
-import { Dice } from "./Dice";
 import { DICE_URL } from "./constants";
 import { useGLTF } from "@react-three/drei";
 
@@ -9,19 +8,32 @@ import { useGLTF } from "@react-three/drei";
 useGLTF.preload(DICE_URL);
 
 export interface SceneRef {
-  roll: (desiredNumber?: number) => void;
+  roll: (index: number, desiredNumber: number) => void;
 }
 
 export const Scene = forwardRef<SceneRef>((_, ref) => {
-  const [dices, setDices] = useState<JSX.Element[]>(() => [<Dice key={Date.now()} desiredNumber={6} />]);
+  // Initialize state for all 6 dice
+  const [diceStates, setDiceStates] = useState([
+    { number: 1 },
+    { number: 2 },
+    { number: 3 },
+    { number: 4 },
+    { number: 5 },
+    { number: 6 }
+  ]);
 
-  const rollDice = (desiredNumber: number = 6) => {
-    setDices([<Dice key={Date.now()} desiredNumber={desiredNumber} />]);
+  // Function to roll a specific die
+  const rollDie = (index: number, desiredNumber: number) => {
+    setDiceStates(prev => {
+      const newStates = [...prev];
+      newStates[index] = { number: desiredNumber };
+      return newStates;
+    });
   };
 
   // Expose roll function via ref
   useImperativeHandle(ref, () => ({
-    roll: rollDice
+    roll: rollDie
   }));
 
   return (
@@ -42,7 +54,7 @@ export const Scene = forwardRef<SceneRef>((_, ref) => {
 
       {/* Three.js Canvas */}
       <Canvas shadows className="w-full h-full">
-        <DiceScene dices={dices} />
+        <DiceScene diceStates={diceStates} />
       </Canvas>
     </div>
   );
