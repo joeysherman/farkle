@@ -8,15 +8,26 @@ import { useGLTF } from "@react-three/drei";
 useGLTF.preload(DICE_URL);
 
 export interface SceneRef {
-  roll: (desiredNumber: number) => void;
+  roll: (index: number, desiredNumber: number) => void;
 }
 
 export const Scene = forwardRef<SceneRef>((_, ref) => {
-  const [diceNumber, setDiceNumber] = useState(6);  // Default to 6
+  const [diceStates, setDiceStates] = useState([
+    { number: 1 },
+    { number: 2 },
+    { number: 3 },
+    { number: 4 },
+    { number: 5 },
+    { number: 6 }
+  ]);
 
-  // Function to roll the die
-  const rollDie = (desiredNumber: number) => {
-    setDiceNumber(desiredNumber);
+  // Function to roll a specific die
+  const rollDie = (index: number, desiredNumber: number) => {
+    setDiceStates(prev => {
+      const newStates = [...prev];
+      newStates[index] = { number: desiredNumber };
+      return newStates;
+    });
   };
 
   // Expose roll function via ref
@@ -42,7 +53,7 @@ export const Scene = forwardRef<SceneRef>((_, ref) => {
 
       {/* Three.js Canvas */}
       <Canvas shadows className="w-full h-full">
-        <DiceScene number={diceNumber} />
+        <DiceScene diceStates={diceStates} />
       </Canvas>
     </div>
   );
