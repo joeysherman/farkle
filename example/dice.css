@@ -1,0 +1,84 @@
+body,
+button {
+  font-family: "Cherry Bomb One", system-ui;
+  font-weight: 400;
+  font-style: normal;
+
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  nav {
+    display: flex;
+    position: absolute;
+    justify-content: space-between;
+    z-index: 10;
+    width: 100%;
+    pointer-events: none;
+
+    h1 {
+      padding: 0.75rem;
+      line-height: 0.85;
+      font-size: 2.25rem;
+      color: #3c390f;
+    }
+
+    h5 {
+      padding: 0.75rem;
+      color: #3c390f;
+      opacity: 0.75;
+      pointer-events: auto;
+
+      a img {
+        width: 1.5rem;
+      }
+    }
+  }
+
+  section {
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    bottom: 0;
+    left: 0;
+    z-index: 10;
+    width: 100%;
+    pointer-events: none;
+
+    .panel {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    p {
+      margin-bottom: -0.5rem;
+      text-align: center;
+      color: #3c390f;
+      opacity: 0.5;
+    }
+
+    button {
+      padding: 0.5rem;
+      margin-bottom: 2rem;
+      background: none;
+      border: none;
+      line-height: 1;
+      font-size: 4rem;
+      color: #3c390f;
+      cursor: pointer;
+      opacity: 0.75;
+      transition: 250ms;
+      pointer-events: auto;
+
+      &:hover {
+        opacity: 1;
+      }
+
+      &:active {
+        transform: scale(0.75);
+      }
+    }
+  }
+}
