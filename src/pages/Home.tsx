@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { FunctionComponent } from "../common/types";
-import { Scene } from "../_game/test.tsx";
+import { Scene } from "../_game/test";
 
 export const Home = (): FunctionComponent => {
 	const { t, i18n } = useTranslation();
@@ -19,7 +19,7 @@ export const Home = (): FunctionComponent => {
 			<button type="submit" onClick={onTranslateButtonClick}>
 				translate
 			</button>
-			<div className="w-full max-w-2xl mt-8">
+			<div className="w-full max-w-2xl mt-8 aspect-square">
 				<Scene />
 			</div>
 		</div>

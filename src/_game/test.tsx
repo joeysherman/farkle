@@ -83,10 +83,10 @@ export function Scene(): JSX.Element {
   }, [diceCount]);
 
   return (
-    <div className="h-screen w-full relative">
+    <div className="relative w-full h-full bg-white rounded-lg shadow-lg overflow-hidden">
       {/* UI Overlay */}
-      <div className="absolute top-0 left-0 w-full">
-        <nav className="flex justify-between w-full pointer-events-none z-10">
+      <div className="absolute top-0 left-0 w-full z-10">
+        <nav className="flex justify-between w-full pointer-events-none">
           <h1 className="p-3 text-4xl leading-tight text-[#3c390f]">DICE<br/>3D</h1>
           <h5 className="p-3 text-[#3c390f] opacity-75 pointer-events-auto">
             <a href="https://github.com/fuzionix" target="_blank">
@@ -99,8 +99,8 @@ export function Scene(): JSX.Element {
       </div>
 
       {/* Controls Overlay */}
-      <div className="absolute bottom-0 left-0 w-full">
-        <section className="flex justify-center w-full pointer-events-none z-10">
+      <div className="absolute bottom-0 left-0 w-full z-10">
+        <section className="flex justify-center w-full pointer-events-none">
           <div className="flex gap-6">
             <button 
               className="p-2 mb-8 text-6xl text-[#3c390f] opacity-75 hover:opacity-100 transition-opacity duration-250 pointer-events-auto"
@@ -130,7 +130,7 @@ export function Scene(): JSX.Element {
       </div>
 
       {/* Three.js Canvas */}
-      <Canvas shadows>
+      <Canvas shadows className="w-full h-full">
         <DiceScene dices={dices} />
       </Canvas>
     </div>
