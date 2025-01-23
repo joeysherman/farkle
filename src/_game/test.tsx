@@ -7,6 +7,11 @@ import { RigidBody as RigidBodyType } from "@dimforge/rapier3d-compat";
 
 const DICE_URL = "https://dl.dropboxusercontent.com/scl/fi/n0ogooke4kstdcwo7lryy/dice_highres_red.glb?rlkey=i15sotl674m294bporeumu5d3&st=fss6qosg";
 
+// Scene constants
+const ARENA_SIZE = 8; // Size of the play area
+const WALL_HEIGHT = 20; // Height of invisible walls
+const DROP_HEIGHT = 10; // Height from which dice are dropped
+
 // Preload the dice model
 useGLTF.preload(DICE_URL);
 
@@ -34,11 +39,46 @@ function Dice({ position, rotation }: {
   );
 }
 
+function Walls() {
+  return (
+    <>
+      {/* Back wall */}
+      <RigidBody type="fixed" position={[0, WALL_HEIGHT / 2, -ARENA_SIZE / 2]}>
+        <mesh>
+          <boxGeometry args={[ARENA_SIZE, WALL_HEIGHT, 0.1]} />
+          <meshStandardMaterial transparent opacity={0} />
+        </mesh>
+      </RigidBody>
+      {/* Front wall */}
+      <RigidBody type="fixed" position={[0, WALL_HEIGHT / 2, ARENA_SIZE / 2]}>
+        <mesh>
+          <boxGeometry args={[ARENA_SIZE, WALL_HEIGHT, 0.1]} />
+          <meshStandardMaterial transparent opacity={0} />
+        </mesh>
+      </RigidBody>
+      {/* Left wall */}
+      <RigidBody type="fixed" position={[-ARENA_SIZE / 2, WALL_HEIGHT / 2, 0]}>
+        <mesh>
+          <boxGeometry args={[0.1, WALL_HEIGHT, ARENA_SIZE]} />
+          <meshStandardMaterial transparent opacity={0} />
+        </mesh>
+      </RigidBody>
+      {/* Right wall */}
+      <RigidBody type="fixed" position={[ARENA_SIZE / 2, WALL_HEIGHT / 2, 0]}>
+        <mesh>
+          <boxGeometry args={[0.1, WALL_HEIGHT, ARENA_SIZE]} />
+          <meshStandardMaterial transparent opacity={0} />
+        </mesh>
+      </RigidBody>
+    </>
+  );
+}
+
 function Ground() {
   return (
     <RigidBody type="fixed" restitution={0.7} friction={0.5}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
-        <planeGeometry args={[100, 100]} />
+        <planeGeometry args={[ARENA_SIZE, ARENA_SIZE]} />
         <meshStandardMaterial color="#e9e464" />
       </mesh>
     </RigidBody>
@@ -60,20 +100,25 @@ function DiceScene({ dices }: { dices: JSX.Element[] }) {
         enablePan={false}
         enableZoom={false}
       />
-      <PerspectiveCamera makeDefault position={[-12, 22, 12]} />
+      <PerspectiveCamera 
+        makeDefault 
+        position={[-ARENA_SIZE * 1.5, ARENA_SIZE * 2.5, ARENA_SIZE * 1.5]} 
+        fov={45}
+      />
       <ambientLight intensity={2} />
       <directionalLight
         position={[-30, 50, -30]}
         intensity={2.5}
         castShadow
         shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-20}
-        shadow-camera-right={20}
-        shadow-camera-top={20}
-        shadow-camera-bottom={-20}
+        shadow-camera-left={-ARENA_SIZE}
+        shadow-camera-right={ARENA_SIZE}
+        shadow-camera-top={ARENA_SIZE}
+        shadow-camera-bottom={-ARENA_SIZE}
       />
       <Physics gravity={[0, -29.4, 0]}>
         <Ground />
+        <Walls />
         {dices}
       </Physics>
     </>
@@ -86,9 +131,11 @@ export function Scene(): JSX.Element {
   const rollDice = () => {
     const dices: JSX.Element[] = [];
     for (let i = 0; i < diceCount; i++) {
-      const x = Math.random() * 4 - 2;
-      const y = 15;
-      const z = Math.random() * 4 - 2;
+      // Calculate random position within the arena bounds
+      const x = (Math.random() - 0.5) * (ARENA_SIZE * 0.8); // 80% of arena size to keep dice away from walls
+      const y = DROP_HEIGHT;
+      const z = (Math.random() - 0.5) * (ARENA_SIZE * 0.8);
+      
       const rotation = [
         Math.random() * Math.PI * 2,
         Math.random() * Math.PI * 2,
