@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { FunctionComponent } from "../common/types";
+import { Scene } from "../_game/test";
 
 export const Home = (): FunctionComponent => {
 	const { t, i18n } = useTranslation();
@@ -13,11 +14,14 @@ export const Home = (): FunctionComponent => {
 	};
 
 	return (
-		<div className="bg-blue-300  font-bold w-screen h-screen flex flex-col justify-center items-center">
+		<div className="bg-blue-300 font-bold w-screen h-screen flex flex-col justify-center items-center">
 			<p className="text-white text-6xl">{t("home.greeting")}</p>
 			<button type="submit" onClick={onTranslateButtonClick}>
 				translate
 			</button>
+			<div className="w-full max-w-2xl mt-8">
+				<Scene />
+			</div>
 		</div>
 	);
 };
