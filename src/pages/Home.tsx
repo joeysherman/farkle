@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { FunctionComponent } from "../common/types";
-import { Scene } from "../_game/test";
+import { Scene } from "../_game/test.tsx";
 
 export const Home = (): FunctionComponent => {
 	const { t, i18n } = useTranslation();
