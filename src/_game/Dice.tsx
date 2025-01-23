@@ -19,17 +19,16 @@ function getRotationForNumber(number: number): [number, number, number] {
     case 1:
       return [Math.PI / 2, 0, 0];    // Working - shows 1
     case 2:
-      return [-Math.PI / 2, Math.PI, 0];  // New rotation for 2
+       return [Math.PI / 2, -Math.PI / 2, -Math.PI / 2]; 
     case 3:
-      return [Math.PI / 2, Math.PI, 0];   // New rotation for 3
+      return [0, 0, -Math.PI / 2];   // Working - shows 3
     case 4:
-      return [Math.PI / 2, 0, Math.PI];   // New rotation for 4
+      return [0, 0, Math.PI / 2];    // Working - shows 4
     case 5:
-      return [-Math.PI / 2, 0, Math.PI];  // New rotation for 5
+      return [0, Math.PI / 2, 0];    // Working - shows 5
     case 6:
       return [-Math.PI / 2, 0, 0];   // Working - shows 6
-    default:
-      return [-Math.PI / 2, 0, 0];   // Default to 6
+    
   }
 }
 

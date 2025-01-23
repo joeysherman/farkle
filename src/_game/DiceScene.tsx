@@ -4,20 +4,10 @@ import { ARENA_SIZE } from "./constants";
 import { Dice } from "./Dice";
 
 /**
- * Main scene component that displays 6 dice in a row
+ * Main scene component that displays a single die
  */
-export function DiceScene({ diceStates }: { diceStates: { number: number }[] }) {
+export function DiceScene({ number }: { number: number }) {
   const controls = useRef<any>(null);
-
-  // Calculate positions for 6 dice in a row with more spacing
-  const dicePositions: [number, number, number][] = [
-    [-10, 0, -5],
-    [-10, 0, 5],
-    [0, 0, -5],
-    [0, 0, 5],
-    [10, 0, -5],
-    [10, 0, 5]
-  ];
 
   return (
     <>
@@ -37,7 +27,7 @@ export function DiceScene({ diceStates }: { diceStates: { number: number }[] }) 
       
       <PerspectiveCamera 
         makeDefault 
-        position={[-ARENA_SIZE * 0.8, ARENA_SIZE * 0.8, ARENA_SIZE * 0.8]} 
+        position={[-ARENA_SIZE * 0.5, ARENA_SIZE * 0.5, ARENA_SIZE * 0.5]} 
         fov={50}
       />
 
@@ -49,14 +39,11 @@ export function DiceScene({ diceStates }: { diceStates: { number: number }[] }) 
         shadow-mapSize={[4096, 4096]}
       />
 
-      {/* Render 6 dice with their current numbers */}
-      {diceStates.map((state, index) => (
-        <Dice 
-          key={index}
-          desiredNumber={state.number}
-          position={dicePositions[index]}
-        />
-      ))}
+      {/* Single die in the center */}
+      <Dice 
+        desiredNumber={number}
+        position={[0, 0, 0]}
+      />
 
       {/* Ground plane */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
