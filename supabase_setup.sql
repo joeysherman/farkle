@@ -27,6 +27,7 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 -- Drop existing policies to avoid conflicts
 DROP POLICY IF EXISTS "Users can view any profile" ON public.profiles;
 DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
 
 CREATE POLICY "Users can view any profile"
   ON public.profiles FOR SELECT
@@ -35,6 +36,10 @@ CREATE POLICY "Users can view any profile"
 CREATE POLICY "Users can update their own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert their own profile"
+  ON public.profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
 
 -- Step 2: Create game rooms table
 CREATE TABLE IF NOT EXISTS public.game_rooms (
