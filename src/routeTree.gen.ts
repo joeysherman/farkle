@@ -12,6 +12,7 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as SignupImport } from './routes/signup'
+import { Route as RoomImport } from './routes/room'
 import { Route as IndexImport } from './routes/index'
 import { Route as AuthCallbackImport } from './routes/auth.callback'
 
@@ -19,6 +20,11 @@ import { Route as AuthCallbackImport } from './routes/auth.callback'
 
 const SignupRoute = SignupImport.update({
   path: '/signup',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const RoomRoute = RoomImport.update({
+  path: '/room',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -43,6 +49,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
+    '/room': {
+      id: '/room'
+      path: '/room'
+      fullPath: '/room'
+      preLoaderRoute: typeof RoomImport
+      parentRoute: typeof rootRoute
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -64,6 +77,7 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren({
   IndexRoute,
+  RoomRoute,
   SignupRoute,
   AuthCallbackRoute,
 })
@@ -77,12 +91,16 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "__root.ts",
       "children": [
         "/",
+        "/room",
         "/signup",
         "/auth/callback"
       ]
     },
     "/": {
       "filePath": "index.ts"
+    },
+    "/room": {
+      "filePath": "room.ts"
     },
     "/signup": {
       "filePath": "signup.ts"
