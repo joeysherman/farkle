@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type { FunctionComponent } from "../common/types";
 import { Navbar } from "../components/Navbar";
 import { supabase } from "../lib/supabaseClient";
@@ -13,9 +13,35 @@ interface GameRoom {
 }
 
 export const Home = (): FunctionComponent => {
+	const navigate = useNavigate();
+	const [isLoading, setIsLoading] = useState(true);
 	const [showCreateRoom, setShowCreateRoom] = useState(false);
 	const [roomName, setRoomName] = useState('');
 	const [availableRooms, setAvailableRooms] = useState<GameRoom[]>([]);
+
+	useEffect(() => {
+		const checkAuth = async () => {
+			const { data: { user } } = await supabase.auth.getUser();
+			if (!user) {
+				navigate({ to: '/signup' });
+			} else {
+				setIsLoading(false);
+			}
+		};
+		
+		checkAuth();
+	}, [navigate]);
+
+	if (isLoading) {
+		return (
+			<div className="flex items-center justify-center min-h-screen bg-gray-50">
+				<div className="text-center">
+					<div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin mx-auto"></div>
+					<p className="mt-4 text-gray-600">Loading...</p>
+				</div>
+			</div>
+		);
+	}
 
 	const handleCreateRoom = async () => {
 		try {
