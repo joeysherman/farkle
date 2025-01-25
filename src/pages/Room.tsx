@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { supabase } from '../lib/supabaseClient';
 import { Navbar } from '../components/Navbar';
 import { Route as RoomRoute } from '../routes/room';
+import { Scene, SceneRef } from '../_game/test';
 
 interface GameRoom {
   id: string;
@@ -25,12 +26,32 @@ export function Room() {
   const navigate = useNavigate();
   const search = useSearch({ from: RoomRoute.id });
   const roomId = search.roomId;
+  const sceneRef = useRef<SceneRef>(null);
   
   const [room, setRoom] = useState<GameRoom | null>(null);
   const [players, setPlayers] = useState<GamePlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inputRoomId, setInputRoomId] = useState('');
+  const [diceValues, setDiceValues] = useState([1, 2, 3, 4, 5, 6]);
+
+  const handleNumberChange = (index: number, value: string) => {
+    const numValue = parseInt(value);
+    if (numValue >= 1 && numValue <= 6) {
+      setDiceValues(prev => {
+        const newValues = [...prev];
+        newValues[index] = numValue;
+        return newValues;
+      });
+    }
+  };
+
+  const handleRollClick = (index: number) => {
+    const value = diceValues[index];
+    if (value !== undefined) {
+      sceneRef.current?.roll(index, value);
+    }
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -226,6 +247,36 @@ export function Room() {
           <div className="bg-white shadow sm:rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">{room.name}</h2>
+
+              {/* Game Scene */}
+              <div className="mt-6 mb-8">
+                <div className="w-full h-[600px] bg-gray-50 rounded-lg overflow-hidden">
+                  <Scene ref={sceneRef} />
+                </div>
+                
+                {/* Dice Controls */}
+                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+                  {diceValues.map((value, index) => (
+                    <div key={index} className="flex flex-col items-center space-y-2">
+                      <div className="text-sm font-medium text-gray-700">Die {index + 1}</div>
+                      <input
+                        type="number"
+                        min="1"
+                        max="6"
+                        value={value}
+                        onChange={(e) => handleNumberChange(index, e.target.value)}
+                        className="w-16 px-2 py-1 text-center border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                      <button
+                        onClick={() => handleRollClick(index)}
+                        className="w-full px-3 py-1 text-sm text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        Roll
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
               
               <div className="mt-4">
                 <h3 className="text-lg font-medium text-gray-900">Players</h3>
