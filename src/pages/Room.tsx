@@ -242,77 +242,61 @@ export function Room() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white shadow sm:rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{room.name}</h2>
+      <main className="max-w-[1600px] mx-auto h-[calc(100vh-64px)]">
+        <div className="flex flex-col md:flex-row md:space-x-6 h-full p-4 sm:p-6 lg:p-8">
+          {/* Left Column - Room Details */}
+          <div className="w-full md:w-1/3 mb-6 md:mb-0 md:overflow-y-auto">
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">{room.name}</h2>
+                
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium text-gray-900">Game Status</h3>
+                  <p className="mt-2 text-sm text-gray-500">
+                    {room.status === 'waiting' && (
+                      <>Waiting for players ({room.current_players}/{room.max_players})</>
+                    )}
+                    {room.status === 'in_progress' && 'Game in progress'}
+                    {room.status === 'completed' && 'Game completed'}
+                  </p>
+                </div>
 
-              {/* Game Scene */}
-              <div className="mt-6 mb-8">
-                <div className="w-full h-[600px] bg-gray-50 rounded-lg overflow-hidden">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Players</h3>
+                  <div className="mt-2 space-y-3">
+                    {players.map((player) => (
+                      <div
+                        key={player.id}
+                        className="relative rounded-lg border border-gray-300 bg-white px-4 py-3 shadow-sm flex items-center space-x-3"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900">
+                            Player {player.player_order}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Score: {player.score}
+                          </p>
+                        </div>
+                        {!player.is_active && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Inactive
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Game Canvas */}
+          <div className="w-full md:w-2/3 h-full">
+            <div className="bg-white shadow rounded-lg h-full">
+              <div className="h-full p-4">
+                <div className="w-full h-full bg-gray-50 rounded-lg overflow-hidden">
                   <Scene ref={sceneRef} />
                 </div>
-                
-                {/* Dice Controls */}
-                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-                  {diceValues.map((value, index) => (
-                    <div key={index} className="flex flex-col items-center space-y-2">
-                      <div className="text-sm font-medium text-gray-700">Die {index + 1}</div>
-                      <input
-                        type="number"
-                        min="1"
-                        max="6"
-                        value={value}
-                        onChange={(e) => handleNumberChange(index, e.target.value)}
-                        className="w-16 px-2 py-1 text-center border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <button
-                        onClick={() => handleRollClick(index)}
-                        className="w-full px-3 py-1 text-sm text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        Roll
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <h3 className="text-lg font-medium text-gray-900">Players</h3>
-                <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {players.map((player) => (
-                    <div
-                      key={player.id}
-                      className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
-                          Player {player.player_order}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Score: {player.score}
-                        </p>
-                      </div>
-                      {!player.is_active && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                          Inactive
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900">Game Status</h3>
-                <p className="mt-2 text-sm text-gray-500">
-                  {room.status === 'waiting' && (
-                    <>Waiting for players ({room.current_players}/{room.max_players})</>
-                  )}
-                  {room.status === 'in_progress' && 'Game in progress'}
-                  {room.status === 'completed' && 'Game completed'}
-                </p>
               </div>
             </div>
           </div>
