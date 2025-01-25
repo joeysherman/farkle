@@ -1,7 +1,12 @@
 import { useRef, useState } from "react";
 import type { FunctionComponent } from "../common/types";
 import { Scene, SceneRef } from "../_game/test";
+import { createClient } from '@supabase/supabase-js'
 
+const supabaseUrl = import.meta.env['VITE_SUPABASE_URL'];
+const supabaseAnonKey = import.meta.env['VITE_SUPABASE_ANON_KEY'];
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export const Home = (): FunctionComponent => {
 	const sceneRef = useRef<SceneRef>(null);
 	const [diceValues, setDiceValues] = useState([1, 2, 3, 4, 5, 6]);
