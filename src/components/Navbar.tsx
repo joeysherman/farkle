@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { supabase } from '../lib/supabaseClient';
 import type { User } from '@supabase/supabase-js';
 
 export function Navbar() {
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     // Get initial session
@@ -24,11 +26,27 @@ export function Navbar() {
 
   const handleSignOut = async () => {
     try {
+      setIsLoggingOut(true);
       await supabase.auth.signOut();
+      // Wait a moment to show the splash screen
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      navigate({ to: '/signup' });
     } catch (error) {
       console.error('Error signing out:', error);
     }
   };
+
+  // Show logout splash screen
+  if (isLoggingOut) {
+    return (
+      <div className="fixed inset-0 bg-gray-50 flex items-center justify-center z-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-lg text-gray-600">Signing out...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <nav className="bg-white shadow">
@@ -37,7 +55,7 @@ export function Navbar() {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link to="/" className="text-xl font-bold text-indigo-600">
-                Your App
+                Farkle Online
               </Link>
             </div>
           </div>

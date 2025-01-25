@@ -18,43 +18,71 @@ export const Home = (): FunctionComponent => {
 	const [showCreateRoom, setShowCreateRoom] = useState(false);
 	const [roomName, setRoomName] = useState('');
 	const [availableRooms, setAvailableRooms] = useState<GameRoom[]>([]);
+	const [isAuthChecking, setIsAuthChecking] = useState(true);
 
 	useEffect(() => {
-		// Fetch available rooms
-		const fetchRooms = async () => {
-			const { data } = await supabase
-				.from('game_rooms')
-				.select('*')
-				.eq('status', 'waiting')
-				.order('created_at', { ascending: false });
-			
-			if (data) {
-				setAvailableRooms(data);
+		const checkAuth = async () => {
+			const { data: { user } } = await supabase.auth.getUser();
+			if (!user) {
+				navigate({ to: '/signup' });
+				return;
 			}
+			setIsAuthChecking(false);
 		};
 
-		fetchRooms();
+		checkAuth();
+	}, [navigate]);
 
-		// Subscribe to room changes
-		const roomSubscription = supabase
-			.channel('room_changes')
-			.on(
-				'postgres_changes',
-				{
-					event: '*',
-					schema: 'public',
-					table: 'game_rooms',
-				},
-				() => {
-					fetchRooms();
+	useEffect(() => {
+		// Only fetch rooms if user is authenticated
+		if (!isAuthChecking) {
+			// Fetch available rooms
+			const fetchRooms = async () => {
+				const { data } = await supabase
+					.from('game_rooms')
+					.select('*')
+					.eq('status', 'waiting')
+					.order('created_at', { ascending: false });
+				
+				if (data) {
+					setAvailableRooms(data);
 				}
-			)
-			.subscribe();
+			};
 
-		return () => {
-			roomSubscription.unsubscribe();
-		};
-	}, []);
+			fetchRooms();
+
+			// Subscribe to room changes
+			const roomSubscription = supabase
+				.channel('room_changes')
+				.on(
+					'postgres_changes',
+					{
+						event: '*',
+						schema: 'public',
+						table: 'game_rooms',
+					},
+					() => {
+						fetchRooms();
+					}
+				)
+				.subscribe();
+
+			return () => {
+				roomSubscription.unsubscribe();
+			};
+		}
+	}, [isAuthChecking]);
+
+	if (isAuthChecking) {
+		return (
+			<div className="min-h-screen flex items-center justify-center bg-gray-50">
+				<div className="text-center">
+					<div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin mx-auto"></div>
+					<p className="mt-4 text-gray-600">Loading...</p>
+				</div>
+			</div>
+		);
+	}
 
 	const handleCreateRoom = async () => {
 		try {
