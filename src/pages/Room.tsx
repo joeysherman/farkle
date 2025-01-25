@@ -245,8 +245,8 @@ export function Room() {
       <main className="max-w-[1600px] mx-auto h-[calc(100vh-64px)]">
         <div className="flex flex-col md:flex-row md:space-x-6 h-full p-4 sm:p-6 lg:p-8">
           {/* Left Column - Room Details */}
-          <div className="w-full md:w-1/3 mb-6 md:mb-0 md:overflow-y-auto">
-            <div className="bg-white shadow rounded-lg">
+          <div className="w-full h-[calc(50vh-64px)] md:h-full md:w-1/3 mb-4 md:mb-0 overflow-y-auto">
+            <div className="bg-white shadow rounded-lg h-full">
               <div className="px-4 py-5 sm:p-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">{room.name}</h2>
                 
@@ -291,7 +291,7 @@ export function Room() {
           </div>
 
           {/* Right Column - Game Canvas */}
-          <div className="w-full md:w-2/3 h-full">
+          <div className="w-full h-[calc(50vh-64px)] md:h-full md:w-2/3">
             <div className="bg-white shadow rounded-lg h-full">
               <div className="h-full p-4">
                 <div className="w-full h-full bg-gray-50 rounded-lg overflow-hidden">
