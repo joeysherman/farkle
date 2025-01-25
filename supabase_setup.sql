@@ -1,5 +1,16 @@
+-- Create custom type for game status if not exists
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'game_status') THEN
+    CREATE TYPE game_status AS ENUM ('waiting', 'in_progress', 'completed');
+  END IF;
+END $$;
+
+-- Create extension if not exists
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Step 1: Create profiles table to extend Supabase auth users
-create table public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid references auth.users on delete cascade primary key,
   username text unique,
   avatar_url text,
@@ -11,93 +22,163 @@ create table public.profiles (
 );
 
 -- Set up Row Level Security (RLS) for profiles
-alter table public.profiles enable row level security;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
-create policy "Users can view any profile"
-  on public.profiles for select
-  using (true);
+-- Drop existing policies to avoid conflicts
+DROP POLICY IF EXISTS "Users can view any profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 
-create policy "Users can update their own profile"
-  on public.profiles for update
-  using (auth.uid() = id);
+CREATE POLICY "Users can view any profile"
+  ON public.profiles FOR SELECT
+  USING (true);
+
+CREATE POLICY "Users can update their own profile"
+  ON public.profiles FOR UPDATE
+  USING (auth.uid() = id);
 
 -- Step 2: Create game rooms table
-create table public.game_rooms (
-  id uuid default uuid_generate_v4() primary key,
+CREATE TABLE IF NOT EXISTS public.game_rooms (
+  id uuid default gen_random_uuid() primary key,
   name text not null,
   created_by uuid references public.profiles(id),
-  status text check (status in ('waiting', 'in_progress', 'completed')) default 'waiting',
+  status game_status default 'waiting'::game_status not null,
   max_players int default 4,
-  current_turn uuid references public.profiles(id),
-  winning_score int default 10000,
+  current_players int default 1,
+  winner_id uuid references public.profiles(id),
+  ended_at timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- Set up RLS for game rooms
-alter table public.game_rooms enable row level security;
+ALTER TABLE public.game_rooms ENABLE ROW LEVEL SECURITY;
 
-create policy "Anyone can view game rooms"
-  on public.game_rooms for select
-  using (true);
+-- Drop existing policies to avoid conflicts
+DROP POLICY IF EXISTS "Game rooms are viewable by authenticated users" ON public.game_rooms;
+DROP POLICY IF EXISTS "Users can create game rooms" ON public.game_rooms;
 
-create policy "Authenticated users can create game rooms"
-  on public.game_rooms for insert
-  with check (auth.role() = 'authenticated');
+CREATE POLICY "Game rooms are viewable by authenticated users"
+  ON public.game_rooms FOR SELECT
+  USING (true);
 
-create policy "Only room creator can update room"
-  on public.game_rooms for update
-  using (auth.uid() = created_by);
+CREATE POLICY "Users can create game rooms"
+  ON public.game_rooms FOR INSERT
+  WITH CHECK (auth.uid() = created_by);
 
 -- Step 3: Create game participants table
-create table public.game_participants (
-  id uuid default uuid_generate_v4() primary key,
-  game_room_id uuid references public.game_rooms(id) on delete cascade,
-  player_id uuid references public.profiles(id),
-  current_score int default 0,
-  turn_order int,
-  is_active boolean default true,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  unique(game_room_id, player_id)
+CREATE TABLE IF NOT EXISTS public.game_players (
+  id uuid default gen_random_uuid() primary key,
+  game_id uuid references public.game_rooms(id) on delete cascade,
+  user_id uuid references auth.users(id) not null,
+  player_order int not null,
+  score int default 0 not null,
+  is_active boolean default true not null,
+  joined_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(game_id, user_id),
+  unique(game_id, player_order)
 );
 
--- Set up RLS for game participants
-alter table public.game_participants enable row level security;
+-- Set up RLS for game players
+ALTER TABLE public.game_players ENABLE ROW LEVEL SECURITY;
 
-create policy "Players can view game participants"
-  on public.game_participants for select
-  using (true);
+-- Drop existing policies to avoid conflicts
+DROP POLICY IF EXISTS "Game players are viewable by authenticated users" ON public.game_players;
+DROP POLICY IF EXISTS "Players can join games" ON public.game_players;
+DROP POLICY IF EXISTS "Players can join rooms that are waiting and not full" ON public.game_players;
+DROP POLICY IF EXISTS "Players can update their own status in a game" ON public.game_players;
 
-create policy "Players can join games"
-  on public.game_participants for insert
-  with check (auth.role() = 'authenticated');
+CREATE POLICY "Game players are viewable by authenticated users"
+  ON public.game_players FOR SELECT
+  USING (true);
+
+CREATE POLICY "Players can join rooms that are waiting and not full"
+  ON public.game_players FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM game_rooms
+      WHERE id = game_id
+      AND status = 'waiting'
+      AND current_players < max_players
+    )
+    AND
+    NOT EXISTS (
+      SELECT 1 FROM game_players
+      WHERE game_id = game_id
+      AND user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Players can update their own status in a game"
+  ON public.game_players FOR UPDATE
+  TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
 
 -- Step 4: Create game turns table
-create table public.game_turns (
-  id uuid default uuid_generate_v4() primary key,
-  game_room_id uuid references public.game_rooms(id) on delete cascade,
-  player_id uuid references public.profiles(id),
-  dice_values integer[] not null,
-  selected_dice integer[],
-  turn_score int default 0,
-  is_farkle boolean default false,
-  turn_complete boolean default false,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+CREATE TABLE IF NOT EXISTS public.game_turns (
+  id uuid default gen_random_uuid() primary key,
+  game_id uuid references public.game_rooms(id) on delete cascade not null,
+  player_id uuid references public.game_players(id) not null,
+  turn_number int not null,
+  started_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  ended_at timestamp with time zone,
+  score_gained int default 0 not null,
+  is_farkle boolean default false not null,
+  unique(game_id, turn_number)
 );
 
--- Set up RLS for game turns
-alter table public.game_turns enable row level security;
+-- Create turn actions table if not exists
+CREATE TABLE IF NOT EXISTS public.turn_actions (
+  id uuid default gen_random_uuid() primary key,
+  turn_id uuid references public.game_turns(id) on delete cascade not null,
+  action_number int not null,
+  dice_values int[] not null,
+  kept_dice int[] default array[]::int[] not null,
+  score int default 0 not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(turn_id, action_number)
+);
 
-create policy "Anyone can view game turns"
-  on public.game_turns for select
-  using (true);
+-- Create game states table if not exists
+CREATE TABLE IF NOT EXISTS public.game_states (
+  game_id uuid references public.game_rooms(id) on delete cascade primary key,
+  current_turn_number int not null,
+  current_player_id uuid references public.game_players(id) not null,
+  last_updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  available_dice int default 6 not null,
+  current_turn_score int default 0 not null,
+  check (available_dice >= 0 and available_dice <= 6)
+);
 
-create policy "Only current player can insert turn"
-  on public.game_turns for insert
-  using (auth.uid() = player_id);
+-- Drop existing trigger if exists
+DROP TRIGGER IF EXISTS update_room_player_count_trigger ON public.game_players;
+
+-- Recreate the trigger function
+CREATE OR REPLACE FUNCTION update_room_player_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE game_rooms
+    SET current_players = current_players + 1
+    WHERE id = NEW.game_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE game_rooms
+    SET current_players = current_players - 1
+    WHERE id = OLD.game_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create the trigger
+CREATE TRIGGER update_room_player_count_trigger
+AFTER INSERT OR DELETE ON game_players
+FOR EACH ROW
+EXECUTE FUNCTION update_room_player_count();
 
 -- Step 5: Create game history table
-create table public.game_history (
+CREATE TABLE public.game_history (
   id uuid default uuid_generate_v4() primary key,
   game_room_id uuid references public.game_rooms(id) on delete cascade,
   winner_id uuid references public.profiles(id),
@@ -219,9 +300,15 @@ end;
 $$ language plpgsql immutable;
 
 -- Step 10: Create realtime subscriptions
-alter publication supabase_realtime add table game_rooms;
-alter publication supabase_realtime add table game_participants;
-alter publication supabase_realtime add table game_turns;
+BEGIN;
+  DROP PUBLICATION IF EXISTS supabase_realtime;
+  CREATE PUBLICATION supabase_realtime;
+COMMIT;
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.game_rooms;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.game_players;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.game_turns;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.game_states;
 
 -- Step 11: Create triggers for updated_at timestamps
 create or replace function update_updated_at_column()
@@ -245,6 +332,108 @@ create trigger update_game_rooms_updated_at
 -- Comments for documentation
 comment on table public.profiles is 'Player profiles extending Supabase auth';
 comment on table public.game_rooms is 'Active game rooms';
-comment on table public.game_participants is 'Players participating in game rooms';
+comment on table public.game_players is 'Players participating in game rooms';
 comment on table public.game_turns is 'Individual turns within a game';
-comment on table public.game_history is 'Completed game records'; 
+comment on table public.game_history is 'Completed game records';
+
+-- Add function to handle player joining
+CREATE OR REPLACE FUNCTION join_game(room_id UUID)
+RETURNS game_players AS $$
+DECLARE
+  new_player game_players;
+  next_order INTEGER;
+BEGIN
+  -- Get the next player order
+  SELECT COALESCE(MAX(player_order), 0) + 1
+  INTO next_order
+  FROM game_players
+  WHERE game_id = room_id;
+
+  -- Insert the new player
+  INSERT INTO game_players (
+    game_id,
+    user_id,
+    player_order,
+    is_active,
+    score
+  )
+  VALUES (
+    room_id,
+    auth.uid(),
+    next_order,
+    true,
+    0
+  )
+  RETURNING * INTO new_player;
+
+  -- Start game if room is full
+  UPDATE game_rooms
+  SET status = 'in_progress'
+  WHERE id = room_id
+  AND current_players = max_players;
+
+  RETURN new_player;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Add function to leave game
+CREATE OR REPLACE FUNCTION leave_game(room_id UUID)
+RETURNS void AS $$
+BEGIN
+  -- Set player as inactive
+  UPDATE game_players
+  SET is_active = false
+  WHERE game_id = room_id
+  AND user_id = auth.uid();
+
+  -- If all players are inactive, mark game as completed
+  UPDATE game_rooms
+  SET status = 'completed'
+  WHERE id = room_id
+  AND NOT EXISTS (
+    SELECT 1 FROM game_players
+    WHERE game_id = room_id
+    AND is_active = true
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Add function to start game
+CREATE OR REPLACE FUNCTION start_game(room_id UUID)
+RETURNS void AS $$
+BEGIN
+  -- Verify user is room creator
+  IF NOT EXISTS (
+    SELECT 1 FROM game_rooms
+    WHERE id = room_id
+    AND created_by = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Only room creator can start the game';
+  END IF;
+
+  -- Update room status
+  UPDATE game_rooms
+  SET status = 'in_progress'
+  WHERE id = room_id
+  AND status = 'waiting'
+  AND current_players >= 2;  -- Require at least 2 players
+
+  -- Initialize game state if not exists
+  INSERT INTO game_states (
+    game_id,
+    current_turn_number,
+    current_player_id,
+    available_dice,
+    current_turn_score
+  )
+  SELECT
+    room_id,
+    1,
+    (SELECT id FROM game_players WHERE game_id = room_id AND player_order = 1),
+    6,
+    0
+  WHERE NOT EXISTS (
+    SELECT 1 FROM game_states WHERE game_id = room_id
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER; 

@@ -14,37 +14,51 @@ interface GameRoom {
 
 export const Home = (): FunctionComponent => {
 	const navigate = useNavigate();
-	const [isLoading, setIsLoading] = useState(true);
+	const [loading, setLoading] = useState(false);
 	const [showCreateRoom, setShowCreateRoom] = useState(false);
 	const [roomName, setRoomName] = useState('');
 	const [availableRooms, setAvailableRooms] = useState<GameRoom[]>([]);
 
 	useEffect(() => {
-		const checkAuth = async () => {
-			const { data: { user } } = await supabase.auth.getUser();
-			if (!user) {
-				navigate({ to: '/signup' });
-			} else {
-				setIsLoading(false);
+		// Fetch available rooms
+		const fetchRooms = async () => {
+			const { data } = await supabase
+				.from('game_rooms')
+				.select('*')
+				.eq('status', 'waiting')
+				.order('created_at', { ascending: false });
+			
+			if (data) {
+				setAvailableRooms(data);
 			}
 		};
-		
-		checkAuth();
-	}, [navigate]);
 
-	if (isLoading) {
-		return (
-			<div className="flex items-center justify-center min-h-screen bg-gray-50">
-				<div className="text-center">
-					<div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin mx-auto"></div>
-					<p className="mt-4 text-gray-600">Loading...</p>
-				</div>
-			</div>
-		);
-	}
+		fetchRooms();
+
+		// Subscribe to room changes
+		const roomSubscription = supabase
+			.channel('room_changes')
+			.on(
+				'postgres_changes',
+				{
+					event: '*',
+					schema: 'public',
+					table: 'game_rooms',
+				},
+				() => {
+					fetchRooms();
+				}
+			)
+			.subscribe();
+
+		return () => {
+			roomSubscription.unsubscribe();
+		};
+	}, []);
 
 	const handleCreateRoom = async () => {
 		try {
+			setLoading(true);
 			const { data: { user } } = await supabase.auth.getUser();
 			if (!user) return;
 
@@ -54,7 +68,9 @@ export const Home = (): FunctionComponent => {
 					{
 						name: roomName,
 						created_by: user.id,
-						max_players: 4
+						max_players: 4,
+						current_players: 1,
+						status: 'waiting'
 					}
 				])
 				.select()
@@ -62,10 +78,66 @@ export const Home = (): FunctionComponent => {
 
 			if (error) throw error;
 			
-			// Redirect to the room
-			window.location.href = `/room/${data.id}`;
+			// Also create a game_players entry for the creator
+			const { error: playerError } = await supabase
+				.from('game_players')
+				.insert([
+					{
+						game_id: data.id,
+						user_id: user.id,
+						player_order: 1,
+						is_active: true
+					}
+				]);
+
+			if (playerError) throw playerError;
+
+			// Create initial game state
+			const { error: stateError } = await supabase
+				.from('game_states')
+				.insert([
+					{
+						game_id: data.id,
+						current_turn_number: 1,
+						current_player_id: user.id,
+						available_dice: 6,
+						current_turn_score: 0
+					}
+				]);
+
+			if (stateError) throw stateError;
+			
+			// Navigate to the room
+			navigate({ to: '/room', search: { roomId: data.id } });
 		} catch (error) {
 			console.error('Error creating room:', error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleQuickPlay = async () => {
+		try {
+			setLoading(true);
+			const { data: rooms } = await supabase
+				.from('game_rooms')
+				.select('*')
+				.eq('status', 'waiting')
+				.gt('current_players', 0)
+				.lt('current_players', 'max_players')
+				.limit(1)
+				.single();
+
+			if (rooms) {
+				navigate({ to: '/room', search: { roomId: rooms.id } });
+			} else {
+				// No rooms available, create one
+				handleCreateRoom();
+			}
+		} catch (error) {
+			console.error('Error finding game:', error);
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -84,6 +156,34 @@ export const Home = (): FunctionComponent => {
 						</p>
 					</div>
 
+					{/* Available Rooms Section */}
+					{availableRooms.length > 0 && (
+						<div className="mb-12">
+							<h2 className="text-2xl font-bold text-gray-900 mb-4">Available Rooms</h2>
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+								{availableRooms.map((room) => (
+									<div
+										key={room.id}
+										className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
+									>
+										<div className="px-4 py-5 sm:p-6">
+											<h3 className="text-lg font-medium text-gray-900">{room.name}</h3>
+											<p className="mt-1 text-sm text-gray-500">
+												Players: {room.current_players}/{room.max_players}
+											</p>
+											<button
+												onClick={() => navigate({ to: '/room', search: { roomId: room.id } })}
+												className="mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+											>
+												Join Game
+											</button>
+										</div>
+									</div>
+								))}
+							</div>
+						</div>
+					)}
+
 					{/* Main Menu Options */}
 					<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 						{/* Quick Play */}
@@ -94,9 +194,11 @@ export const Home = (): FunctionComponent => {
 									Join a random game that's waiting for players
 								</p>
 								<button
-									className="mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+									onClick={handleQuickPlay}
+									disabled={loading}
+									className="mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
 								>
-									Find Game
+									{loading ? 'Finding Game...' : 'Find Game'}
 								</button>
 							</div>
 						</div>
@@ -117,13 +219,14 @@ export const Home = (): FunctionComponent => {
 										<div className="mt-3 flex space-x-2">
 											<button
 												onClick={handleCreateRoom}
-												disabled={!roomName}
+												disabled={!roomName || loading}
 												className="flex-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
 											>
-												Create
+												{loading ? 'Creating...' : 'Create'}
 											</button>
 											<button
 												onClick={() => setShowCreateRoom(false)}
+												disabled={loading}
 												className="flex-1 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
 											>
 												Cancel
