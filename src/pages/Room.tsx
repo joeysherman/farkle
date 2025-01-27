@@ -22,6 +22,14 @@ interface GamePlayer {
   is_active: boolean;
 }
 
+interface GameState {
+  game_id: string;
+  current_turn_number: number;
+  current_player_id: string;
+  available_dice: number;
+  current_turn_score: number;
+}
+
 export function Room() {
   const navigate = useNavigate();
   const search = useSearch({ from: RoomRoute.id });
@@ -30,6 +38,7 @@ export function Room() {
   
   const [room, setRoom] = useState<GameRoom | null>(null);
   const [players, setPlayers] = useState<GamePlayer[]>([]);
+  const [gameState, setGameState] = useState<GameState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inputRoomId, setInputRoomId] = useState('');
@@ -92,6 +101,16 @@ export function Room() {
         if (playersError) throw playersError;
         setPlayers(playersData || []);
 
+        // Fetch game state
+        const { data: gameStateData, error: gameStateError } = await supabase
+          .from('game_states')
+          .select('*')
+          .eq('game_id', roomId)
+          .single();
+
+        if (gameStateError && gameStateError.code !== 'PGRST116') throw gameStateError;
+        setGameState(gameStateData || null);
+
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -143,9 +162,26 @@ export function Room() {
         )
         .subscribe();
 
+      const gameStateSubscription = supabase
+        .channel('game_state_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'game_states',
+            filter: `game_id=eq.${roomId}`,
+          },
+          (payload) => {
+            setGameState(payload.new as GameState);
+          }
+        )
+        .subscribe();
+
       return () => {
         roomSubscription.unsubscribe();
         playersSubscription.unsubscribe();
+        gameStateSubscription.unsubscribe();
       };
     }
   }, [roomId, navigate]);
@@ -248,40 +284,98 @@ export function Room() {
           <div className="w-full h-[calc(50vh-64px)] md:h-full md:w-1/3 mb-4 md:mb-0 overflow-y-auto">
             <div className="bg-white shadow rounded-lg h-full">
               <div className="px-4 py-5 sm:p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">{room.name}</h2>
-                
-                <div className="mb-6">
-                  <h3 className="text-lg font-medium text-gray-900">Game Status</h3>
-                  <p className="mt-2 text-sm text-gray-500">
-                    {room.status === 'waiting' && (
-                      <>Waiting for players ({room.current_players}/{room.max_players})</>
-                    )}
-                    {room.status === 'in_progress' && 'Game in progress'}
-                    {room.status === 'completed' && 'Game completed'}
-                  </p>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">{room.name}</h2>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                    room.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' :
+                    room.status === 'in_progress' ? 'bg-green-100 text-green-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {room.status === 'waiting' ? 'Waiting' :
+                     room.status === 'in_progress' ? 'In Progress' :
+                     'Completed'}
+                  </span>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">Players</h3>
-                  <div className="mt-2 space-y-3">
-                    {players.map((player) => (
-                      <div
-                        key={player.id}
-                        className="relative rounded-lg border border-gray-300 bg-white px-4 py-3 shadow-sm flex items-center space-x-3"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">
-                            Player {player.player_order}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            Score: {player.score}
-                          </p>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium text-gray-900">Players</h3>
+                    <span className="text-sm text-gray-500">
+                      {room.current_players}/{room.max_players} Players
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {players.map((player) => {
+                      const isCurrentTurn = gameState?.current_player_id === player.id;
+                      return (
+                        <div
+                          key={player.id}
+                          className={`relative rounded-lg border ${
+                            isCurrentTurn ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 bg-white'
+                          } px-4 py-3 shadow-sm flex items-center justify-between transition-colors duration-200`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0">
+                              <div className={`w-10 h-10 rounded-full ${
+                                isCurrentTurn ? 'bg-indigo-200' : 'bg-indigo-100'
+                              } flex items-center justify-center`}>
+                                <span className={`${
+                                  isCurrentTurn ? 'text-indigo-900' : 'text-indigo-800'
+                                } font-medium`}>
+                                  P{player.player_order}
+                                </span>
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <p className="text-sm font-medium text-gray-900">
+                                  Player {player.player_order}
+                                </p>
+                                {isCurrentTurn && (
+                                  <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-indigo-800 bg-indigo-100 rounded">
+                                    Current Turn
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500">
+                                Score: {player.score}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            {player.is_active ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Online
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                Offline
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        {!player.is_active && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            Inactive
-                          </span>
-                        )}
+                      );
+                    })}
+                    {/* Empty slots */}
+                    {Array.from({ length: room.max_players - players.length }).map((_, index) => (
+                      <div
+                        key={`empty-${index}`}
+                        className="relative rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 shadow-sm flex items-center justify-between"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                              <span className="text-gray-400 font-medium">
+                                {players.length + index + 1}
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500">
+                              Waiting for player...
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>

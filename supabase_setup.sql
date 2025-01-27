@@ -156,6 +156,28 @@ CREATE TABLE IF NOT EXISTS public.game_states (
   check (available_dice >= 0 and available_dice <= 6)
 );
 
+-- Set up RLS for game states
+ALTER TABLE public.game_states ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies to avoid conflicts
+DROP POLICY IF EXISTS "Game states are viewable by authenticated users" ON public.game_states;
+DROP POLICY IF EXISTS "Players can update game state" ON public.game_states;
+
+CREATE POLICY "Game states are viewable by authenticated users"
+  ON public.game_states FOR SELECT
+  USING (true);
+
+CREATE POLICY "Players can update game state"
+  ON public.game_states FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM game_players
+      WHERE game_id = game_states.game_id
+      AND user_id = auth.uid()
+      AND is_active = true
+    )
+  );
+
 -- Drop existing trigger if exists
 DROP TRIGGER IF EXISTS update_room_player_count_trigger ON public.game_players;
 
@@ -440,5 +462,94 @@ BEGIN
   WHERE NOT EXISTS (
     SELECT 1 FROM game_states WHERE game_id = room_id
   );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to initialize game state
+CREATE OR REPLACE FUNCTION initialize_game_state(room_id UUID)
+RETURNS void AS $$
+BEGIN
+  -- Get the first player in order
+  INSERT INTO game_states (
+    game_id,
+    current_turn_number,
+    current_player_id,
+    available_dice,
+    current_turn_score
+  )
+  SELECT
+    room_id,
+    1,
+    id,
+    6,
+    0
+  FROM game_players
+  WHERE game_id = room_id
+  ORDER BY player_order ASC
+  LIMIT 1;
+
+  -- Update room status to in_progress
+  UPDATE game_rooms
+  SET status = 'in_progress'
+  WHERE id = room_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to advance to next player's turn
+CREATE OR REPLACE FUNCTION advance_turn(room_id UUID)
+RETURNS void AS $$
+DECLARE
+  next_player_id UUID;
+BEGIN
+  -- Get the next player in order
+  WITH current_player AS (
+    SELECT player_order
+    FROM game_players
+    WHERE id = (
+      SELECT current_player_id
+      FROM game_states
+      WHERE game_id = room_id
+    )
+  )
+  SELECT id INTO next_player_id
+  FROM game_players
+  WHERE game_id = room_id
+  AND is_active = true
+  AND (
+    CASE 
+      WHEN player_order > (SELECT player_order FROM current_player)
+        THEN player_order
+      ELSE player_order + (
+        SELECT MAX(player_order)
+        FROM game_players
+        WHERE game_id = room_id
+      )
+    END
+  ) = (
+    SELECT MIN(
+      CASE 
+        WHEN player_order > (SELECT player_order FROM current_player)
+          THEN player_order
+        ELSE player_order + (
+          SELECT MAX(player_order)
+          FROM game_players
+          WHERE game_id = room_id
+        )
+      END
+    )
+    FROM game_players
+    WHERE game_id = room_id
+    AND is_active = true
+  );
+
+  -- Update game state
+  UPDATE game_states
+  SET
+    current_player_id = next_player_id,
+    current_turn_number = current_turn_number + 1,
+    available_dice = 6,
+    current_turn_score = 0,
+    last_updated_at = now()
+  WHERE game_id = room_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER; 
