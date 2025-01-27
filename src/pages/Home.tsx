@@ -4,6 +4,7 @@ import type { FunctionComponent } from "../common/types";
 import { Navbar } from "../components/Navbar";
 import { supabase } from "../lib/supabaseClient";
 import { nanoid } from 'nanoid';
+import { generateRoomName } from '../utils/roomNames';
 
 interface GameRoom {
 	id: string;
@@ -115,19 +116,8 @@ export const Home = (): FunctionComponent => {
 				if (profileError) throw profileError;
 			}
 
-			// Check if room name already exists
-			const { data: existingRoom } = await supabase
-				.from('game_rooms')
-				.select('id')
-				.eq('name', roomName)
-				.single();
-
-			if (existingRoom) {
-				setError('Room name already exists. Please try another name.');
-				setLoading(false);
-				return;
-			}
-
+			const roomName = generateRoomName();
+			
 			// Generate invite code using the RPC function
 			const { data: inviteCode, error: inviteCodeError } = await supabase
 				.rpc('generate_invite_code');
@@ -276,47 +266,18 @@ export const Home = (): FunctionComponent => {
 					<div className="bg-white overflow-hidden shadow rounded-lg">
 						<div className="px-4 py-5 sm:p-6">
 							<h3 className="text-lg font-medium text-gray-900">Create Game</h3>
-							{showCreateRoom ? (
-								<div className="mt-2">
-									<input
-										type="text"
-										value={roomName}
-										onChange={(e) => setRoomName(e.target.value)}
-										placeholder="Enter room name"
-										className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-									/>
-									<div className="mt-3 flex space-x-2">
-										<button
-											onClick={handleCreateRoom}
-											disabled={!roomName || loading}
-											className="flex-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-										>
-											{loading ? 'Creating...' : 'Create'}
-										</button>
-										<button
-											onClick={() => setShowCreateRoom(false)}
-											disabled={loading}
-											className="flex-1 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-										>
-											Cancel
-										</button>
-									</div>
-									{error && (
-										<p className="text-red-500 mt-2">{error}</p>
-									)}
-								</div>
-							) : (
-								<>
-									<p className="mt-2 text-sm text-gray-500">
-										Create a new game room and invite friends
-									</p>
-									<button
-										onClick={() => setShowCreateRoom(true)}
-										className="mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-									>
-										Create Room
-									</button>
-								</>
+							<p className="mt-2 text-sm text-gray-500">
+								Create a new game room and invite friends
+							</p>
+							<button
+								onClick={handleCreateRoom}
+								disabled={loading}
+								className="mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+							>
+								{loading ? 'Creating...' : 'Create Room'}
+							</button>
+							{error && (
+								<p className="text-red-500 mt-2">{error}</p>
 							)}
 						</div>
 					</div>

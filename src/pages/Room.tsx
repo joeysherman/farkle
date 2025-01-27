@@ -5,6 +5,7 @@ import { Navbar } from '../components/Navbar';
 import { Route as RoomRoute } from '../routes/room';
 import { Scene, SceneRef } from '../_game/test';
 import { nanoid } from 'nanoid';
+import { generateRoomName } from '../utils/roomNames';
 
 interface GameRoom {
   id: string;
@@ -372,10 +373,11 @@ export function Room() {
     }
   };
 
-  const handleCreateRoom = async (name: string) => {
+  const handleCreateRoom = async () => {
     try {
+      const roomName = generateRoomName();
       const { data: roomId, error } = await supabase.rpc('create_room', {
-        p_name: name
+        p_name: roomName
       });
 
       if (error) {
@@ -402,8 +404,17 @@ export function Room() {
         <div className="bg-white rounded-lg p-6 max-w-md w-full">
           {user && room?.created_by === user.id ? (
             <>
-              <h3 className="text-lg font-medium mb-4">Invite Players</h3>
+              <h3 className="text-lg font-medium mb-4">Invite Players to {room.name}</h3>
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Room Code</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={room?.invite_code}
+                    className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Room URL</label>
                   <div className="mt-1 flex rounded-md shadow-sm">
@@ -421,20 +432,11 @@ export function Room() {
                     </button>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Invite Code</label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={room?.invite_code}
-                    className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
-                  />
-                </div>
               </div>
             </>
           ) : (
             <>
-              <h3 className="text-lg font-medium mb-4">Join Game</h3>
+              <h3 className="text-lg font-medium mb-4">Join {room?.name || 'Game'}</h3>
               <div className="space-y-4">
                 {!user && (
                   <div>
@@ -449,7 +451,7 @@ export function Room() {
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">6-Digit Code</label>
+                  <label className="block text-sm font-medium text-gray-700">Room Code</label>
                   <input
                     type="text"
                     value={code}
@@ -497,38 +499,54 @@ export function Room() {
         <Navbar />
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-md mx-auto bg-white shadow rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Join a Room</h2>
-            <form onSubmit={handleJoinRoom} className="space-y-4">
-              <div>
-                <label htmlFor="roomId" className="block text-sm font-medium text-gray-700">
-                  Room ID
-                </label>
-                <input
-                  type="text"
-                  id="roomId"
-                  value={inputRoomId}
-                  onChange={(e) => setInputRoomId(e.target.value)}
-                  placeholder="Enter room ID"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  required
-                />
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Join or Create a Room</h2>
+            <div className="space-y-4">
+              <form onSubmit={handleJoinRoom} className="space-y-4">
+                <div>
+                  <label htmlFor="roomId" className="block text-sm font-medium text-gray-700">
+                    Room Code
+                  </label>
+                  <input
+                    type="text"
+                    id="roomId"
+                    value={inputRoomId}
+                    onChange={(e) => setInputRoomId(e.target.value)}
+                    placeholder="Enter 6-digit room code"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    maxLength={6}
+                  />
+                </div>
+                <div className="flex justify-between">
+                  <button
+                    type="button"
+                    onClick={() => navigate({ to: '/' })}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Back to Home
+                  </button>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Join Room
+                  </button>
+                </div>
+              </form>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => navigate({ to: '/' })}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Back to Home
-                </button>
-                <button
-                  type="submit"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Join Room
-                </button>
-              </div>
-            </form>
+              <button
+                onClick={handleCreateRoom}
+                className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                Create New Room
+              </button>
+            </div>
           </div>
         </div>
       </div>
