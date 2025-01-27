@@ -95,36 +95,27 @@ export function Room() {
 
         setRoom(roomData);
 
-        // Check if user is already a player in the room
-        const { data: existingPlayer } = await supabase
+        // Always fetch players in the room
+        const { data: playersData, error: playersError } = await supabase
           .from('game_players')
           .select('*')
           .eq('game_id', roomId)
-          .eq('user_id', user?.id)
-          .single();
+          .order('player_order', { ascending: true });
 
-        // Show invite code modal if:
-        // 1. User is not logged in (anonymous), or
-        // 2. User is not already a player in the room
-        if (!user || !existingPlayer) {
+        if (playersError) throw playersError;
+        setPlayers(playersData || []);
+
+        // Check if user is already a player in the room or is the creator
+        const isCreator = user?.id === roomData.created_by;
+        const isPlayer = playersData?.some(player => player.user_id === user?.id);
+
+        // Only show invite modal if user is not a player and not the creator
+        if (!isCreator && !isPlayer) {
           setShowInviteModal(true);
-          setLoading(false);
-          return;
         }
 
-        // Only fetch additional data if user is authenticated and is a player
-        if (existingPlayer) {
-          // Fetch players in the room
-          const { data: playersData, error: playersError } = await supabase
-            .from('game_players')
-            .select('*')
-            .eq('game_id', roomId)
-            .order('player_order', { ascending: true });
-
-          if (playersError) throw playersError;
-          setPlayers(playersData || []);
-
-          // Fetch game state
+        // Fetch game state if user is a player or creator
+        if (isPlayer || isCreator) {
           const { data: gameStateData, error: gameStateError } = await supabase
             .from('game_states')
             .select('*')
@@ -378,6 +369,26 @@ export function Room() {
     } catch (err) {
       console.error('Roll error:', err);
       setError(err instanceof Error ? err.message : 'Failed to roll dice');
+    }
+  };
+
+  const handleCreateRoom = async (name: string) => {
+    try {
+      const { data: roomId, error } = await supabase.rpc('create_room', {
+        p_name: name
+      });
+
+      if (error) {
+        console.error('Create room error:', error);
+        setError('Failed to create room. Please try again.');
+        return;
+      }
+
+      // Navigate to the new room
+      navigate({ to: '/room', search: { roomId } });
+    } catch (err) {
+      console.error('Create room error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create room. Please try again.');
     }
   };
 
