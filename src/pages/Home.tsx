@@ -11,6 +11,7 @@ interface GameRoom {
 	current_players: number;
 	max_players: number;
 	status: 'waiting' | 'in_progress' | 'completed';
+	invite_code: string;
 }
 
 export const Home = (): FunctionComponent => {
@@ -127,6 +128,12 @@ export const Home = (): FunctionComponent => {
 				return;
 			}
 
+			// Generate invite code using the RPC function
+			const { data: inviteCode, error: inviteCodeError } = await supabase
+				.rpc('generate_invite_code');
+
+			if (inviteCodeError) throw inviteCodeError;
+
 			const { data, error } = await supabase
 				.from('game_rooms')
 				.insert([
@@ -135,7 +142,8 @@ export const Home = (): FunctionComponent => {
 						created_by: user.id,
 						max_players: 4,
 						current_players: 1,
-						status: 'waiting'
+						status: 'waiting',
+						invite_code: inviteCode
 					}
 				])
 				.select()

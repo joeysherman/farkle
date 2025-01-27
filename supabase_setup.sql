@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS public.game_rooms (
   max_players int default 4,
   current_players int default 1,
   winner_id uuid references public.profiles(id),
+  invite_code char(6) unique not null,
   ended_at timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -364,12 +365,35 @@ comment on table public.game_turns is 'Individual turns within a game';
 comment on table public.game_history is 'Completed game records';
 
 -- Add function to handle player joining
-CREATE OR REPLACE FUNCTION join_game(room_id UUID)
+CREATE OR REPLACE FUNCTION join_game(room_id UUID, code char(6))
 RETURNS game_players AS $$
 DECLARE
   new_player game_players;
   next_order INTEGER;
+  room_status game_status;
+  room_players INTEGER;
+  room_max_players INTEGER;
+  valid_code char(6);
 BEGIN
+  -- Get room details and validate invite code
+  SELECT status, current_players, max_players, invite_code
+  INTO room_status, room_players, room_max_players, valid_code
+  FROM game_rooms
+  WHERE id = room_id;
+
+  -- Validate room state and invite code
+  IF room_status != 'waiting' THEN
+    RAISE EXCEPTION 'Game is not in waiting state';
+  END IF;
+
+  IF room_players >= room_max_players THEN
+    RAISE EXCEPTION 'Game room is full';
+  END IF;
+
+  IF valid_code != code THEN
+    RAISE EXCEPTION 'Invalid invite code';
+  END IF;
+
   -- Get the next player order
   SELECT COALESCE(MAX(player_order), 0) + 1
   INTO next_order
@@ -386,7 +410,7 @@ BEGIN
   )
   VALUES (
     room_id,
-    auth.uid(),
+    COALESCE(auth.uid(), gen_random_uuid()), -- Allow anonymous users
     next_order,
     true,
     0
@@ -552,4 +576,27 @@ BEGIN
     last_updated_at = now()
   WHERE game_id = room_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER; 
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Add function to generate random 6-digit code
+CREATE OR REPLACE FUNCTION generate_invite_code()
+RETURNS char(6) AS $$
+DECLARE
+  code char(6);
+  valid boolean;
+BEGIN
+  LOOP
+    -- Generate a random 6-digit number
+    code := lpad(floor(random() * 1000000)::text, 6, '0');
+    
+    -- Check if code already exists
+    SELECT NOT EXISTS (
+      SELECT 1 FROM game_rooms WHERE invite_code = code
+    ) INTO valid;
+    
+    EXIT WHEN valid;
+  END LOOP;
+  
+  RETURN code;
+END;
+$$ LANGUAGE plpgsql; 

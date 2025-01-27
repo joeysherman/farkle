@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { Navbar } from '../components/Navbar';
 import { Route as RoomRoute } from '../routes/room';
 import { Scene, SceneRef } from '../_game/test';
+import { nanoid } from 'nanoid';
 
 interface GameRoom {
   id: string;
@@ -12,6 +13,7 @@ interface GameRoom {
   max_players: number;
   current_players: number;
   status: 'waiting' | 'in_progress' | 'completed';
+  invite_code: string;
 }
 
 interface GamePlayer {
@@ -43,6 +45,11 @@ export function Room() {
   const [error, setError] = useState<string | null>(null);
   const [inputRoomId, setInputRoomId] = useState('');
   const [diceValues, setDiceValues] = useState([1, 2, 3, 4, 5, 6]);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [username, setUsername] = useState('');
 
   const handleNumberChange = (index: number, value: string) => {
     const numValue = parseInt(value);
@@ -65,10 +72,7 @@ export function Room() {
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate({ to: '/signup' });
-        return;
-      }
+      setUser(user);
 
       if (!roomId) {
         setLoading(false);
@@ -91,25 +95,45 @@ export function Room() {
 
         setRoom(roomData);
 
-        // Fetch players in the room
-        const { data: playersData, error: playersError } = await supabase
+        // Check if user is already a player in the room
+        const { data: existingPlayer } = await supabase
           .from('game_players')
           .select('*')
           .eq('game_id', roomId)
-          .order('player_order', { ascending: true });
-
-        if (playersError) throw playersError;
-        setPlayers(playersData || []);
-
-        // Fetch game state
-        const { data: gameStateData, error: gameStateError } = await supabase
-          .from('game_states')
-          .select('*')
-          .eq('game_id', roomId)
+          .eq('user_id', user?.id)
           .single();
 
-        if (gameStateError && gameStateError.code !== 'PGRST116') throw gameStateError;
-        setGameState(gameStateData || null);
+        // Show invite code modal if:
+        // 1. User is not logged in (anonymous), or
+        // 2. User is not already a player in the room
+        if (!user || !existingPlayer) {
+          setShowInviteModal(true);
+          setLoading(false);
+          return;
+        }
+
+        // Only fetch additional data if user is authenticated and is a player
+        if (existingPlayer) {
+          // Fetch players in the room
+          const { data: playersData, error: playersError } = await supabase
+            .from('game_players')
+            .select('*')
+            .eq('game_id', roomId)
+            .order('player_order', { ascending: true });
+
+          if (playersError) throw playersError;
+          setPlayers(playersData || []);
+
+          // Fetch game state
+          const { data: gameStateData, error: gameStateError } = await supabase
+            .from('game_states')
+            .select('*')
+            .eq('game_id', roomId)
+            .single();
+
+          if (gameStateError && gameStateError.code !== 'PGRST116') throw gameStateError;
+          setGameState(gameStateData || null);
+        }
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -191,6 +215,197 @@ export function Room() {
     if (inputRoomId.trim()) {
       navigate({ to: '/room', search: { roomId: inputRoomId.trim() } });
     }
+  };
+
+  const handleJoinWithCode = async (code: string, username: string) => {
+    try {
+      if (!username.trim() && !user) {
+        setError('Please enter a username');
+        return;
+      }
+
+      let userId = user?.id;
+
+      // If no user, create an anonymous one
+      if (!userId) {
+        // First sign up the user
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: `${nanoid(10)}@anonymous.farkle.com`,
+          password: nanoid(12),
+        });
+
+        if (signUpError) {
+          console.error('Sign up error:', signUpError);
+          throw new Error('Failed to create anonymous user');
+        }
+
+        if (!signUpData.user?.id) {
+          throw new Error('No user ID returned from sign up');
+        }
+
+        userId = signUpData.user.id;
+
+        // Wait a moment for the auth to propagate
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Create profile for anonymous user
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: userId,
+            username: username,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }]);
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          throw new Error('Failed to create user profile');
+        }
+
+        // Set the user in state
+        setUser(signUpData.user);
+      }
+
+      // Verify the invite code and join the game
+      const { error: joinError } = await supabase.rpc('join_game', {
+        room_id: roomId,
+        code: code
+      });
+
+      if (joinError) {
+        console.error('Join game error:', joinError);
+        throw new Error(joinError.message);
+      }
+
+      // Reload the room data after joining
+      const { data: roomData, error: roomError } = await supabase
+        .from('game_rooms')
+        .select('*')
+        .eq('id', roomId)
+        .single();
+
+      if (roomError) {
+        console.error('Room fetch error:', roomError);
+        throw new Error('Failed to fetch room data');
+      }
+      
+      setRoom(roomData);
+
+      // Fetch updated players list
+      const { data: playersData, error: playersError } = await supabase
+        .from('game_players')
+        .select('*')
+        .eq('game_id', roomId)
+        .order('player_order', { ascending: true });
+
+      if (playersError) {
+        console.error('Players fetch error:', playersError);
+        throw new Error('Failed to fetch players data');
+      }
+      
+      setPlayers(playersData || []);
+      setShowInviteModal(false);
+      setError(null); // Clear any existing errors
+      
+    } catch (err) {
+      console.error('Join game error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to join game. Please try again.');
+    }
+  };
+
+  const copyInviteLink = async () => {
+    const url = `${window.location.origin}/room?roomId=${roomId}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Invite Modal Component
+  const InviteModal = () => {
+    const [code, setCode] = useState('');
+    const [localUsername, setLocalUsername] = useState('');
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full">
+          {user && room?.created_by === user.id ? (
+            <>
+              <h3 className="text-lg font-medium mb-4">Invite Players</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Room URL</label>
+                  <div className="mt-1 flex rounded-md shadow-sm">
+                    <input
+                      type="text"
+                      readOnly
+                      value={`${window.location.origin}/room?roomId=${roomId}`}
+                      className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
+                    />
+                    <button
+                      onClick={copyInviteLink}
+                      className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      {copied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Invite Code</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={room?.invite_code}
+                    className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <h3 className="text-lg font-medium mb-4">Join Game</h3>
+              <div className="space-y-4">
+                {!user && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Username</label>
+                    <input
+                      type="text"
+                      value={localUsername}
+                      onChange={(e) => setLocalUsername(e.target.value)}
+                      placeholder="Enter your username"
+                      className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">6-Digit Code</label>
+                  <input
+                    type="text"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    maxLength={6}
+                    placeholder="Enter 6-digit code"
+                    className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
+                  />
+                </div>
+                <button
+                  onClick={() => handleJoinWithCode(code, localUsername)}
+                  className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  Join Game
+                </button>
+              </div>
+            </>
+          )}
+          <button
+            onClick={() => setShowInviteModal(false)}
+            className="mt-4 w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -275,6 +490,32 @@ export function Room() {
     );
   }
 
+  // Show invite modal for users who need to join
+  if (showInviteModal) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <InviteModal />
+        </div>
+      </div>
+    );
+  }
+
+  // Only show game room UI if user is authenticated and has joined
+  const isPlayerInRoom = players.some(player => player.user_id === user?.id);
+  if (!isPlayerInRoom) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <InviteModal />
+        </div>
+      </div>
+    );
+  }
+
+  // Main game room UI
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -297,6 +538,21 @@ export function Room() {
                   </span>
                 </div>
 
+                {/* Add Invite Button */}
+                {user && room.created_by === user.id && room.status === 'waiting' && room.current_players < room.max_players && (
+                  <div className="mb-4">
+                    <button
+                      onClick={() => setShowInviteModal(true)}
+                      className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                      </svg>
+                      Invite Players
+                    </button>
+                  </div>
+                )}
+
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-medium text-gray-900">Players</h3>
@@ -307,20 +563,27 @@ export function Room() {
                   <div className="space-y-3">
                     {players.map((player) => {
                       const isCurrentTurn = gameState?.current_player_id === player.id;
+                      const isCurrentUser = player.user_id === user?.id;
                       return (
                         <div
                           key={player.id}
                           className={`relative rounded-lg border ${
-                            isCurrentTurn ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 bg-white'
+                            isCurrentTurn ? 'border-indigo-500 bg-indigo-50' : 
+                            isCurrentUser ? 'border-green-500 bg-green-50' :
+                            'border-gray-300 bg-white'
                           } px-4 py-3 shadow-sm flex items-center justify-between transition-colors duration-200`}
                         >
                           <div className="flex items-center space-x-3">
                             <div className="flex-shrink-0">
                               <div className={`w-10 h-10 rounded-full ${
-                                isCurrentTurn ? 'bg-indigo-200' : 'bg-indigo-100'
+                                isCurrentTurn ? 'bg-indigo-200' :
+                                isCurrentUser ? 'bg-green-200' :
+                                'bg-indigo-100'
                               } flex items-center justify-center`}>
                                 <span className={`${
-                                  isCurrentTurn ? 'text-indigo-900' : 'text-indigo-800'
+                                  isCurrentTurn ? 'text-indigo-900' :
+                                  isCurrentUser ? 'text-green-900' :
+                                  'text-indigo-800'
                                 } font-medium`}>
                                   P{player.player_order}
                                 </span>
@@ -334,6 +597,11 @@ export function Room() {
                                 {isCurrentTurn && (
                                   <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-indigo-800 bg-indigo-100 rounded">
                                     Current Turn
+                                  </span>
+                                )}
+                                {isCurrentUser && (
+                                  <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-green-800 bg-green-100 rounded">
+                                    You
                                   </span>
                                 )}
                               </div>
@@ -396,6 +664,7 @@ export function Room() {
           </div>
         </div>
       </main>
+      {showInviteModal && <InviteModal />}
     </div>
   );
 } 
