@@ -337,6 +337,22 @@ export function Room() {
     }
   };
 
+  const handleEndGame = async () => {
+    try {
+      const { error } = await supabase.rpc('end_game', {
+        p_game_id: roomId
+      });
+
+      if (error) {
+        console.error('End game error:', error);
+        setError('Failed to end game. Please try again.');
+      }
+    } catch (err) {
+      console.error('End game error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to end game. Please try again.');
+    }
+  };
+
   // Add roll handler
   const handleRoll = async (numDice: number = 6) => {
     try {
@@ -582,10 +598,10 @@ export function Room() {
                   </span>
                 </div>
 
-                {/* Add Start Game Button */}
-                {user && room.created_by === user.id && room.status === 'waiting' && (
+                {/* Add Start/End Game Buttons */}
+                {user && room.created_by === user.id && (
                   <div className="mb-4 flex space-x-2">
-                    {room.current_players < room.max_players && (
+                    {room.current_players < room.max_players && room.status === 'waiting' && (
                       <button
                         onClick={() => setShowInviteModal(true)}
                         className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -596,15 +612,28 @@ export function Room() {
                         Invite Players
                       </button>
                     )}
-                    <button
-                      onClick={handleStartGame}
-                      className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                      </svg>
-                      Start Game
-                    </button>
+                    {room.status === 'waiting' && (
+                      <button
+                        onClick={handleStartGame}
+                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                        </svg>
+                        Start Game
+                      </button>
+                    )}
+                    {room.status === 'in_progress' && (
+                      <button
+                        onClick={handleEndGame}
+                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                        </svg>
+                        End Game
+                      </button>
+                    )}
                   </div>
                 )}
 
