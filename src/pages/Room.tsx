@@ -341,8 +341,8 @@ export function Room() {
   const handleRoll = async (numDice: number = 6) => {
     try {
       const { data: rollResults, error } = await supabase.rpc('perform_roll', {
-        game_id: roomId,
-        num_dice: numDice
+        p_game_id: roomId,
+        p_num_dice: numDice
       });
 
       if (error) {

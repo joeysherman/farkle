@@ -1,45 +1,7 @@
- -- Migration 004: Fix turn tables and roll function
+-- Migration 007: Fix ambiguous column references in perform_roll
 
--- Ensure turn tables exist with proper references
-CREATE TABLE IF NOT EXISTS public.game_turns (
-  id uuid default gen_random_uuid() primary key,
-  game_id uuid references public.game_rooms(id) on delete cascade not null,
-  player_id uuid references public.game_players(id) not null,
-  turn_number int not null,
-  started_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  ended_at timestamp with time zone,
-  score_gained int default 0 not null,
-  is_farkle boolean default false not null,
-  unique(game_id, turn_number)
-);
-
-CREATE TABLE IF NOT EXISTS public.turn_actions (
-  id uuid default gen_random_uuid() primary key,
-  turn_id uuid references public.game_turns(id) on delete cascade not null,
-  action_number int not null,
-  dice_values int[] not null,
-  kept_dice int[] default array[]::int[] not null,
-  score int default 0 not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  unique(turn_id, action_number)
-);
-
--- Drop and recreate the perform_roll function with explicit table references
+-- Drop and recreate perform_roll with unambiguous column references
 DROP FUNCTION IF EXISTS perform_roll(UUID, INTEGER);
-DROP FUNCTION IF EXISTS roll_dice(INTEGER);
-
--- Create helper function for rolling dice
-CREATE OR REPLACE FUNCTION roll_dice(num_dice INTEGER)
-RETURNS INTEGER[] AS $$
-DECLARE
-  roll INTEGER[];
-BEGIN
-  SELECT array_agg(floor(random() * 6 + 1)::integer)
-  INTO roll
-  FROM generate_series(1, num_dice);
-  RETURN roll;
-END;
-$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION perform_roll(p_game_id UUID, p_num_dice INTEGER DEFAULT 6)
 RETURNS INTEGER[] AS $$
@@ -131,17 +93,4 @@ BEGIN
 
   RETURN v_roll_results;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Add RLS policies for turn tables
-ALTER TABLE public.game_turns ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.turn_actions ENABLE ROW LEVEL SECURITY;
-
--- Allow all authenticated users to view turns and actions
-CREATE POLICY "Turns are viewable by authenticated users"
-  ON public.game_turns FOR SELECT
-  USING (true);
-
-CREATE POLICY "Turn actions are viewable by authenticated users"
-  ON public.turn_actions FOR SELECT
-  USING (true);
+$$ LANGUAGE plpgsql SECURITY DEFINER; 

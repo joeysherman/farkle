@@ -1,30 +1,6 @@
- -- Migration 004: Fix turn tables and roll function
+-- Migration 006: Fix perform_roll function parameter names
 
--- Ensure turn tables exist with proper references
-CREATE TABLE IF NOT EXISTS public.game_turns (
-  id uuid default gen_random_uuid() primary key,
-  game_id uuid references public.game_rooms(id) on delete cascade not null,
-  player_id uuid references public.game_players(id) not null,
-  turn_number int not null,
-  started_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  ended_at timestamp with time zone,
-  score_gained int default 0 not null,
-  is_farkle boolean default false not null,
-  unique(game_id, turn_number)
-);
-
-CREATE TABLE IF NOT EXISTS public.turn_actions (
-  id uuid default gen_random_uuid() primary key,
-  turn_id uuid references public.game_turns(id) on delete cascade not null,
-  action_number int not null,
-  dice_values int[] not null,
-  kept_dice int[] default array[]::int[] not null,
-  score int default 0 not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  unique(turn_id, action_number)
-);
-
--- Drop and recreate the perform_roll function with explicit table references
+-- Drop existing functions first
 DROP FUNCTION IF EXISTS perform_roll(UUID, INTEGER);
 DROP FUNCTION IF EXISTS roll_dice(INTEGER);
 
@@ -41,7 +17,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION perform_roll(p_game_id UUID, p_num_dice INTEGER DEFAULT 6)
+-- Recreate perform_roll with explicit parameter names
+CREATE OR REPLACE FUNCTION perform_roll(game_id UUID, num_dice INTEGER DEFAULT 6)
 RETURNS INTEGER[] AS $$
 DECLARE
   v_game_state game_states;
@@ -52,7 +29,7 @@ BEGIN
   -- Get current game state with explicit game_id reference
   SELECT gs.* INTO v_game_state
   FROM game_states gs
-  WHERE gs.game_id = p_game_id;
+  WHERE gs.game_id = game_id;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Game state not found';
@@ -71,21 +48,21 @@ BEGIN
   -- Verify game is in progress with explicit id reference
   IF NOT EXISTS (
     SELECT 1 FROM game_rooms gr
-    WHERE gr.id = p_game_id
+    WHERE gr.id = game_id
     AND gr.status = 'in_progress'
   ) THEN
     RAISE EXCEPTION 'Game is not in progress';
   END IF;
 
   -- Verify number of dice is valid
-  IF p_num_dice > v_game_state.available_dice THEN
+  IF num_dice > v_game_state.available_dice THEN
     RAISE EXCEPTION 'Not enough dice available. Available: %', v_game_state.available_dice;
   END IF;
 
   -- Get or create current turn with explicit game_id reference
   SELECT gt.* INTO v_turn
   FROM game_turns gt
-  WHERE gt.game_id = p_game_id
+  WHERE gt.game_id = game_id
   AND gt.turn_number = v_game_state.current_turn_number;
 
   IF NOT FOUND THEN
@@ -96,7 +73,7 @@ BEGIN
       turn_number,
       started_at
     ) VALUES (
-      p_game_id,
+      game_id,
       v_player.id,
       v_game_state.current_turn_number,
       now()
@@ -105,7 +82,7 @@ BEGIN
   END IF;
 
   -- Perform the roll
-  v_roll_results := roll_dice(p_num_dice);
+  v_roll_results := roll_dice(num_dice);
 
   -- Record the roll in turn_actions with explicit turn_id reference
   INSERT INTO turn_actions (
@@ -126,22 +103,9 @@ BEGIN
 
   -- Update available dice count with explicit game_id reference
   UPDATE game_states gs
-  SET available_dice = gs.available_dice - p_num_dice
-  WHERE gs.game_id = p_game_id;
+  SET available_dice = gs.available_dice - num_dice
+  WHERE gs.game_id = game_id;
 
   RETURN v_roll_results;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Add RLS policies for turn tables
-ALTER TABLE public.game_turns ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.turn_actions ENABLE ROW LEVEL SECURITY;
-
--- Allow all authenticated users to view turns and actions
-CREATE POLICY "Turns are viewable by authenticated users"
-  ON public.game_turns FOR SELECT
-  USING (true);
-
-CREATE POLICY "Turn actions are viewable by authenticated users"
-  ON public.turn_actions FOR SELECT
-  USING (true);
+$$ LANGUAGE plpgsql SECURITY DEFINER; 
