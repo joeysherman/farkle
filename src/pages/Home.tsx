@@ -44,7 +44,7 @@ export const Home = (): FunctionComponent => {
 				const { data } = await supabase
 					.from('game_rooms')
 					.select('*')
-					.eq('status', 'waiting')
+					.in('status', ['waiting', 'in_progress'])
 					.order('created_at', { ascending: false });
 				
 				if (data) {
@@ -225,15 +225,26 @@ export const Home = (): FunctionComponent => {
 									className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
 								>
 									<div className="px-4 py-5 sm:p-6">
-										<h3 className="text-lg font-medium text-gray-900">{room.name}</h3>
+										<div className="flex justify-between items-center mb-4">
+											<h3 className="text-lg font-medium text-gray-900">{room.name}</h3>
+											<span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+												room.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+											}`}>
+												{room.status === 'waiting' ? 'Waiting' : 'In Progress'}
+											</span>
+										</div>
 										<p className="mt-1 text-sm text-gray-500">
 											Players: {room.current_players}/{room.max_players}
 										</p>
 										<button
 											onClick={() => navigate({ to: '/room', search: { roomId: room.id } })}
-											className="mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+											className={`mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
+												room.status === 'waiting' ? 
+												'bg-indigo-600 hover:bg-indigo-700' : 
+												'bg-green-600 hover:bg-green-700'
+											} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
 										>
-											Join Game
+											{room.status === 'waiting' ? 'Join Game' : 'View Game'}
 										</button>
 									</div>
 								</div>

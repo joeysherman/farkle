@@ -321,6 +321,50 @@ export function Room() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleStartGame = async () => {
+    try {
+      const { error } = await supabase.rpc('start_game', {
+        room_id: roomId
+      });
+
+      if (error) {
+        console.error('Start game error:', error);
+        setError('Failed to start game. Please try again.');
+      }
+    } catch (err) {
+      console.error('Start game error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to start game. Please try again.');
+    }
+  };
+
+  // Add roll handler
+  const handleRoll = async (numDice: number = 6) => {
+    try {
+      const { data: rollResults, error } = await supabase.rpc('perform_roll', {
+        game_id: roomId,
+        num_dice: numDice
+      });
+
+      if (error) {
+        console.error('Roll error:', error);
+        setError(error.message);
+        return;
+      }
+
+      console.log('Roll results:', rollResults);
+      // Update dice values for the scene
+      setDiceValues(rollResults);
+      // Trigger the roll animation for each die
+      rollResults.forEach((value: number, index: number) => {
+        sceneRef.current?.roll(index, value);
+      });
+
+    } catch (err) {
+      console.error('Roll error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to roll dice');
+    }
+  };
+
   // Invite Modal Component
   const InviteModal = () => {
     const [code, setCode] = useState('');
@@ -538,17 +582,28 @@ export function Room() {
                   </span>
                 </div>
 
-                {/* Add Invite Button */}
-                {user && room.created_by === user.id && room.status === 'waiting' && room.current_players < room.max_players && (
-                  <div className="mb-4">
+                {/* Add Start Game Button */}
+                {user && room.created_by === user.id && room.status === 'waiting' && (
+                  <div className="mb-4 flex space-x-2">
+                    {room.current_players < room.max_players && (
+                      <button
+                        onClick={() => setShowInviteModal(true)}
+                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                        </svg>
+                        Invite Players
+                      </button>
+                    )}
                     <button
-                      onClick={() => setShowInviteModal(true)}
-                      className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      onClick={handleStartGame}
+                      className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                       </svg>
-                      Invite Players
+                      Start Game
                     </button>
                   </div>
                 )}
@@ -656,6 +711,21 @@ export function Room() {
           <div className="w-full h-[calc(50vh-64px)] md:h-full md:w-2/3">
             <div className="bg-white shadow rounded-lg h-full">
               <div className="h-full p-4">
+                {/* Add Roll Button */}
+                {gameState && user && gameState.current_player_id === players.find(p => p.user_id === user.id)?.id && (
+                  <div className="mb-4">
+                    <button
+                      onClick={() => handleRoll(gameState.available_dice)}
+                      disabled={gameState.available_dice === 0}
+                      className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                      </svg>
+                      Roll Dice ({gameState.available_dice})
+                    </button>
+                  </div>
+                )}
                 <div className="w-full h-full bg-gray-50 rounded-lg overflow-hidden">
                   <Scene ref={sceneRef} />
                 </div>
