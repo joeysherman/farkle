@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS public.game_rooms (
   created_by uuid references public.profiles(id),
   status game_status default 'waiting'::game_status not null,
   max_players int default 4,
-  current_players int default 1,
+  current_players int default 0,
   winner_id uuid references public.profiles(id),
   invite_code char(6) unique not null,
   ended_at timestamp with time zone,
@@ -68,14 +68,12 @@ BEGIN
     created_by,
     status,
     max_players,
-    current_players,
     invite_code
   ) VALUES (
     p_name,
     auth.uid(),
     'waiting',
     4,
-    1,
     v_invite_code
   ) RETURNING id INTO v_room_id;
 
