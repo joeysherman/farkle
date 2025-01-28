@@ -118,45 +118,17 @@ export const Home = (): FunctionComponent => {
 
 			const roomName = generateRoomName();
 			
-			// Generate invite code using the RPC function
-			const { data: inviteCode, error: inviteCodeError } = await supabase
-				.rpc('generate_invite_code');
+			// Use create_room RPC function
+			const { data: roomId, error: createRoomError } = await supabase
+				.rpc('create_room', {
+					p_name: roomName
+				});
 
-			if (inviteCodeError) throw inviteCodeError;
-
-			const { data, error } = await supabase
-				.from('game_rooms')
-				.insert([
-					{
-						name: roomName,
-						created_by: user.id,
-						max_players: 4,
-						current_players: 1,
-						status: 'waiting',
-						invite_code: inviteCode
-					}
-				])
-				.select()
-				.single();
-
-			if (error) throw error;
-			
-			// Also create a game_players entry for the creator
-			const { error: playerError } = await supabase
-				.from('game_players')
-				.insert([
-					{
-						game_id: data.id,
-						user_id: user.id,
-						player_order: 1,
-						is_active: true
-					}
-				]);
-
-			if (playerError) throw playerError;
+			if (createRoomError) throw createRoomError;
+			if (!roomId) throw new Error('No room ID returned');
 
 			// Navigate to the room page
-			navigate({ to: '/room', search: { roomId: data.id } });
+			navigate({ to: '/room', search: { roomId } });
 		} catch (error) {
 			console.error('Error creating room:', error);
 			setError('Failed to create room. Please try again.');
