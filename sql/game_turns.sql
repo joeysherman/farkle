@@ -64,7 +64,70 @@ $$ LANGUAGE plpgsql;
 -- Enum for turn action outcomes
 CREATE TYPE turn_action_outcome AS ENUM ('bust', 'bank', 'continue');
 
--- Modify perform_roll to be simpler
+-- Create a composite type for turn score result
+CREATE TYPE turn_score_result AS (
+  score INTEGER,
+  valid_dice INTEGER[]
+);
+
+-- Function to calculate turn score
+CREATE OR REPLACE FUNCTION calculate_turn_score(selected_dice INTEGER[])
+RETURNS turn_score_result AS $$
+DECLARE
+  result turn_score_result;
+  dice_counts INTEGER[];
+  valid_dice INTEGER[] := ARRAY[]::INTEGER[];
+  i INTEGER;
+  j INTEGER;
+BEGIN
+  -- Initialize result
+  result.score := 0;
+  result.valid_dice := ARRAY[]::INTEGER[];
+  
+  -- Initialize counts array
+  dice_counts := array_fill(0, array[6]);
+  
+  -- Count occurrences of each die value
+  FOR i IN 1..array_length(selected_dice, 1) LOOP
+    dice_counts[selected_dice[i]] := dice_counts[selected_dice[i]] + 1;
+  END LOOP;
+  
+  -- Handle three of a kind first
+  FOR i IN 1..6 LOOP
+    IF dice_counts[i] >= 3 THEN
+      -- Add score for three of a kind
+      IF i = 1 THEN
+        result.score := result.score + 1000;
+      ELSE
+        result.score := result.score + (i * 100);
+      END IF;
+      
+      -- Add these dice to valid_dice array
+      FOR j IN 1..3 LOOP
+        result.valid_dice := array_append(result.valid_dice, i);
+      END LOOP;
+      
+      -- Reduce the count for remaining individual scoring
+      dice_counts[i] := dice_counts[i] - 3;
+    END IF;
+  END LOOP;
+  
+  -- Score remaining individual 1s and 5s
+  FOR i IN 1..dice_counts[1] LOOP
+    result.score := result.score + 100;
+    result.valid_dice := array_append(result.valid_dice, 1);
+  END LOOP;
+  
+  FOR i IN 1..dice_counts[5] LOOP
+    result.score := result.score + 50;
+    result.valid_dice := array_append(result.valid_dice, 5);
+  END LOOP;
+  
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Modify perform_roll to handle the new return type
 CREATE OR REPLACE FUNCTION perform_roll(p_game_id UUID, p_num_dice INTEGER DEFAULT 6)
 RETURNS INTEGER[] AS $$
 DECLARE
@@ -72,7 +135,7 @@ DECLARE
   v_player game_players;
   v_turn game_turns;
   v_roll_results INTEGER[];
-  v_initial_score INTEGER;
+  v_score_result turn_score_result;
 BEGIN
   -- Get current game state
   SELECT gs.* INTO v_game_state
@@ -133,13 +196,14 @@ BEGIN
   v_roll_results := roll_dice(p_num_dice);
 
   -- Calculate initial possible score for this roll
-  v_initial_score := calculate_turn_score(v_roll_results);
+  v_score_result := calculate_turn_score(v_roll_results);
 
   -- Record the roll in turn_actions
   INSERT INTO turn_actions (
     turn_id,
     action_number,
     dice_values,
+    kept_dice,
     score,
     created_at
   ) VALUES (
@@ -150,7 +214,8 @@ BEGIN
       WHERE ta.turn_id = v_turn.id
     ), 1),
     v_roll_results,
-    v_initial_score,
+    v_score_result.valid_dice,
+    v_score_result.score,
     now()
   );
 
@@ -158,7 +223,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to process a turn action decision
+-- Update process_turn_action to use new score calculation
 CREATE OR REPLACE FUNCTION process_turn_action(
   p_game_id UUID,
   p_kept_dice INTEGER[],
@@ -169,7 +234,7 @@ DECLARE
   v_player game_players;
   v_turn game_turns;
   v_latest_action turn_actions;
-  v_action_score INTEGER;
+  v_score_result turn_score_result;
 BEGIN
   -- Get current game state
   SELECT gs.* INTO v_game_state
@@ -209,12 +274,12 @@ BEGIN
   END IF;
 
   -- Calculate score for kept dice
-  v_action_score := calculate_turn_score(p_kept_dice);
+  v_score_result := calculate_turn_score(p_kept_dice);
 
   -- Update the turn action with kept dice and score
   UPDATE turn_actions
   SET kept_dice = p_kept_dice,
-      score = v_action_score
+      score = v_score_result.score
   WHERE id = v_latest_action.id;
 
   -- Handle the outcome
@@ -223,11 +288,11 @@ BEGIN
       PERFORM end_turn(p_game_id, 0, true);
     WHEN 'bank' THEN
       -- Sum up all scores from this turn's actions
-      SELECT COALESCE(SUM(score), 0) + v_action_score
-      INTO v_action_score
+      SELECT COALESCE(SUM(score), 0) + v_score_result.score
+      INTO v_score_result.score
       FROM turn_actions
       WHERE turn_id = v_turn.id;
-      PERFORM end_turn(p_game_id, v_action_score, false);
+      PERFORM end_turn(p_game_id, v_score_result.score, false);
     WHEN 'continue' THEN
       -- Calculate remaining dice for next roll
       UPDATE game_states
@@ -324,47 +389,6 @@ BEGIN
   INTO valid
   FROM unnest(selection) s;
   RETURN valid;
-END;
-$$ LANGUAGE plpgsql IMMUTABLE;
-
--- Function to calculate turn score
-CREATE OR REPLACE FUNCTION calculate_turn_score(selected_dice INTEGER[])
-RETURNS INTEGER AS $$
-DECLARE
-  score INTEGER := 0;
-  dice_counts INTEGER[];
-  i INTEGER;
-BEGIN
-  -- Initialize counts array
-  dice_counts := array_fill(0, array[6]);
-  
-  -- Count occurrences of each die value
-  FOR i IN 1..array_length(selected_dice, 1) LOOP
-    dice_counts[selected_dice[i]] := dice_counts[selected_dice[i]] + 1;
-  END LOOP;
-  
-  -- Score individual 1s and 5s
-  score := score + (dice_counts[1] * 100);
-  score := score + (dice_counts[5] * 50);
-  
-  -- Score three of a kind
-  FOR i IN 1..6 LOOP
-    IF dice_counts[i] >= 3 THEN
-      IF i = 1 THEN
-        score := score + 1000;
-      ELSE
-        score := score + (i * 100);
-      END IF;
-      -- Subtract the individual scoring for 1s and 5s that were counted in three of a kind
-      IF i = 1 THEN
-        score := score - 300;  -- Subtract 3 * 100
-      ELSIF i = 5 THEN
-        score := score - 150;  -- Subtract 3 * 50
-      END IF;
-    END IF;
-  END LOOP;
-  
-  RETURN score;
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
