@@ -11,6 +11,13 @@ CREATE TABLE IF NOT EXISTS public.game_turns (
   unique(game_id, turn_number)
 );
 
+-- Create turn action outcome enum
+DO $$ BEGIN
+  CREATE TYPE turn_action_outcome AS ENUM ('bust', 'bank', 'continue');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
 -- Create turn actions table
 CREATE TABLE IF NOT EXISTS public.turn_actions (
   id uuid default gen_random_uuid() primary key,
@@ -19,6 +26,7 @@ CREATE TABLE IF NOT EXISTS public.turn_actions (
   dice_values int[] not null,
   kept_dice int[] default array[]::int[] not null,
   score int default 0 not null,
+  outcome turn_action_outcome,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(turn_id, action_number)
 );
@@ -53,7 +61,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to perform a roll
+-- Enum for turn action outcomes
+CREATE TYPE turn_action_outcome AS ENUM ('bust', 'bank', 'continue');
+
+-- Modify perform_roll to be simpler
 CREATE OR REPLACE FUNCTION perform_roll(p_game_id UUID, p_num_dice INTEGER DEFAULT 6)
 RETURNS INTEGER[] AS $$
 DECLARE
@@ -61,8 +72,9 @@ DECLARE
   v_player game_players;
   v_turn game_turns;
   v_roll_results INTEGER[];
+  v_initial_score INTEGER;
 BEGIN
-  -- Get current game state with explicit game_id reference
+  -- Get current game state
   SELECT gs.* INTO v_game_state
   FROM game_states gs
   WHERE gs.game_id = p_game_id;
@@ -71,7 +83,7 @@ BEGIN
     RAISE EXCEPTION 'Game state not found';
   END IF;
 
-  -- Get current player with explicit id reference
+  -- Get current player
   SELECT gp.* INTO v_player
   FROM game_players gp
   WHERE gp.id = v_game_state.current_player_id;
@@ -81,7 +93,7 @@ BEGIN
     RAISE EXCEPTION 'Not your turn';
   END IF;
 
-  -- Verify game is in progress with explicit id reference
+  -- Verify game is in progress
   IF NOT EXISTS (
     SELECT 1 FROM game_rooms gr
     WHERE gr.id = p_game_id
@@ -95,7 +107,7 @@ BEGIN
     RAISE EXCEPTION 'Not enough dice available. Available: %', v_game_state.available_dice;
   END IF;
 
-  -- Get or create current turn with explicit game_id reference
+  -- Get or create current turn
   SELECT gt.* INTO v_turn
   FROM game_turns gt
   WHERE gt.game_id = p_game_id
@@ -120,11 +132,15 @@ BEGIN
   -- Perform the roll
   v_roll_results := roll_dice(p_num_dice);
 
-  -- Record the roll in turn_actions with explicit turn_id reference
+  -- Calculate initial possible score for this roll
+  v_initial_score := calculate_turn_score(v_roll_results);
+
+  -- Record the roll in turn_actions
   INSERT INTO turn_actions (
     turn_id,
     action_number,
     dice_values,
+    score,
     created_at
   ) VALUES (
     v_turn.id,
@@ -134,15 +150,169 @@ BEGIN
       WHERE ta.turn_id = v_turn.id
     ), 1),
     v_roll_results,
+    v_initial_score,
     now()
   );
 
-  -- Update available dice count with explicit game_id reference
-  UPDATE game_states gs
-  SET available_dice = gs.available_dice - p_num_dice
-  WHERE gs.game_id = p_game_id;
+  -- Update game state with potential score
+  UPDATE game_states
+  SET available_dice = v_game_state.available_dice - p_num_dice
+  WHERE game_id = p_game_id;
 
   RETURN v_roll_results;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to process a turn action decision
+CREATE OR REPLACE FUNCTION process_turn_action(
+  p_game_id UUID,
+  p_kept_dice INTEGER[],
+  p_outcome turn_action_outcome
+) RETURNS void AS $$
+DECLARE
+  v_game_state game_states;
+  v_player game_players;
+  v_turn game_turns;
+  v_latest_action turn_actions;
+  v_action_score INTEGER;
+BEGIN
+  -- Get current game state
+  SELECT gs.* INTO v_game_state
+  FROM game_states gs
+  WHERE gs.game_id = p_game_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Game state not found';
+  END IF;
+
+  -- Get current player
+  SELECT gp.* INTO v_player
+  FROM game_players gp
+  WHERE gp.id = v_game_state.current_player_id;
+
+  -- Verify it's the user's turn
+  IF v_player.user_id != auth.uid() THEN
+    RAISE EXCEPTION 'Not your turn';
+  END IF;
+
+  -- Get current turn
+  SELECT gt.* INTO v_turn
+  FROM game_turns gt
+  WHERE gt.game_id = p_game_id
+  AND gt.turn_number = v_game_state.current_turn_number;
+
+  -- Get latest action
+  SELECT ta.* INTO v_latest_action
+  FROM turn_actions ta
+  WHERE ta.turn_id = v_turn.id
+  ORDER BY ta.action_number DESC
+  LIMIT 1;
+
+  -- Validate kept dice against rolled dice
+  IF NOT validate_dice_selection(v_latest_action.dice_values, p_kept_dice) THEN
+    RAISE EXCEPTION 'Invalid dice selection';
+  END IF;
+
+  -- Calculate score for kept dice
+  v_action_score := calculate_turn_score(p_kept_dice);
+
+  -- Update the turn action with kept dice and score
+  UPDATE turn_actions
+  SET kept_dice = p_kept_dice,
+      score = v_action_score
+  WHERE id = v_latest_action.id;
+
+  -- Handle the outcome
+  CASE p_outcome
+    WHEN 'bust' THEN
+      PERFORM end_turn(p_game_id, 0, true);
+    WHEN 'bank' THEN
+      -- Sum up all scores from this turn's actions
+      SELECT COALESCE(SUM(score), 0) + v_action_score
+      INTO v_action_score
+      FROM turn_actions
+      WHERE turn_id = v_turn.id;
+      PERFORM end_turn(p_game_id, v_action_score, false);
+    WHEN 'continue' THEN
+      -- Calculate remaining dice for next roll
+      UPDATE game_states
+      SET available_dice = 
+        CASE 
+          WHEN v_game_state.available_dice - array_length(p_kept_dice, 1) = 0 THEN 6
+          ELSE v_game_state.available_dice - array_length(p_kept_dice, 1)
+        END
+      WHERE game_id = p_game_id;
+  END CASE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to end a turn
+CREATE OR REPLACE FUNCTION end_turn(
+  p_game_id UUID,
+  p_final_score INTEGER,
+  p_is_farkle BOOLEAN
+) RETURNS void AS $$
+DECLARE
+  v_turn game_turns;
+  v_next_player_id UUID;
+  v_pending_actions INTEGER;
+BEGIN
+  -- Check if all actions have outcomes before ending turn
+  SELECT COUNT(*)
+  INTO v_pending_actions
+  FROM turn_actions ta
+  JOIN game_turns gt ON ta.turn_id = gt.id
+  WHERE gt.game_id = p_game_id
+  AND gt.ended_at IS NULL
+  AND ta.outcome IS NULL;
+
+  IF v_pending_actions > 0 THEN
+    RAISE EXCEPTION 'Cannot end turn with pending actions. All actions must have an outcome.';
+  END IF;
+
+  -- Update the current turn
+  UPDATE game_turns gt
+  SET ended_at = now(),
+      score_gained = p_final_score,
+      is_farkle = p_is_farkle
+  WHERE gt.game_id = p_game_id
+  AND gt.ended_at IS NULL
+  RETURNING * INTO v_turn;
+
+  -- If banking (not farkle), update player's score
+  IF NOT p_is_farkle THEN
+    UPDATE game_players
+    SET score = score + p_final_score
+    WHERE id = v_turn.player_id;
+  END IF;
+
+  -- Get next player in turn order
+  SELECT gp.id INTO v_next_player_id
+  FROM game_players gp
+  WHERE gp.game_id = p_game_id
+  AND gp.turn_order > (
+    SELECT turn_order
+    FROM game_players
+    WHERE id = v_turn.player_id
+  )
+  ORDER BY gp.turn_order
+  LIMIT 1;
+
+  -- If no next player, wrap around to first player
+  IF v_next_player_id IS NULL THEN
+    SELECT gp.id INTO v_next_player_id
+    FROM game_players gp
+    WHERE gp.game_id = p_game_id
+    ORDER BY gp.turn_order
+    LIMIT 1;
+  END IF;
+
+  -- Update game state for next turn
+  UPDATE game_states
+  SET current_player_id = v_next_player_id,
+      current_turn_number = v_turn.turn_number + 1,
+      available_dice = 6
+  WHERE game_id = p_game_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

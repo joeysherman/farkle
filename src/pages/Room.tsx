@@ -6,6 +6,7 @@ import { Route as RoomRoute } from '../routes/room';
 import { Scene, SceneRef } from '../_game/test';
 import { nanoid } from 'nanoid';
 import { generateRoomName } from '../utils/roomNames';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 interface GameRoom {
   id: string;
@@ -33,6 +34,28 @@ interface GameState {
   current_turn_score: number;
 }
 
+interface GameTurn {
+  id: string;
+  game_id: string;
+  player_id: string;
+  turn_number: number;
+  started_at: string;
+  ended_at: string | null;
+  score_gained: number;
+  is_farkle: boolean;
+}
+
+interface TurnAction {
+  id: string;
+  turn_id: string;
+  action_number: number;
+  dice_values: number[];
+  kept_dice: number[];
+  score: number;
+  outcome: 'bust' | 'bank' | 'continue' | null;
+  created_at: string;
+}
+
 export function Room() {
   const navigate = useNavigate();
   const search = useSearch({ from: RoomRoute.id });
@@ -51,6 +74,8 @@ export function Room() {
   const [copied, setCopied] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [username, setUsername] = useState('');
+  const [currentTurn, setCurrentTurn] = useState<GameTurn | null>(null);
+  const [turnActions, setTurnActions] = useState<TurnAction[]>([]);
 
   const handleNumberChange = (index: number, value: string) => {
     const numValue = parseInt(value);
@@ -125,6 +150,32 @@ export function Room() {
 
           if (gameStateError && gameStateError.code !== 'PGRST116') throw gameStateError;
           setGameState(gameStateData || null);
+
+          // Fetch current turn and actions if game is in progress
+          if (gameStateData && roomData.status === 'in_progress') {
+            const { data: turnData, error: turnError } = await supabase
+              .from('game_turns')
+              .select('*')
+              .eq('game_id', roomId)
+              .eq('turn_number', gameStateData.current_turn_number)
+              .single();
+
+            if (!turnError) {
+              setCurrentTurn(turnData);
+              
+              if (turnData) {
+                const { data: actionsData } = await supabase
+                  .from('turn_actions')
+                  .select('*')
+                  .eq('turn_id', turnData.id)
+                  .order('action_number', { ascending: true });
+
+                if (actionsData) {
+                  setTurnActions(actionsData);
+                }
+              }
+            }
+          }
         }
 
       } catch (err) {
@@ -201,6 +252,67 @@ export function Room() {
       };
     }
   }, [roomId, navigate]);
+
+  useEffect(() => {
+    if (!roomId) return;
+
+    const turnSubscription = supabase
+      .channel('turn_changes')
+      .on<GameTurn>(
+        'postgres_changes' as any,
+        {
+          event: '*',
+          schema: 'public',
+          table: 'game_turns',
+          filter: `game_id=eq.${roomId}`,
+        },
+        async (payload: RealtimePostgresChangesPayload<GameTurn>) => {
+          const newTurn = payload.new as GameTurn;
+          if (!newTurn) return;
+          setCurrentTurn(newTurn);
+          // Fetch associated actions
+          const { data } = await supabase
+            .from('turn_actions')
+            .select('*')
+            .eq('turn_id', newTurn.id)
+            .order('action_number', { ascending: true });
+          if (data) setTurnActions(data);
+        }
+      )
+      .subscribe();
+
+    const actionSubscription = supabase
+      .channel('action_changes')
+      .on<TurnAction>(
+        'postgres_changes' as any,
+        {
+          event: '*',
+          schema: 'public',
+          table: 'turn_actions',
+          filter: `turn_id=eq.${currentTurn?.id}`,
+        },
+        (payload: RealtimePostgresChangesPayload<TurnAction>) => {
+          const newAction = payload.new as TurnAction;
+          if (!newAction) return;
+          setTurnActions(prev => {
+            const newActions = [...prev];
+            const index = newActions.findIndex(a => a.id === newAction.id);
+            if (index >= 0) {
+              newActions[index] = newAction;
+            } else {
+              newActions.push(newAction);
+            }
+            return newActions;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      turnSubscription.unsubscribe();
+      actionSubscription.unsubscribe();
+    };
+  }, [roomId, currentTurn?.id]);
 
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();
@@ -404,7 +516,7 @@ export function Room() {
         <div className="bg-white rounded-lg p-6 max-w-md w-full">
           {user && room?.created_by === user.id ? (
             <>
-              <h3 className="text-lg font-medium mb-4">Invite Players to {room.name}</h3>
+              <h3 className="text-lg font-medium mb-4">Invite Players to {room?.name}</h3>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Room Code</label>
@@ -769,7 +881,66 @@ export function Room() {
           <div className="w-full h-[calc(50vh-64px)] md:h-full md:w-2/3">
             <div className="bg-white shadow rounded-lg h-full">
               <div className="h-full p-4">
-                {/* Add Roll Button */}
+                {/* Game Turn Information */}
+                <div className="mb-4">
+                  <div className="bg-white border rounded-lg">
+                    <div className="px-4 py-3">
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Current Turn</h3>
+                      
+                      {currentTurn ? (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <span className="font-medium text-gray-500">Turn {currentTurn.turn_number}</span>
+                              {currentTurn.is_farkle && (
+                                <span className="ml-2 text-red-600 font-medium">(Farkle!)</span>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <span className="font-medium text-gray-500">Score: </span>
+                              <span className="font-medium text-indigo-600">{currentTurn.score_gained}</span>
+                            </div>
+                          </div>
+
+                          {/* Turn Actions */}
+                          <div className="space-y-2">
+                            {turnActions.map((action) => (
+                              <div 
+                                key={action.id}
+                                className="bg-gray-50 rounded p-2 text-sm"
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium text-gray-500">Roll {action.action_number}:</span>
+                                      <span>{action.dice_values.join(', ')}</span>
+                                    </div>
+                                    {action.kept_dice.length > 0 && (
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <span className="font-medium text-gray-500">Kept:</span>
+                                        <span>{action.kept_dice.join(', ')}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="font-medium text-indigo-600">
+                                    +{action.score}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            {turnActions.length === 0 && (
+                              <p className="text-sm text-gray-500 italic">No actions yet</p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 italic">Waiting for turn to start...</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Roll Button */}
                 {gameState && user && gameState.current_player_id === players.find(p => p.user_id === user.id)?.id && (
                   <div className="mb-4">
                     <button
@@ -784,6 +955,7 @@ export function Room() {
                     </button>
                   </div>
                 )}
+
                 <div className="w-full h-full bg-gray-50 rounded-lg overflow-hidden">
                   <Scene ref={sceneRef} />
                 </div>
