@@ -76,6 +76,7 @@ export function Room() {
   const [username, setUsername] = useState('');
   const [currentTurn, setCurrentTurn] = useState<GameTurn | null>(null);
   const [turnActions, setTurnActions] = useState<TurnAction[]>([]);
+  const [selectedDiceIndices, setSelectedDiceIndices] = useState<number[]>([]);
 
   const handleNumberChange = (index: number, value: string) => {
     const numValue = parseInt(value);
@@ -506,6 +507,23 @@ export function Room() {
     }
   };
 
+  // Add the handleTurnAction function near other handlers
+  const handleTurnAction = async (keptDice: number[], outcome: 'bust' | 'bank' | 'continue') => {
+    if (!roomId) return;
+    
+    try {
+      const { error } = await supabase.rpc('process_turn_action', {
+        p_game_id: roomId,
+        p_kept_dice: keptDice,
+        p_outcome: outcome
+      });
+
+      if (error) throw error;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to process turn action');
+    }
+  };
+
   // Invite Modal Component
   const InviteModal = () => {
     const [code, setCode] = useState('');
@@ -913,9 +931,38 @@ export function Room() {
                                   <div>
                                     <div className="flex items-center gap-2">
                                       <span className="font-medium text-gray-500">Roll {action.action_number}:</span>
-                                      <span>{action.dice_values.join(', ')}</span>
+                                      <div className="flex gap-1">
+                                        {action.dice_values.map((value, idx) => (
+                                          <button
+                                            key={idx}
+                                            onClick={() => {
+                                              if (action === turnActions[turnActions.length - 1] && !action.outcome) {
+                                                setSelectedDiceIndices(prev => {
+                                                  if (prev.includes(idx)) {
+                                                    return prev.filter(i => i !== idx);
+                                                  } else {
+                                                    return [...prev, idx];
+                                                  }
+                                                });
+                                              }
+                                            }}
+                                            disabled={action !== turnActions[turnActions.length - 1] || Boolean(action.outcome)}
+                                            className={`w-8 h-8 flex items-center justify-center rounded ${
+                                              selectedDiceIndices.includes(idx)
+                                                ? 'bg-indigo-500 text-white'
+                                                : 'bg-white border border-gray-300'
+                                            } ${
+                                              action === turnActions[turnActions.length - 1] && !action.outcome
+                                                ? 'hover:bg-indigo-100 cursor-pointer'
+                                                : 'cursor-default'
+                                            }`}
+                                          >
+                                            {value}
+                                          </button>
+                                        ))}
+                                      </div>
                                     </div>
-                                    {action.kept_dice.length > 0 && (
+                                    {action.kept_dice?.length > 0 && (
                                       <div className="flex items-center gap-2 mt-1">
                                         <span className="font-medium text-gray-500">Kept:</span>
                                         <span>{action.kept_dice.join(', ')}</span>
@@ -940,18 +987,45 @@ export function Room() {
                   </div>
                 </div>
 
-                {/* Roll Button */}
+                {/* Action Buttons */}
                 {gameState && user && gameState.current_player_id === players.find(p => p.user_id === user.id)?.id && (
-                  <div className="mb-4">
+                  <div className="mb-4 grid grid-cols-2 gap-4">
                     <button
-                      onClick={() => handleRoll(gameState.available_dice)}
-                      disabled={gameState.available_dice === 0}
+                      onClick={() => {
+                        const latestAction = turnActions[turnActions.length - 1];
+                        if (latestAction && !latestAction.outcome) {
+                          // Get the selected dice values based on indices
+                          const keptDice = selectedDiceIndices
+                            .map(idx => latestAction.dice_values[idx])
+                            .filter(Boolean);
+                          handleTurnAction(keptDice, 'bank');
+                          setSelectedDiceIndices([]); // Clear selection after banking
+                        }
+                      }}
+                      disabled={!turnActions.length || Boolean(turnActions[turnActions.length - 1]?.outcome)}
+                      className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                    >
+                      Bank Score
+                    </button>
+                    <button
+                      onClick={() => {
+                        const latestAction = turnActions[turnActions.length - 1];
+                        if (latestAction) {
+                          // Get the selected dice values based on indices
+                          const keptDice = selectedDiceIndices
+                            .map(idx => latestAction.dice_values[idx])
+                            .filter(Boolean);
+                          handleTurnAction(keptDice, 'continue');
+                          setSelectedDiceIndices([]); // Clear selection after continuing
+                          handleRoll(gameState.available_dice);
+                        } else {
+                          handleRoll(gameState.available_dice);
+                        }
+                      }}
+                      disabled={gameState.available_dice === 0 || Boolean(turnActions[turnActions.length - 1]?.outcome)}
                       className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                      </svg>
-                      Roll Dice ({gameState.available_dice})
+                      Roll ({gameState.available_dice}) Dice
                     </button>
                   </div>
                 )}

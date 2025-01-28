@@ -154,11 +154,6 @@ BEGIN
     now()
   );
 
-  -- Update game state with potential score
-  UPDATE game_states
-  SET available_dice = v_game_state.available_dice - p_num_dice
-  WHERE game_id = p_game_id;
-
   RETURN v_roll_results;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
