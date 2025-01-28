@@ -922,59 +922,90 @@ export function Room() {
 
                           {/* Turn Actions */}
                           <div className="space-y-2">
-                            {turnActions.map((action) => (
-                              <div 
-                                key={action.id}
-                                className="bg-gray-50 rounded p-2 text-sm"
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium text-gray-500">Roll {action.action_number}:</span>
-                                      <div className="flex gap-1">
-                                        {action.dice_values.map((value, idx) => (
-                                          <button
-                                            key={idx}
-                                            onClick={() => {
-                                              if (action === turnActions[turnActions.length - 1] && !action.outcome) {
-                                                setSelectedDiceIndices(prev => {
-                                                  if (prev.includes(idx)) {
-                                                    return prev.filter(i => i !== idx);
-                                                  } else {
-                                                    return [...prev, idx];
+                            {turnActions.map((action) => {
+                              // Calculate remaining dice by filtering out kept dice
+                              const remainingDice = action.dice_values.filter(
+                                (value, idx) => !action.kept_dice.includes(value)
+                              );
+                              
+                              return (
+                                <div 
+                                  key={action.id}
+                                  className="bg-gray-50 rounded p-2 text-sm"
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div className="w-full">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <span className="font-medium text-gray-500">Roll {action.action_number}:</span>
+                                        <div className="font-medium text-indigo-600 ml-auto">
+                                          +{action.score}
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Two rows: Remaining Dice and Kept Dice */}
+                                      <div className="grid grid-cols-1 gap-2">
+                                        {/* Remaining Dice Row */}
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-medium text-gray-500 w-20">Available:</span>
+                                          <div className="flex gap-1 flex-wrap">
+                                            {remainingDice.map((value, idx) => (
+                                              <button
+                                                key={idx}
+                                                onClick={() => {
+                                                  if (action === turnActions[turnActions.length - 1] && !action.outcome) {
+                                                    const originalIndex = action.dice_values.indexOf(value);
+                                                    setSelectedDiceIndices(prev => {
+                                                      if (prev.includes(originalIndex)) {
+                                                        return prev.filter(i => i !== originalIndex);
+                                                      } else {
+                                                        return [...prev, originalIndex];
+                                                      }
+                                                    });
                                                   }
-                                                });
-                                              }
-                                            }}
-                                            disabled={action !== turnActions[turnActions.length - 1] || Boolean(action.outcome)}
-                                            className={`w-8 h-8 flex items-center justify-center rounded ${
-                                              selectedDiceIndices.includes(idx)
-                                                ? 'bg-indigo-500 text-white'
-                                                : 'bg-white border border-gray-300'
-                                            } ${
-                                              action === turnActions[turnActions.length - 1] && !action.outcome
-                                                ? 'hover:bg-indigo-100 cursor-pointer'
-                                                : 'cursor-default'
-                                            }`}
-                                          >
-                                            {value}
-                                          </button>
-                                        ))}
+                                                }}
+                                                disabled={action !== turnActions[turnActions.length - 1] || Boolean(action.outcome)}
+                                                className={`w-8 h-8 flex items-center justify-center rounded ${
+                                                  selectedDiceIndices.includes(action.dice_values.indexOf(value))
+                                                    ? 'bg-indigo-500 text-white'
+                                                    : 'bg-white border border-gray-300'
+                                                } ${
+                                                  action === turnActions[turnActions.length - 1] && !action.outcome
+                                                    ? 'hover:bg-indigo-100 cursor-pointer'
+                                                    : 'cursor-default'
+                                                }`}
+                                              >
+                                                {value}
+                                              </button>
+                                            ))}
+                                            {remainingDice.length === 0 && (
+                                              <span className="text-gray-500 italic">No dice available</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Kept Dice Row */}
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-medium text-gray-500 w-20">Kept:</span>
+                                          <div className="flex gap-1 flex-wrap">
+                                            {action.kept_dice.map((value, idx) => (
+                                              <div
+                                                key={idx}
+                                                className="w-8 h-8 flex items-center justify-center rounded bg-green-100 border border-green-300 text-green-700"
+                                              >
+                                                {value}
+                                              </div>
+                                            ))}
+                                            {action.kept_dice.length === 0 && (
+                                              <span className="text-gray-500 italic">No dice kept</span>
+                                            )}
+                                          </div>
+                                        </div>
                                       </div>
                                     </div>
-                                    {action.kept_dice?.length > 0 && (
-                                      <div className="flex items-center gap-2 mt-1">
-                                        <span className="font-medium text-gray-500">Kept:</span>
-                                        <span>{action.kept_dice.join(', ')}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="font-medium text-indigo-600">
-                                    +{action.score}
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                             {turnActions.length === 0 && (
                               <p className="text-sm text-gray-500 italic">No actions yet</p>
                             )}
