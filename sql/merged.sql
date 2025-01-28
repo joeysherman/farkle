@@ -613,7 +613,7 @@ CREATE OR REPLACE FUNCTION process_turn_action(
   p_game_id UUID,
   p_kept_dice INTEGER[],
   p_outcome turn_action_outcome
-) RETURNS void AS $$
+) RETURNS INTEGER[] AS $$
 DECLARE
   v_game_state game_states;
   v_player game_players;
@@ -621,6 +621,7 @@ DECLARE
   v_latest_action turn_actions;
   v_score_result turn_score_result;
   v_remaining_dice INTEGER;
+  v_roll_results INTEGER[];
 BEGIN
   -- Get current game state
   SELECT gs.* INTO v_game_state
@@ -688,7 +689,45 @@ BEGIN
       FROM turn_actions
       WHERE turn_id = v_turn.id;
       PERFORM end_turn(p_game_id, v_score_result.score, false);
+    ELSE
+      -- For 'continue' outcome, create a new turn_action with the next roll
+      -- Calculate number of dice for next roll
+      v_remaining_dice := CASE 
+        -- If all dice were kept, give 6 new dice (hot dice)
+        WHEN array_length(p_kept_dice, 1) = array_length(v_latest_action.dice_values, 1) THEN 6
+        -- Otherwise use remaining dice
+        ELSE array_length(v_latest_action.dice_values, 1) - array_length(p_kept_dice, 1)
+      END;
+
+      -- Roll the dice
+      v_roll_results := roll_dice(v_remaining_dice);
+
+      -- Calculate initial possible score for this roll
+      v_score_result := calculate_turn_score(v_roll_results);
+
+      -- Create new turn_action for the next roll
+      INSERT INTO turn_actions (
+        turn_id,
+        action_number,
+        dice_values,
+        kept_dice,
+        score,
+        created_at
+      ) VALUES (
+        v_turn.id,
+        v_latest_action.action_number + 1,
+        v_roll_results,
+        v_score_result.valid_dice,
+        v_score_result.score,
+        now()
+      );
+
+      -- Return the new roll results
+      RETURN v_roll_results;
   END CASE;
+
+  -- Return NULL for non-continue outcomes
+  RETURN NULL;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

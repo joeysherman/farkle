@@ -33,4 +33,4 @@ DROP TYPE IF EXISTS game_status;
 DROP PUBLICATION IF EXISTS supabase_realtime;
 
 -- Run the merged SQL to recreate everything
-\i merged.sql
+

@@ -515,12 +515,9 @@ export function Room() {
       const latestAction = turnActions[turnActions.length - 1];
       if (!latestAction) return;
 
-      // Combine existing kept dice with newly selected dice
-      const allKeptDice = [...latestAction.kept_dice, ...keptDice];
-      
       const { error } = await supabase.rpc('process_turn_action', {
         p_game_id: roomId,
-        p_kept_dice: allKeptDice,
+        p_kept_dice: keptDice,
         p_outcome: outcome
       });
 
@@ -1105,7 +1102,7 @@ export function Room() {
                               
                               // Combine the previously kept dice with newly selected dice
                               const allKeptDice = [...validScoringDice, ...keptDice];
-                              
+                            debugger;
                               handleTurnAction(allKeptDice, 'continue');
                               setSelectedDiceIndices([]); // Clear selection after continuing
                             }
