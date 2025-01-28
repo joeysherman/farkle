@@ -197,6 +197,7 @@ CREATE TABLE IF NOT EXISTS public.turn_actions (
   kept_dice int[] default array[]::int[] not null,
   score int default 0 not null,
   turn_action_outcome turn_action_outcome,
+  available_dice int GENERATED ALWAYS AS (array_length(dice_values, 1) - array_length(kept_dice, 1)) STORED,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(turn_id, action_number)
 );
@@ -619,6 +620,7 @@ DECLARE
   v_turn game_turns;
   v_latest_action turn_actions;
   v_score_result turn_score_result;
+  v_remaining_dice INTEGER;
 BEGIN
   -- Get current game state
   SELECT gs.* INTO v_game_state
@@ -659,6 +661,14 @@ BEGIN
 
   -- Calculate score for kept dice
   v_score_result := calculate_turn_score(p_kept_dice);
+
+  -- Calculate remaining dice
+  v_remaining_dice := array_length(v_latest_action.dice_values, 1) - array_length(p_kept_dice, 1);
+
+  -- If continuing, verify there are dice available
+  IF p_outcome = 'continue' AND v_remaining_dice <= 0 THEN
+    RAISE EXCEPTION 'No dice available to continue rolling';
+  END IF;
 
   -- Update the turn action with kept dice and score
   UPDATE turn_actions

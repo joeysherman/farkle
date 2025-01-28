@@ -51,7 +51,8 @@ interface TurnAction {
   dice_values: number[];
   kept_dice: number[];
   score: number;
-  outcome: 'bust' | 'bank' | 'continue' | null;
+  turn_action_outcome: 'bust' | 'bank' | 'continue' | null;
+  available_dice: number;
   created_at: string;
 }
 
@@ -537,7 +538,7 @@ export function Room() {
     if (!latestAction) return 6;
     
     // If the latest action has no outcome, no dice are available
-    if (!latestAction.outcome) return 0;
+    if (!latestAction.turn_action_outcome) return 0;
     
     // If all dice were kept, give 6 new dice (hot dice)
     if (latestAction.kept_dice.length === latestAction.dice_values.length) {
@@ -556,7 +557,7 @@ export function Room() {
     if (!latestAction) return 6;
     
     // If the latest action has an outcome, we'll be doing a new roll
-    if (latestAction.outcome) return 6;
+    if (latestAction.turn_action_outcome) return 6;
     
     // Otherwise, show remaining dice from current roll
     const remainingDice = latestAction.dice_values.filter(
@@ -993,7 +994,7 @@ export function Room() {
                                               <button
                                                 key={idx}
                                                 onClick={() => {
-                                                  if (action === turnActions[turnActions.length - 1] && !action.outcome) {
+                                                  if (action === turnActions[turnActions.length - 1] && !action.turn_action_outcome) {
                                                     const originalIndex = action.dice_values.indexOf(value);
                                                     setSelectedDiceIndices(prev => {
                                                       if (prev.includes(originalIndex)) {
@@ -1004,13 +1005,13 @@ export function Room() {
                                                     });
                                                   }
                                                 }}
-                                                disabled={action !== turnActions[turnActions.length - 1] || Boolean(action.outcome)}
+                                                disabled={action !== turnActions[turnActions.length - 1] || Boolean(action.turn_action_outcome)}
                                                 className={`w-8 h-8 flex items-center justify-center rounded ${
                                                   selectedDiceIndices.includes(action.dice_values.indexOf(value))
                                                     ? 'bg-indigo-500 text-white'
                                                     : 'bg-white border border-gray-300'
                                                 } ${
-                                                  action === turnActions[turnActions.length - 1] && !action.outcome
+                                                  action === turnActions[turnActions.length - 1] && !action.turn_action_outcome
                                                     ? 'hover:bg-indigo-100 cursor-pointer'
                                                     : 'cursor-default'
                                                 }`}
@@ -1062,50 +1063,65 @@ export function Room() {
                 {/* Action Buttons */}
                 {gameState && user && gameState.current_player_id === players.find(p => p.user_id === user.id)?.id && (
                   <div className="mb-4 grid grid-cols-2 gap-4">
-                    <button
-                      onClick={() => {
-                        const latestAction = turnActions[turnActions.length - 1];
-                        if (latestAction && !latestAction.outcome) {
-                          // Get the selected dice values based on indices
-                          const keptDice = selectedDiceIndices
-                            .map(idx => latestAction.dice_values[idx])
-                            .filter(Boolean);
-                          handleTurnAction(keptDice, 'bank');
-                          setSelectedDiceIndices([]); // Clear selection after banking
-                        }
-                      }}
-                      disabled={!turnActions.length || Boolean(turnActions[turnActions.length - 1]?.outcome)}
-                      className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-                    >
-                      Bank Score
-                    </button>
-                    <button
-                      onClick={() => {
-                        const latestAction = turnActions[turnActions.length - 1];
-                        
-                        if (latestAction && !latestAction.outcome) {
-                          // Get the selected dice values based on indices
-                          const keptDice = selectedDiceIndices
-                            .map(idx => latestAction.dice_values[idx])
-                            .filter(Boolean);
-                          handleTurnAction(keptDice, 'continue');
-                          setSelectedDiceIndices([]); // Clear selection after continuing
-                          handleRoll(calculateAvailableDice(turnActions));
-                        } else {
-                          handleRoll(6);
-                        }
-                      }}
-                      disabled={
-                        // Only disable if there's a latest action with no outcome and no kept dice
-                        turnActions.length > 0 && 
-                        turnActions[turnActions.length - 1] && 
-                        !turnActions[turnActions.length - 1]?.outcome && 
-                        turnActions[turnActions.length - 1]?.kept_dice.length === 0
-                      }
-                      className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                    >
-                      Roll ({calculateRemainingDice(turnActions)}) Dice
-                    </button>
+                    {turnActions.length === 0 || (turnActions[turnActions.length - 1]?.turn_action_outcome) ? (
+                      // Show large roll button when starting a new turn
+                      <button
+                        onClick={() => handleRoll(6)}
+                        className="col-span-2 w-full h-16 inline-flex justify-center items-center px-4 py-2 border border-transparent text-lg font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        Roll Dice
+                      </button>
+                    ) : (
+                      // Show bank and continue buttons during turn
+                      <>
+                        <button
+                          onClick={() => {
+                            const latestAction = turnActions[turnActions.length - 1];
+                            if (latestAction && !latestAction.turn_action_outcome) {
+                              // Get the selected dice values based on indices
+                              const keptDice = selectedDiceIndices
+                                .map(idx => latestAction.dice_values[idx])
+                                .filter(Boolean);
+                              handleTurnAction(keptDice, 'bank');
+                              setSelectedDiceIndices([]); // Clear selection after banking
+                            }
+                          }}
+                          disabled={!turnActions.length || Boolean(turnActions[turnActions.length - 1]?.turn_action_outcome)}
+                          className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                        >
+                          Bank Score
+                        </button>
+                        <button
+                          onClick={() => {
+                            const latestAction = turnActions[turnActions.length - 1];
+                            if (latestAction && !latestAction.turn_action_outcome) {
+                              // Get the selected dice values based on indices
+                              const keptDice = selectedDiceIndices
+                                .map(idx => latestAction.dice_values[idx])
+                                .filter(Boolean);
+                                
+                              // Get the valid scoring dice from the latest action
+                              const validScoringDice = latestAction.kept_dice;
+                              
+                              // Combine the previously kept dice with newly selected dice
+                              const allKeptDice = [...validScoringDice, ...keptDice];
+                              
+                              handleTurnAction(allKeptDice, 'continue');
+                              setSelectedDiceIndices([]); // Clear selection after continuing
+                            }
+                          }}
+                          disabled={
+                            turnActions.length === 0 || 
+                            Boolean(turnActions[turnActions.length - 1]?.turn_action_outcome) ||
+                            (turnActions[turnActions.length - 1]?.score ?? 0) === 0 ||
+                            (turnActions[turnActions.length - 1]?.available_dice ?? 0) <= 0
+                          }
+                          className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                        >
+                          Continue Rolling ({turnActions[turnActions.length - 1]?.available_dice ?? 0} dice)
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
 
