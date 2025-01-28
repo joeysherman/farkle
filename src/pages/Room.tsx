@@ -30,8 +30,7 @@ interface GameState {
   game_id: string;
   current_turn_number: number;
   current_player_id: string;
-  available_dice: number;
-  current_turn_score: number;
+  last_updated_at: string;
 }
 
 interface GameTurn {
@@ -512,9 +511,15 @@ export function Room() {
     if (!roomId) return;
     
     try {
+      const latestAction = turnActions[turnActions.length - 1];
+      if (!latestAction) return;
+
+      // Combine existing kept dice with newly selected dice
+      const allKeptDice = [...latestAction.kept_dice, ...keptDice];
+      
       const { error } = await supabase.rpc('process_turn_action', {
         p_game_id: roomId,
-        p_kept_dice: keptDice,
+        p_kept_dice: allKeptDice,
         p_outcome: outcome
       });
 
@@ -522,6 +527,42 @@ export function Room() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process turn action');
     }
+  };
+
+  // Add a function to calculate available dice
+  const calculateAvailableDice = (actions: TurnAction[]): number => {
+    if (actions.length === 0) return 6;
+    
+    const latestAction = actions[actions.length - 1];
+    if (!latestAction) return 6;
+    
+    // If the latest action has no outcome, no dice are available
+    if (!latestAction.outcome) return 0;
+    
+    // If all dice were kept, give 6 new dice (hot dice)
+    if (latestAction.kept_dice.length === latestAction.dice_values.length) {
+      return 6;
+    }
+    
+    // Otherwise return remaining dice
+    return latestAction.dice_values.length - latestAction.kept_dice.length;
+  };
+
+  // Add a function to calculate remaining dice from current roll
+  const calculateRemainingDice = (actions: TurnAction[]): number => {
+    if (actions.length === 0) return 6;
+    
+    const latestAction = actions[actions.length - 1];
+    if (!latestAction) return 6;
+    
+    // If the latest action has an outcome, we'll be doing a new roll
+    if (latestAction.outcome) return 6;
+    
+    // Otherwise, show remaining dice from current roll
+    const remainingDice = latestAction.dice_values.filter(
+      value => !latestAction.kept_dice.includes(value)
+    );
+    return remainingDice.length;
   };
 
   // Invite Modal Component
@@ -1041,22 +1082,29 @@ export function Room() {
                     <button
                       onClick={() => {
                         const latestAction = turnActions[turnActions.length - 1];
-                        if (latestAction) {
+                        
+                        if (latestAction && !latestAction.outcome) {
                           // Get the selected dice values based on indices
                           const keptDice = selectedDiceIndices
                             .map(idx => latestAction.dice_values[idx])
                             .filter(Boolean);
                           handleTurnAction(keptDice, 'continue');
                           setSelectedDiceIndices([]); // Clear selection after continuing
-                          handleRoll(gameState.available_dice);
+                          handleRoll(calculateAvailableDice(turnActions));
                         } else {
-                          handleRoll(gameState.available_dice);
+                          handleRoll(6);
                         }
                       }}
-                      disabled={gameState.available_dice === 0 || Boolean(turnActions[turnActions.length - 1]?.outcome)}
+                      disabled={
+                        // Only disable if there's a latest action with no outcome and no kept dice
+                        turnActions.length > 0 && 
+                        turnActions[turnActions.length - 1] && 
+                        !turnActions[turnActions.length - 1]?.outcome && 
+                        turnActions[turnActions.length - 1]?.kept_dice.length === 0
+                      }
                       className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                     >
-                      Roll ({gameState.available_dice}) Dice
+                      Roll ({calculateRemainingDice(turnActions)}) Dice
                     </button>
                   </div>
                 )}

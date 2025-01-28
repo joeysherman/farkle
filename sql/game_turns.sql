@@ -127,7 +127,39 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- Modify perform_roll to handle the new return type
+-- Function to get available dice for current turn
+CREATE OR REPLACE FUNCTION get_available_dice(p_turn_id UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  v_latest_action turn_actions;
+BEGIN
+  -- Get the latest action for this turn
+  SELECT * INTO v_latest_action
+  FROM turn_actions
+  WHERE turn_id = p_turn_id
+  ORDER BY action_number DESC
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RETURN 6; -- Start of turn, all dice available
+  END IF;
+
+  -- If the latest action has no outcome, no dice are available until the action is completed
+  IF v_latest_action.outcome IS NULL THEN
+    RETURN 0;
+  END IF;
+
+  -- Calculate remaining dice based on kept dice
+  RETURN CASE
+    -- If all dice were kept, give 6 new dice (hot dice)
+    WHEN array_length(v_latest_action.kept_dice, 1) = array_length(v_latest_action.dice_values, 1) THEN 6
+    -- Otherwise return remaining dice
+    ELSE array_length(v_latest_action.dice_values, 1) - array_length(v_latest_action.kept_dice, 1)
+  END;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Modify perform_roll to use get_available_dice
 CREATE OR REPLACE FUNCTION perform_roll(p_game_id UUID, p_num_dice INTEGER DEFAULT 6)
 RETURNS INTEGER[] AS $$
 DECLARE
@@ -136,6 +168,7 @@ DECLARE
   v_turn game_turns;
   v_roll_results INTEGER[];
   v_score_result turn_score_result;
+  v_available_dice INTEGER;
 BEGIN
   -- Get current game state
   SELECT gs.* INTO v_game_state
@@ -165,11 +198,6 @@ BEGIN
     RAISE EXCEPTION 'Game is not in progress';
   END IF;
 
-  -- Verify number of dice is valid
-  IF p_num_dice > v_game_state.available_dice THEN
-    RAISE EXCEPTION 'Not enough dice available. Available: %', v_game_state.available_dice;
-  END IF;
-
   -- Get or create current turn
   SELECT gt.* INTO v_turn
   FROM game_turns gt
@@ -190,6 +218,14 @@ BEGIN
       now()
     )
     RETURNING * INTO v_turn;
+  END IF;
+
+  -- Get available dice for current turn
+  v_available_dice := get_available_dice(v_turn.id);
+
+  -- Verify number of dice is valid
+  IF p_num_dice > v_available_dice THEN
+    RAISE EXCEPTION 'Not enough dice available. Available: %', v_available_dice;
   END IF;
 
   -- Perform the roll
@@ -223,7 +259,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Update process_turn_action to use new score calculation
+-- Update process_turn_action to handle available dice
 CREATE OR REPLACE FUNCTION process_turn_action(
   p_game_id UUID,
   p_kept_dice INTEGER[],
@@ -279,7 +315,8 @@ BEGIN
   -- Update the turn action with kept dice and score
   UPDATE turn_actions
   SET kept_dice = p_kept_dice,
-      score = v_score_result.score
+      score = v_score_result.score,
+      outcome = p_outcome
   WHERE id = v_latest_action.id;
 
   -- Handle the outcome
@@ -288,20 +325,11 @@ BEGIN
       PERFORM end_turn(p_game_id, 0, true);
     WHEN 'bank' THEN
       -- Sum up all scores from this turn's actions
-      SELECT COALESCE(SUM(score), 0) + v_score_result.score
+      SELECT COALESCE(SUM(score), 0)
       INTO v_score_result.score
       FROM turn_actions
       WHERE turn_id = v_turn.id;
       PERFORM end_turn(p_game_id, v_score_result.score, false);
-    WHEN 'continue' THEN
-      -- Calculate remaining dice for next roll
-      UPDATE game_states
-      SET available_dice = 
-        CASE 
-          WHEN v_game_state.available_dice - array_length(p_kept_dice, 1) = 0 THEN 6
-          ELSE v_game_state.available_dice - array_length(p_kept_dice, 1)
-        END
-      WHERE game_id = p_game_id;
   END CASE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

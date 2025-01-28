@@ -3,10 +3,7 @@ CREATE TABLE IF NOT EXISTS public.game_states (
   game_id uuid references public.game_rooms(id) on delete cascade primary key,
   current_turn_number int not null,
   current_player_id uuid references public.game_players(id) not null,
-  last_updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  available_dice int default 6 not null,
-  current_turn_score int default 0 not null,
-  check (available_dice >= 0 and available_dice <= 6)
+  last_updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- Set up Row Level Security (RLS)
@@ -55,16 +52,12 @@ BEGIN
   INSERT INTO game_states (
     game_id,
     current_turn_number,
-    current_player_id,
-    available_dice,
-    current_turn_score
+    current_player_id
   )
   SELECT
     room_id,
     1,
-    (SELECT id FROM game_players WHERE game_id = room_id AND player_order = 1),
-    6,
-    0
+    (SELECT id FROM game_players WHERE game_id = room_id AND player_order = 1)
   WHERE NOT EXISTS (
     SELECT 1 FROM game_states WHERE game_id = room_id
   );
@@ -123,8 +116,6 @@ BEGIN
   SET
     current_player_id = next_player_id,
     current_turn_number = current_turn_number + 1,
-    available_dice = 6,
-    current_turn_score = 0,
     last_updated_at = now()
   WHERE game_id = room_id;
 END;
