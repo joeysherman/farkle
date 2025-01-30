@@ -11,9 +11,11 @@ function BoxingRingModel() {
   return (
     <primitive 
       object={scene} 
-      scale={[2, 2, 2]} 
-      position={[0, -1, 0]}
+      scale={[8, 8, 8]} // Increased scale significantly
+      position={[0, -2, 0]} // Lowered position to act as a table
       rotation={[0, Math.PI / 4, 0]} // 45 degrees rotation
+      castShadow
+      receiveShadow
     />
   );
 }
