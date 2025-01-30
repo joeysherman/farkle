@@ -25,4 +25,12 @@ export default defineConfig({
 		setupFiles: ["./vitest.setup.ts"],
 		css: true,
 	},
+	assetsInclude: ['**/*.glb'],
+	build: {
+		rollupOptions: {
+			output: {
+				assetFileNames: 'assets/[name]-[hash][extname]'
+			}
+		}
+	}
 });

@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { ARENA_SIZE } from "./constants";
 import { Dice } from "./Dice";
+import { BoxingRing } from "./BoxingRing";
 
 interface DiceState {
   number: number;
@@ -53,6 +54,9 @@ export function DiceScene({ diceStates }: { diceStates: DiceState[] }) {
         shadow-mapSize={[4096, 4096]}
       />
 
+      {/* Add boxing ring */}
+      <BoxingRing />
+
       {/* Render all dice */}
       {diceStates.map((state, index) => (
         <Dice 
@@ -62,11 +66,11 @@ export function DiceScene({ diceStates }: { diceStates: DiceState[] }) {
         />
       ))}
 
-      {/* Ground plane */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
+      {/* Ground plane - commented out since boxing ring has its own floor */}
+      {/* <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
         <planeGeometry args={[ARENA_SIZE, ARENA_SIZE]} />
         <meshStandardMaterial color="#e9e464" />
-      </mesh>
+      </mesh> */}
     </>
   );
 }
