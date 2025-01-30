@@ -958,10 +958,10 @@ export function Room() {
 
           {/* Right Column - Game Canvas */}
           <div className="w-full h-[calc(50vh-64px)] md:h-full md:w-2/3">
-            <div className="bg-white shadow rounded-lg h-full">
-              <div className="h-full p-4">
+            <div className="bg-white shadow rounded-lg h-full flex flex-col">
+              <div className="h-full p-4 flex flex-col">
                 {/* Game Turn Information */}
-                <div className="mb-4">
+                <div className="flex-none mb-4">
                   <div className="bg-white border rounded-lg">
                     <div className="px-4 py-3">
                       <div className="flex items-center justify-between mb-2">
@@ -1173,7 +1173,7 @@ export function Room() {
 
                 {/* Action Buttons */}
                 {gameState && user && gameState.current_player_id === players.find(p => p.user_id === user.id)?.id && (
-                  <div className="mb-4 grid grid-cols-2 gap-4">
+                  <div className="flex-none mb-4 grid grid-cols-2 gap-4">
                     {turnActions.length > 0 && turnActions[turnActions.length - 1]?.score == 0 && <button onClick={() => {
                       const latestAction = turnActions[turnActions.length - 1];
                       if (latestAction?.kept_dice) {
@@ -1240,7 +1240,8 @@ export function Room() {
                   </div>
                 )}
 
-                <div className="w-full h-full bg-gray-50 rounded-lg overflow-hidden">
+                {/* Game Canvas Container */}
+                <div className="flex-1 min-h-0 bg-gray-50 rounded-lg overflow-hidden">
                   <Scene ref={sceneRef} />
                 </div>
               </div>

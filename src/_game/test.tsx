@@ -36,11 +36,18 @@ export const Scene = forwardRef<SceneRef>((_, ref) => {
   }));
 
   return (
-    <div className="w-full h-full">
+    <div className="relative w-full h-full" style={{ minHeight: '300px' }}>
       <Canvas
         shadows
         camera={{ position: [0, 5, 10], fov: 50 }}
-        style={{ background: '#f3f4f6' }}
+        style={{ 
+          background: '#f3f4f6',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%'
+        }}
       >
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} />
