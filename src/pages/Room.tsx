@@ -56,6 +56,15 @@ interface TurnAction {
   created_at: string;
 }
 
+// First, add this CSS animation at the top of the file, after the imports
+const pulseAnimation = `
+  @keyframes softPulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+  }
+`;
+
 export function Room() {
   const navigate = useNavigate();
   const search = useSearch({ from: RoomRoute.id });
@@ -521,6 +530,14 @@ export function Room() {
       });
 
       if (error) throw error;
+
+      // Reset current turn and actions if the turn is ending (bank or bust)
+      if (outcome === 'bank' || outcome === 'bust') {
+        setCurrentTurn(null);
+        setTurnActions([]);
+        setSelectedDiceIndices([]);
+        setDiceValues([1, 2, 3, 4, 5, 6]); // Reset dice values to initial state
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process turn action');
     }
@@ -780,52 +797,59 @@ export function Room() {
         <div className="flex flex-col md:flex-row md:space-x-6 h-full p-4 sm:p-6 lg:p-8">
           {/* Left Column - Room Details */}
           <div className="w-full h-[calc(50vh-64px)] md:h-full md:w-1/3 mb-4 md:mb-0 overflow-y-auto">
-            <div className="bg-white shadow rounded-lg h-full">
-              <div className="px-4 py-5 sm:p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">{room.name}</h2>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    room.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' :
-                    room.status === 'in_progress' ? 'bg-green-100 text-green-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {room.status === 'waiting' ? 'Waiting' :
-                     room.status === 'in_progress' ? 'In Progress' :
-                     'Completed'}
-                  </span>
+            <div className="bg-white shadow rounded-lg h-full flex flex-col">
+              {/* Room Header */}
+              <div className="p-4 border-b border-gray-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center space-x-3">
+                    <h2 className="text-2xl font-bold text-gray-900 truncate">{room.name}</h2>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                      room.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' :
+                      room.status === 'in_progress' ? 'bg-green-100 text-green-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {room.status === 'waiting' ? 'Waiting' :
+                       room.status === 'in_progress' ? 'In Progress' :
+                       'Completed'}
+                    </span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-500">
+                    <span className="hidden sm:inline">Players:</span>
+                    <span className="font-medium ml-1">{room.current_players}/{room.max_players}</span>
+                  </div>
                 </div>
 
-                {/* Add Start/End Game Buttons */}
+                {/* Room Controls */}
                 {user && room.created_by === user.id && (
-                  <div className="mb-4 flex space-x-2">
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {room.current_players < room.max_players && room.status === 'waiting' && (
                       <button
                         onClick={() => setShowInviteModal(true)}
-                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        className="flex-1 min-w-[140px] inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
                           <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
                         </svg>
-                        Invite Players
+                        Invite
                       </button>
                     )}
                     {room.status === 'waiting' && (
                       <button
                         onClick={handleStartGame}
-                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                        className="flex-1 min-w-[140px] inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                         </svg>
-                        Start Game
+                        Start
                       </button>
                     )}
                     {room.status === 'in_progress' && (
                       <button
                         onClick={handleEndGame}
-                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        className="flex-1 min-w-[140px] inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
                         </svg>
                         End Game
@@ -833,48 +857,48 @@ export function Room() {
                     )}
                   </div>
                 )}
+              </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">Players</h3>
-                    <span className="text-sm text-gray-500">
-                      {room.current_players}/{room.max_players} Players
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    {players.map((player) => {
-                      const isCurrentTurn = gameState?.current_player_id === player.id;
-                      const isCurrentUser = player.user_id === user?.id;
-                      return (
-                        <div
-                          key={player.id}
-                          className={`relative rounded-lg border ${
-                            isCurrentTurn ? 'border-indigo-500 bg-indigo-50' : 
-                            isCurrentUser ? 'border-green-500 bg-green-50' :
-                            'border-gray-300 bg-white'
-                          } px-4 py-3 shadow-sm flex items-center justify-between transition-colors duration-200`}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="flex-shrink-0">
-                              <div className={`w-10 h-10 rounded-full ${
-                                isCurrentTurn ? 'bg-indigo-200' :
-                                isCurrentUser ? 'bg-green-200' :
-                                'bg-indigo-100'
-                              } flex items-center justify-center`}>
-                                <span className={`${
-                                  isCurrentTurn ? 'text-indigo-900' :
-                                  isCurrentUser ? 'text-green-900' :
-                                  'text-indigo-800'
-                                } font-medium`}>
-                                  P{player.player_order}
-                                </span>
-                              </div>
+              {/* Players List */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="space-y-3">
+                  {players.map((player) => {
+                    const isCurrentTurn = gameState?.current_player_id === player.id;
+                    const isCurrentUser = player.user_id === user?.id;
+                    return (
+                      <div
+                        key={player.id}
+                        className={`relative rounded-lg border ${
+                          isCurrentTurn ? 'border-indigo-500 bg-indigo-50' : 
+                          isCurrentUser ? 'border-green-500 bg-green-50' :
+                          'border-gray-300 bg-white'
+                        } p-3 shadow-sm transition-colors duration-200`}
+                        style={{ 
+                          animation: isCurrentTurn ? 'softPulse 2s infinite' : 'none'
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0">
+                            <div className={`w-10 h-10 rounded-full ${
+                              isCurrentTurn ? 'bg-indigo-200' :
+                              isCurrentUser ? 'bg-green-200' :
+                              'bg-gray-200'
+                            } flex items-center justify-center`}>
+                              <span className={`font-medium ${
+                                isCurrentTurn ? 'text-indigo-900' :
+                                isCurrentUser ? 'text-green-900' :
+                                'text-gray-900'
+                              }`}>
+                                P{player.player_order}
+                              </span>
                             </div>
-                            <div>
-                              <div className="flex items-center space-x-2">
-                                <p className="text-sm font-medium text-gray-900">
-                                  Player {player.player_order}
-                                </p>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap gap-2 items-center">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                Player {player.player_order}
+                              </p>
+                              <div className="flex flex-wrap gap-1">
                                 {isCurrentTurn && (
                                   <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-indigo-800 bg-indigo-100 rounded">
                                     Current Turn
@@ -886,48 +910,47 @@ export function Room() {
                                   </span>
                                 )}
                               </div>
+                            </div>
+                            <div className="mt-1 flex items-center justify-between">
                               <p className="text-sm text-gray-500">
-                                Score: {player.score}
+                                Score: <span className="font-medium">{player.score}</span>
                               </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            {player.is_active ? (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Online
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                Offline
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {/* Empty slots */}
-                    {Array.from({ length: room.max_players - players.length }).map((_, index) => (
-                      <div
-                        key={`empty-${index}`}
-                        className="relative rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 shadow-sm flex items-center justify-between"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="flex-shrink-0">
-                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                              <span className="text-gray-400 font-medium">
-                                {players.length + index + 1}
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                player.is_active 
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {player.is_active ? 'Online' : 'Offline'}
                               </span>
                             </div>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">
-                              Waiting for player...
-                            </p>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
+                  
+                  {/* Empty slots with improved responsive design */}
+                  {Array.from({ length: room.max_players - players.length }).map((_, index) => (
+                    <div
+                      key={`empty-${index}`}
+                      className="relative rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 shadow-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                            <span className="text-gray-400 font-medium">
+                              {players.length + index + 1}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-gray-500">
+                            Waiting for player...
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -941,9 +964,101 @@ export function Room() {
                 <div className="mb-4">
                   <div className="bg-white border rounded-lg">
                     <div className="px-4 py-3">
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Current Turn</h3>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-medium text-gray-900">Game Status</h3>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          room.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' :
+                          room.status === 'in_progress' ? 'bg-green-100 text-green-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {room.status === 'waiting' ? 'Waiting to Start' :
+                           room.status === 'in_progress' ? 'In Progress' :
+                           'Game Over'}
+                        </span>
+                      </div>
                       
-                      {currentTurn ? (
+                      {room.status === 'waiting' ? (
+                        <div className="text-center py-6">
+                          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                          <h3 className="mt-2 text-sm font-medium text-gray-900">Waiting for game to start</h3>
+                          <p className="mt-1 text-sm text-gray-500">
+                            {room.current_players < 2 
+                              ? 'Need at least one more player to start'
+                              : 'Ready to begin when host starts the game'}
+                          </p>
+                          {user && room.created_by === user.id && room.current_players >= 2 && (
+                            <div className="mt-6">
+                              <button
+                                onClick={handleStartGame}
+                                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                              >
+                                <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                </svg>
+                                Start Game
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : room.status === 'completed' ? (
+                        <div className="text-center py-6">
+                          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                          </svg>
+                          <h3 className="mt-2 text-sm font-medium text-gray-900">Game Completed</h3>
+                          <div className="mt-3">
+                            {players.sort((a, b) => b.score - a.score).map((player, index) => (
+                              <div key={player.id} className="flex justify-between items-center px-4 py-2">
+                                <span className="text-sm text-gray-500">
+                                  {index === 0 ? '🏆 ' : ''}{`Player ${player.player_order}`}
+                                </span>
+                                <span className="font-medium text-gray-900">{player.score} points</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : room.status === 'in_progress' && !currentTurn ? (
+                        <div className="text-center py-6">
+                          <style>{pulseAnimation}</style>
+                          {gameState && (
+                            <>
+                              {(() => {
+                                const currentPlayer = players.find(p => p.id === gameState.current_player_id);
+                                const isCurrentUserTurn = currentPlayer?.user_id === user?.id;
+                                return (
+                                  <>
+                                    <div className={`rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center ${
+                                      isCurrentUserTurn ? 'bg-green-100' : 'bg-gray-100'
+                                    }`} style={{ 
+                                      animation: isCurrentUserTurn ? 'softPulse 2s infinite' : 'none'
+                                    }}>
+                                      <span className={`text-lg font-medium ${
+                                        isCurrentUserTurn ? 'text-green-700' : 'text-gray-700'
+                                      }`}>
+                                        P{currentPlayer?.player_order}
+                                      </span>
+                                    </div>
+                                    <h3 className="text-sm font-medium text-gray-900">
+                                      {isCurrentUserTurn ? (
+                                        "It's your turn!"
+                                      ) : (
+                                        `Waiting for Player ${currentPlayer?.player_order}'s turn`
+                                      )}
+                                    </h3>
+                                    {isCurrentUserTurn && (
+                                      <p className="mt-2 text-sm text-gray-500">
+                                        Click "Roll Dice" to begin your turn
+                                      </p>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </>
+                          )}
+                        </div>
+                      ) : currentTurn ? (
                         <div className="space-y-3">
                           <div className="grid grid-cols-2 gap-3 text-sm">
                             <div>
@@ -1050,7 +1165,7 @@ export function Room() {
                           </div>
                         </div>
                       ) : (
-                        <p className="text-sm text-gray-500 italic">Waiting for turn to start...</p>
+                        <p className="text-sm text-gray-500 italic">Loading game state...</p>
                       )}
                     </div>
                   </div>
