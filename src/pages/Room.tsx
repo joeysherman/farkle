@@ -517,7 +517,6 @@ export function Room() {
 
       const { error } = await supabase.rpc('process_turn_action', {
         p_game_id: roomId,
-        p_kept_dice: keptDice,
         p_outcome: outcome
       });
 
@@ -1060,6 +1059,12 @@ export function Room() {
                 {/* Action Buttons */}
                 {gameState && user && gameState.current_player_id === players.find(p => p.user_id === user.id)?.id && (
                   <div className="mb-4 grid grid-cols-2 gap-4">
+                    {turnActions.length > 0 && turnActions[turnActions.length - 1]?.score == 0 && <button onClick={() => {
+                      const latestAction = turnActions[turnActions.length - 1];
+                      if (latestAction?.kept_dice) {
+                        handleTurnAction(latestAction.kept_dice, 'bust');
+                      }
+                    }} className="col-span-2 w-full h-16 inline-flex justify-center items-center px-4 py-2 border border-transparent text-lg font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Continue</button>}
                     {turnActions.length === 0 || (turnActions[turnActions.length - 1]?.turn_action_outcome) ? (
                       // Show large roll button when starting a new turn
                       <button
@@ -1075,11 +1080,9 @@ export function Room() {
                           onClick={() => {
                             const latestAction = turnActions[turnActions.length - 1];
                             if (latestAction && !latestAction.turn_action_outcome) {
-                              // Get the selected dice values based on indices
-                              const keptDice = selectedDiceIndices
-                                .map(idx => latestAction.dice_values[idx])
-                                .filter(Boolean);
-                              handleTurnAction(keptDice, 'bank');
+                          
+                          
+                              handleTurnAction(latestAction.kept_dice, 'bank');
                               setSelectedDiceIndices([]); // Clear selection after banking
                             }
                           }}

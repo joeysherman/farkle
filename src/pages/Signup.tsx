@@ -40,7 +40,7 @@ export function Signup() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `https://ff0d-2600-8801-aa04-6300-2817-65bf-2dad-651b.ngrok-free.app/auth/callback`,
         },
       });
 
@@ -147,13 +147,19 @@ export function Signup() {
                 id="email"
                 name="email"
                 type="email"
-                autoComplete="email"
+                autoComplete="username email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
+                inputMode="email"
                 required
                 className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
+                aria-label="Email address"
+                aria-required="true"
               />
             </div>
           </div>

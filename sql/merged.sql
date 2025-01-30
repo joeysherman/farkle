@@ -196,8 +196,8 @@ CREATE TABLE IF NOT EXISTS public.turn_actions (
   dice_values int[] not null,
   kept_dice int[] default array[]::int[] not null,
   score int default 0 not null,
-  turn_action_outcome turn_action_outcome,
-  available_dice int GENERATED ALWAYS AS (array_length(dice_values, 1) - array_length(kept_dice, 1)) STORED,
+  outcome turn_action_outcome,
+  available_dice int,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(turn_id, action_number)
 );
@@ -494,7 +494,7 @@ BEGIN
   END IF;
 
   -- If the latest action has no outcome, no dice are available until the action is completed
-  IF v_latest_action.turn_action_outcome IS NULL THEN
+  IF v_latest_action.outcome IS NULL THEN
     RETURN 0;
   END IF;
 
@@ -569,27 +569,22 @@ BEGIN
     RETURNING * INTO v_turn;
   END IF;
 
-  -- Get available dice for current turn
-  v_available_dice := get_available_dice(v_turn.id);
-
-  -- Verify number of dice is valid
-  IF p_num_dice > v_available_dice THEN
-    RAISE EXCEPTION 'Not enough dice available. Available: %', v_available_dice;
-  END IF;
-
   -- Perform the roll
-  v_roll_results := roll_dice(p_num_dice);
+  v_roll_results := roll_dice(6);
 
   -- Calculate initial possible score for this roll
   v_score_result := calculate_turn_score(v_roll_results);
 
-  -- Record the roll in turn_actions
+  -- Set available dice based on this roll which is 6 - v_score_result.valid_dice
+  v_available_dice := 6 - array_length(v_score_result.valid_dice, 1);
+
   INSERT INTO turn_actions (
     turn_id,
     action_number,
     dice_values,
     kept_dice,
     score,
+    available_dice,
     created_at
   ) VALUES (
     v_turn.id,
@@ -601,6 +596,7 @@ BEGIN
     v_roll_results,
     v_score_result.valid_dice,
     v_score_result.score,
+    v_available_dice,
     now()
   );
 
@@ -611,7 +607,6 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Function to process turn action
 CREATE OR REPLACE FUNCTION process_turn_action(
   p_game_id UUID,
-  p_kept_dice INTEGER[],
   p_outcome turn_action_outcome
 ) RETURNS INTEGER[] AS $$
 DECLARE
@@ -637,11 +632,6 @@ BEGIN
   FROM game_players gp
   WHERE gp.id = v_game_state.current_player_id;
 
-  -- Verify it's the user's turn
-  IF v_player.user_id != auth.uid() THEN
-    RAISE EXCEPTION 'Not your turn';
-  END IF;
-
   -- Get current turn
   SELECT gt.* INTO v_turn
   FROM game_turns gt
@@ -655,74 +645,67 @@ BEGIN
   ORDER BY ta.action_number DESC
   LIMIT 1;
 
-  -- Validate kept dice against rolled dice
-  IF NOT validate_dice_selection(v_latest_action.dice_values, p_kept_dice) THEN
-    RAISE EXCEPTION 'Invalid dice selection';
-  END IF;
 
-  -- Calculate score for kept dice
-  v_score_result := calculate_turn_score(p_kept_dice);
-
-  -- Calculate remaining dice
-  v_remaining_dice := array_length(v_latest_action.dice_values, 1) - array_length(p_kept_dice, 1);
-
-  -- If continuing, verify there are dice available
-  IF p_outcome = 'continue' AND v_remaining_dice <= 0 THEN
-    RAISE EXCEPTION 'No dice available to continue rolling';
-  END IF;
-
-  -- Update the turn action with kept dice and score
-  UPDATE turn_actions
-  SET kept_dice = p_kept_dice,
-      score = v_score_result.score,
-      turn_action_outcome = p_outcome
-  WHERE id = v_latest_action.id;
-
-  -- Handle the outcome
+  -- CASE p_outcome
   CASE p_outcome
     WHEN 'bust' THEN
-      PERFORM end_turn(p_game_id, 0, true);
+  -- bust: set outcome to bust
+  -- set outcome to bust on the previous turn_action
+  UPDATE turn_actions
+  SET outcome = 'bust'
+  WHERE id = v_latest_action.id;
+  
+       PERFORM end_turn(p_game_id, 0, true);
     WHEN 'bank' THEN
-      -- Sum up all scores from this turn's actions
+        -- bank: set outcome to bank
+      -- set outcome to bank on the previous turn_action
+      UPDATE turn_actions
+      SET outcome = 'bank'
+      WHERE id = v_latest_action.id;
+
+        -- Sum up all scores from this turn's actions
       SELECT COALESCE(SUM(score), 0)
       INTO v_score_result.score
       FROM turn_actions
       WHERE turn_id = v_turn.id;
+      
       PERFORM end_turn(p_game_id, v_score_result.score, false);
-    ELSE
-      -- For 'continue' outcome, create a new turn_action with the next roll
-      -- Calculate number of dice for next roll
-      v_remaining_dice := CASE 
-        -- If all dice were kept, give 6 new dice (hot dice)
-        WHEN array_length(p_kept_dice, 1) = array_length(v_latest_action.dice_values, 1) THEN 6
-        -- Otherwise use remaining dice
-        ELSE array_length(v_latest_action.dice_values, 1) - array_length(p_kept_dice, 1)
-      END;
 
-      -- Roll the dice
-      v_roll_results := roll_dice(v_remaining_dice);
+    WHEN 'continue' THEN
+  -- continue: 
+  -- get available dice from v_latest_action.available_dice
+  -- roll the amount of available dice
+  -- update turn_action with new dice values, kept_dice, and score, and available_dice
+    
+    v_remaining_dice := v_latest_action.available_dice;
 
-      -- Calculate initial possible score for this roll
-      v_score_result := calculate_turn_score(v_roll_results);
+    v_roll_results := roll_dice(v_remaining_dice);
 
-      -- Create new turn_action for the next roll
-      INSERT INTO turn_actions (
-        turn_id,
-        action_number,
-        dice_values,
-        kept_dice,
-        score,
-        created_at
-      ) VALUES (
-        v_turn.id,
-        v_latest_action.action_number + 1,
-        v_roll_results,
-        v_score_result.valid_dice,
-        v_score_result.score,
-        now()
-      );
+    v_score_result := calculate_turn_score(v_roll_results);
 
-      -- Return the new roll results
+  -- set outcome to continue on the previous turn_action
+  -- v_latest_action should have the id to use.
+  UPDATE turn_actions
+  SET outcome = 'continue'
+  WHERE id = v_latest_action.id;
+
+  INSERT INTO turn_actions (
+    turn_id,
+    action_number,
+    dice_values,
+    kept_dice,
+    score,
+    available_dice,
+    created_at
+  ) VALUES (
+    v_turn.id,
+     v_latest_action.action_number + 1,
+    v_roll_results,
+    v_score_result.valid_dice,
+    v_score_result.score,
+    v_remaining_dice - array_length(v_score_result.valid_dice, 1),
+    now()
+  );
       RETURN v_roll_results;
   END CASE;
 
@@ -799,7 +782,7 @@ BEGIN
   JOIN game_turns gt ON ta.turn_id = gt.id
   WHERE gt.game_id = p_game_id
   AND gt.ended_at IS NULL
-  AND ta.turn_action_outcome IS NULL;
+  AND ta.outcome IS NULL;
 
   IF v_pending_actions > 0 THEN
     RAISE EXCEPTION 'Cannot end turn with pending actions. All actions must have an outcome.';
