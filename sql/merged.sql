@@ -588,11 +588,7 @@ BEGIN
     created_at
   ) VALUES (
     v_turn.id,
-    COALESCE((
-      SELECT MAX(ta.action_number) + 1
-      FROM turn_actions ta
-      WHERE ta.turn_id = v_turn.id
-    ), 1),
+    1,
     v_roll_results,
     v_score_result.valid_dice,
     v_score_result.score,
@@ -654,8 +650,8 @@ BEGIN
   UPDATE turn_actions
   SET outcome = 'bust'
   WHERE id = v_latest_action.id;
-  
-       PERFORM end_turn(p_game_id, 0, true);
+
+       PERFORM end_turn(p_game_id, 0);
     WHEN 'bank' THEN
         -- bank: set outcome to bank
       -- set outcome to bank on the previous turn_action
@@ -669,7 +665,7 @@ BEGIN
       FROM turn_actions
       WHERE turn_id = v_turn.id;
       
-      PERFORM end_turn(p_game_id, v_score_result.score, false);
+      PERFORM end_turn(p_game_id, v_score_result.score);
 
     WHEN 'continue' THEN
   -- continue: 
@@ -767,8 +763,7 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 -- Function to end turn (with player_order fix)
 CREATE OR REPLACE FUNCTION end_turn(
   p_game_id UUID,
-  p_final_score INTEGER,
-  p_is_farkle BOOLEAN
+  p_final_score INTEGER
 ) RETURNS void AS $$
 DECLARE
   v_turn game_turns;
@@ -791,18 +786,17 @@ BEGIN
   -- Update the current turn
   UPDATE game_turns gt
   SET ended_at = now(),
-      score_gained = p_final_score,
-      is_farkle = p_is_farkle
+      score_gained = p_final_score
   WHERE gt.game_id = p_game_id
   AND gt.ended_at IS NULL
   RETURNING * INTO v_turn;
 
   -- If banking (not farkle), update player's score
-  IF NOT p_is_farkle THEN
+  
     UPDATE game_players
     SET score = score + p_final_score
     WHERE id = v_turn.player_id;
-  END IF;
+  
 
   -- Get next player in turn order (using player_order instead of turn_order)
   SELECT gp.id INTO v_next_player_id
