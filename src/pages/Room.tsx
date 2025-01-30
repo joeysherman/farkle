@@ -7,6 +7,7 @@ import { Scene, SceneRef } from '../_game/test';
 import { nanoid } from 'nanoid';
 import { generateRoomName } from '../utils/roomNames';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface GameRoom {
   id: string;
@@ -267,6 +268,9 @@ export function Room() {
   useEffect(() => {
     if (!roomId) return;
 
+    let actionSubscription: RealtimeChannel | null = null;
+    let currentTurnId: string | null = null;
+
     const turnSubscription = supabase
       .channel('turn_changes')
       .on<GameTurn>(
@@ -280,78 +284,111 @@ export function Room() {
         async (payload: RealtimePostgresChangesPayload<GameTurn>) => {
           const newTurn = payload.new as GameTurn;
           if (!newTurn) return;
-          
-          try {
-            // Fetch the turn with error handling
-            const { data: turnData, error: turnError } = await supabase
-              .from('game_turns')
-              .select('*')
-              .eq('game_id', roomId)
-              .eq('turn_number', newTurn.turn_number)
-              .maybeSingle();  // Use maybeSingle() instead of single()
 
-            // Only set the turn if we actually got data
-            if (turnData) {
-              setCurrentTurn(turnData);
-              // Fetch associated actions
-              const { data: actionsData } = await supabase
-                .from('turn_actions')
-                .select('*')
-                .eq('turn_id', turnData.id)
-                .order('action_number', { ascending: true });
-              
-              if (actionsData) {
-                setTurnActions(actionsData);
-              } else {
-                setTurnActions([]);
+          try {
+            // If this is a different turn than what we're currently tracking
+            if (currentTurnId !== newTurn.id) {
+              // Clean up existing subscription
+              if (actionSubscription) {
+                await actionSubscription.unsubscribe();
+                actionSubscription = null;
               }
-            } else {
-              // If no turn data, reset the state
+
+              // Reset states immediately
               setCurrentTurn(null);
               setTurnActions([]);
+              setSelectedDiceIndices([]);
+
+              // Update our tracked turn ID
+              currentTurnId = newTurn.id;
+
+              // Fetch the complete turn data
+              const { data: turnData, error: turnError } = await supabase
+                .from('game_turns')
+                .select('*')
+                .eq('id', newTurn.id)
+                .single();
+
+              if (turnData) {
+                // Only set up new subscription if the turn is not ended
+                if (!turnData.ended_at) {
+                  setCurrentTurn(turnData);
+
+                  // Fetch initial actions
+                  const { data: actionsData } = await supabase
+                    .from('turn_actions')
+                    .select('*')
+                    .eq('turn_id', turnData.id)
+                    .order('action_number', { ascending: true });
+
+                  if (actionsData) {
+                    setTurnActions(actionsData);
+                  }
+
+                  // Set up new action subscription
+                  actionSubscription = supabase
+                    .channel(`action_changes_${turnData.id}`)
+                    .on<TurnAction>(
+                      'postgres_changes' as any,
+                      {
+                        event: '*',
+                        schema: 'public',
+                        table: 'turn_actions',
+                        filter: `turn_id=eq.${turnData.id}`,
+                      },
+                      (actionPayload: RealtimePostgresChangesPayload<TurnAction>) => {
+                        const newAction = actionPayload.new as TurnAction;
+                        if (!newAction) return;
+
+                        setTurnActions(prev => {
+                          const newActions = [...prev];
+                          const index = newActions.findIndex(a => a.id === newAction.id);
+                          if (index >= 0) {
+                            newActions[index] = newAction;
+                          } else {
+                            newActions.push(newAction);
+                          }
+                          return newActions;
+                        });
+                      }
+                    )
+                    .subscribe();
+                }
+              }
+            } else if (newTurn.ended_at) {
+              // If this is our current turn and it just ended
+              if (actionSubscription) {
+                await actionSubscription.unsubscribe();
+                actionSubscription = null;
+              }
+              setCurrentTurn(null);
+              setTurnActions([]);
+              setSelectedDiceIndices([]);
+              currentTurnId = null;
             }
           } catch (err) {
-            console.error('Error fetching turn data:', err);
+            console.error('Error handling turn update:', err);
             // Reset states on error
             setCurrentTurn(null);
             setTurnActions([]);
+            setSelectedDiceIndices([]);
+            if (actionSubscription) {
+              await actionSubscription.unsubscribe();
+              actionSubscription = null;
+            }
+            currentTurnId = null;
           }
         }
       )
       .subscribe();
 
-    const actionSubscription = supabase
-      .channel('action_changes')
-      .on<TurnAction>(
-        'postgres_changes' as any,
-        {
-          event: '*',
-          schema: 'public',
-          table: 'turn_actions',
-          filter: `turn_id=eq.${currentTurn?.id}`,
-        },
-        (payload: RealtimePostgresChangesPayload<TurnAction>) => {
-          const newAction = payload.new as TurnAction;
-          if (!newAction) return;
-          setTurnActions(prev => {
-            const newActions = [...prev];
-            const index = newActions.findIndex(a => a.id === newAction.id);
-            if (index >= 0) {
-              newActions[index] = newAction;
-            } else {
-              newActions.push(newAction);
-            }
-            return newActions;
-          });
-        }
-      )
-      .subscribe();
-
     return () => {
+      if (actionSubscription) {
+        actionSubscription.unsubscribe();
+      }
       turnSubscription.unsubscribe();
-      actionSubscription.unsubscribe();
     };
-  }, [roomId, currentTurn?.id]);
+  }, [roomId]);
 
   // Add effect to scroll to bottom when turnActions changes
   useEffect(() => {
@@ -567,7 +604,7 @@ export function Room() {
 
       if (error) throw error;
 
-      // Reset current turn and actions if the turn is ending (bank or bust)
+      // Reset states if the turn is ending (bank or bust)
       if (outcome === 'bank' || outcome === 'bust') {
         setCurrentTurn(null);
         setTurnActions([]);
@@ -1226,7 +1263,6 @@ export function Room() {
                                       const latestAction = turnActions[turnActions.length - 1];
                                       if (latestAction && !latestAction.turn_action_outcome) {
                                         handleTurnAction(latestAction.kept_dice, 'bank');
-                                        setSelectedDiceIndices([]);
                                       }
                                     }}
                                     disabled={!turnActions.length || Boolean(turnActions[turnActions.length - 1]?.turn_action_outcome)}
