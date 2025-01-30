@@ -867,9 +867,9 @@ export function Room() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <main className="max-w-[1600px] mx-auto h-[calc(100vh-64px)]">
-        <div className="flex flex-col md:flex-row md:space-x-6 h-full p-4 sm:p-6 lg:p-8">
-          {/* Left Column - Room Details */}
-          <div className="w-full h-[calc(50vh-64px)] md:h-full md:w-1/3 mb-4 md:mb-0 overflow-y-auto">
+        <div className="flex flex-col md:flex-row md:space-x-4 h-full p-2 sm:p-4">
+          {/* Left Column - Room Details - Made slimmer */}
+          <div className="w-full h-[calc(50vh-64px)] md:h-full md:w-1/4 mb-4 md:mb-0 overflow-y-auto">
             <div className="bg-white shadow rounded-lg h-full flex flex-col">
               {/* Room Header */}
               <div className="p-4 border-b border-gray-200">
@@ -1029,18 +1029,18 @@ export function Room() {
             </div>
           </div>
 
-          {/* Right Column - Game Canvas */}
-          <div className="w-full h-[calc(50vh-64px)] md:h-full md:w-2/3">
+          {/* Right Column - Game Canvas - Given more space */}
+          <div className="w-full h-[calc(50vh-64px)] md:h-full md:w-3/4">
             <div className="bg-white shadow rounded-lg h-full flex flex-col">
-              <div className="h-full p-4 flex flex-col">
-                {/* Game Turn Information */}
-                <div className="flex-none mb-4">
+              <div className="h-full p-2 flex flex-col">
+                {/* Game Turn Information - Made more compact */}
+                <div className="flex-none mb-2">
                   <div className="bg-white border rounded-lg">
-                    <div className="px-4 py-3">
+                    <div className="px-3 py-2">
                       {/* Header with Game Status */}
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-lg font-medium text-gray-900">Game Status</h3>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="text-base font-medium text-gray-900">Game Status</h3>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                           room.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' :
                           room.status === 'in_progress' ? 'bg-green-100 text-green-800' :
                           'bg-gray-100 text-gray-800'
@@ -1305,7 +1305,7 @@ export function Room() {
                   </div>
                 </div>
 
-                {/* Game Canvas Container */}
+                {/* Game Canvas Container - Given more vertical space */}
                 <div className="flex-1 min-h-0 bg-gray-50 rounded-lg overflow-hidden">
                   <Scene ref={sceneRef} />
                 </div>
