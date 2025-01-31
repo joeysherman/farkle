@@ -873,9 +873,11 @@ export function Room() {
             <div className="bg-white shadow rounded-lg h-full flex flex-col">
               {/* Room Header */}
               <div className="p-4 border-b border-gray-200">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-col justify-between gap-4">
                   <div className="flex items-center space-x-3">
                     <h2 className="text-2xl font-bold text-gray-900 truncate">{room.name}</h2>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-gray-500 gap-2">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                       room.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' :
                       room.status === 'in_progress' ? 'bg-green-100 text-green-800' :
@@ -884,11 +886,8 @@ export function Room() {
                       {room.status === 'waiting' ? 'Waiting' :
                        room.status === 'in_progress' ? 'In Progress' :
                        'Completed'}
-                    </span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <span className="hidden sm:inline">Players:</span>
-                    <span className="font-medium ml-1">{room.current_players}/{room.max_players}</span>
+                    </span>                
+                    <span className="font-medium ml-1">Players: {room.current_players}/{room.max_players}</span>
                   </div>
                 </div>
 
@@ -1159,16 +1158,22 @@ export function Room() {
                                       <div className="w-full">
                                         <div className="flex items-center gap-2 mb-2">
                                           <span className="font-medium text-gray-500">Roll {action.action_number}:</span>
-                                          <div className="font-medium text-indigo-600 ml-auto">
-                                            +{action.score}
-                                          </div>
+                                          {action.score > 0 ? (
+                                            <div className="font-medium text-indigo-600 ml-auto">
+                                              +{action.score}
+                                            </div>
+                                          ) : (
+                                            <div className="font-medium text-red-500 ml-auto">
+                                              +0
+                                            </div>
+                                          )}
                                         </div>
                                         
                                         {/* Two rows: Remaining Dice and Kept Dice */}
                                         <div className="grid grid-cols-1 gap-2">
                                           {/* Remaining Dice Row */}
-                                          <div className="flex items-center gap-2">
-                                            <span className="font-medium text-gray-500 w-20">Available:</span>
+                                          <div className="grid grid-cols-[120px_1fr] items-center gap-2">
+                                            <span className="font-medium text-gray-500">Dice left:</span>
                                             <div className="flex gap-1 flex-wrap">
                                               {remainingDice.map((value, idx) => (
                                                 <button
@@ -1206,8 +1211,8 @@ export function Room() {
                                           </div>
                                           
                                           {/* Kept Dice Row */}
-                                          <div className="flex items-center gap-2">
-                                            <span className="font-medium text-gray-500 w-20">Kept:</span>
+                                          <div className="grid grid-cols-[120px_1fr] items-center gap-2">
+                                            <span className="font-medium text-gray-500">Scoring dice:</span>
                                             <div className="flex gap-1 flex-wrap">
                                               {action.kept_dice.map((value, idx) => (
                                                 <div
@@ -1218,7 +1223,7 @@ export function Room() {
                                                 </div>
                                               ))}
                                               {action.kept_dice.length === 0 && (
-                                                <span className="text-gray-500 italic">No dice kept</span>
+                                                <span className="text-red-500 italic font-bold">Farkle!</span>
                                               )}
                                             </div>
                                           </div>
@@ -1245,9 +1250,9 @@ export function Room() {
                                       handleTurnAction(latestAction.kept_dice, 'bust');
                                     }
                                   }} 
-                                  className="col-span-2 w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                  className="col-span-2 w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                 >
-                                  Continue
+                                  End Turn
                                 </button>
                               ) : turnActions.length === 0 || (turnActions[turnActions.length - 1]?.turn_action_outcome) ? (
                                 <button
@@ -1285,13 +1290,14 @@ export function Room() {
                                     }}
                                     disabled={
                                       turnActions.length === 0 || 
-                                      Boolean(turnActions[turnActions.length - 1]?.turn_action_outcome) ||
-                                      (turnActions[turnActions.length - 1]?.score ?? 0) === 0 ||
+                                      (turnActions[turnActions.length - 1]?.score ?? 0) === 0 &&
                                       (turnActions[turnActions.length - 1]?.available_dice ?? 0) <= 0
                                     }
                                     className="w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                                   >
-                                    Continue Rolling ({turnActions[turnActions.length - 1]?.available_dice ?? 0} dice)
+                                    {turnActions[turnActions.length - 1]?.available_dice == 0 && turnActions[turnActions.length - 1]?.score > 0 && "Hot Dice! Roll 6 dice"}
+                                    
+                                    {turnActions[turnActions.length - 1]?.available_dice > 0 && turnActions[turnActions.length - 1]?.score > 0 && "Roll " + (turnActions[turnActions.length - 1]?.available_dice ?? 0) + " dice"}
                                   </button>
                                 </>
                               )}
