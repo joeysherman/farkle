@@ -9,8 +9,9 @@ import { generateRoomName } from '../utils/roomNames';
 interface GameRoom {
 	id: string;
 	name: string;
-	current_players: number;
+	created_by: string;
 	max_players: number;
+	current_players: number;
 	status: 'waiting' | 'in_progress' | 'completed';
 	invite_code: string;
 }
@@ -21,27 +22,27 @@ export const Home = (): FunctionComponent => {
 	const [showCreateRoom, setShowCreateRoom] = useState(false);
 	const [roomName, setRoomName] = useState(nanoid(6));
 	const [error, setError] = useState('');
-	const [availableRooms, setAvailableRooms] = useState<GameRoom[]>([]);
+	const [availableRooms, setAvailableRooms] = useState<Array<GameRoom>>([]);
 	const [isAuthChecking, setIsAuthChecking] = useState(true);
+	const [user, setUser] = useState<any>(null);
 
 	useEffect(() => {
-		const checkAuth = async () => {
-			const { data: { user } } = await supabase.auth.getUser();
-			if (!user) {
-				navigate({ to: '/signup' });
+		const checkAuth = async (): Promise<void> => {
+			const { data: { user: authUser } } = await supabase.auth.getUser();
+			if (!authUser) {
+				await navigate({ to: '/signup' });
 				return;
 			}
+			setUser(authUser);
 			setIsAuthChecking(false);
 		};
 
-		checkAuth();
+		void checkAuth();
 	}, [navigate]);
 
 	useEffect(() => {
-		// Only fetch rooms if user is authenticated
 		if (!isAuthChecking) {
-			// Fetch available rooms
-			const fetchRooms = async () => {
+			const fetchRooms = async (): Promise<void> => {
 				const { data } = await supabase
 					.from('game_rooms')
 					.select('*')
@@ -53,9 +54,8 @@ export const Home = (): FunctionComponent => {
 				}
 			};
 
-			fetchRooms();
+			void fetchRooms();
 
-			// Subscribe to room changes
 			const roomSubscription = supabase
 				.channel('room_changes')
 				.on(
@@ -66,13 +66,13 @@ export const Home = (): FunctionComponent => {
 						table: 'game_rooms',
 					},
 					() => {
-						fetchRooms();
+						void fetchRooms();
 					}
 				)
 				.subscribe();
 
 			return () => {
-				roomSubscription.unsubscribe();
+				void roomSubscription.unsubscribe();
 			};
 		}
 	}, [isAuthChecking]);
@@ -162,6 +162,22 @@ export const Home = (): FunctionComponent => {
 		}
 	};
 
+	const handleEndGame = async (roomId: string) => {
+		try {
+			const { error } = await supabase.rpc('end_game', {
+				p_game_id: roomId
+			});
+
+			if (error) {
+				console.error('End game error:', error);
+				setError('Failed to end game. Please try again.');
+			}
+		} catch (err) {
+			console.error('End game error:', err);
+			setError(err instanceof Error ? err.message : 'Failed to end game. Please try again.');
+		}
+	};
+
 	return (
 		<div className="min-h-screen bg-gray-100">
 			<Navbar />
@@ -198,16 +214,26 @@ export const Home = (): FunctionComponent => {
 										<p className="mt-1 text-sm text-gray-500">
 											Players: {room.current_players}/{room.max_players}
 										</p>
-										<button
-											onClick={() => navigate({ to: '/room', search: { roomId: room.id } })}
-											className={`mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
-												room.status === 'waiting' ? 
-												'bg-indigo-600 hover:bg-indigo-700' : 
-												'bg-green-600 hover:bg-green-700'
-											} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
-										>
-											{room.status === 'waiting' ? 'Join Game' : 'View Game'}
-										</button>
+										<div className="mt-4 flex gap-2">
+											<button
+												onClick={() => navigate({ to: '/room', search: { roomId: room.id } })}
+												className={`flex-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
+													room.status === 'waiting' ? 
+													'bg-indigo-600 hover:bg-indigo-700' : 
+													'bg-green-600 hover:bg-green-700'
+												} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+											>
+												{room.status === 'waiting' ? 'Join Game' : 'View Game'}
+											</button>
+											{user && room.created_by === user.id && room.status === 'in_progress' && (
+												<button
+													onClick={() => handleEndGame(room.id)}
+													className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+												>
+													End Game
+												</button>
+											)}
+										</div>
 									</div>
 								</div>
 							))}
