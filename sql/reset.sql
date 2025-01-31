@@ -12,7 +12,8 @@ DROP FUNCTION IF EXISTS end_game(UUID);
 DROP FUNCTION IF EXISTS end_turn(UUID, INTEGER, BOOLEAN);
 DROP FUNCTION IF EXISTS check_farkle(INTEGER[]);
 DROP FUNCTION IF EXISTS validate_dice_selection(INTEGER[], INTEGER[]);
-DROP FUNCTION IF EXISTS process_turn_action(UUID, INTEGER[], turn_action_outcome) CASCADE; 
+DROP FUNCTION IF EXISTS process_turn_action(UUID, INTEGER[], turn_action_outcome) CASCADE;
+DROP FUNCTION IF EXISTS process_turn_action(UUID, turn_action_outcome) CASCADE;  -- Drop both overloads
 DROP FUNCTION IF EXISTS perform_roll(UUID, INTEGER) CASCADE;
 DROP FUNCTION IF EXISTS get_available_dice(UUID);
 DROP FUNCTION IF EXISTS calculate_turn_score(INTEGER[]);
@@ -23,8 +24,10 @@ DROP FUNCTION IF EXISTS join_game(UUID, TEXT);
 DROP FUNCTION IF EXISTS create_room(TEXT);
 DROP FUNCTION IF EXISTS generate_invite_code();
 DROP FUNCTION IF EXISTS update_updated_at_column();
+DROP FUNCTION IF EXISTS test_calculate_turn_score();
+DROP FUNCTION IF EXISTS run_all_tests();
 
--- Drop types
+-- Drop types (after functions that depend on them)
 DROP TYPE IF EXISTS turn_score_result;
 DROP TYPE IF EXISTS turn_action_outcome;
 DROP TYPE IF EXISTS game_status;

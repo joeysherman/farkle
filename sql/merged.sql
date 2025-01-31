@@ -428,6 +428,9 @@ DECLARE
   valid_dice INTEGER[] := ARRAY[]::INTEGER[];
   i INTEGER;
   j INTEGER;
+  pair_count INTEGER := 0;
+  has_straight BOOLEAN := false;
+  base_score INTEGER;
 BEGIN
   -- Initialize result
   result.score := 0;
@@ -440,24 +443,65 @@ BEGIN
   FOR i IN 1..array_length(selected_dice, 1) LOOP
     dice_counts[selected_dice[i]] := dice_counts[selected_dice[i]] + 1;
   END LOOP;
+
+  -- Check for straight (1-6)
+  IF array_length(selected_dice, 1) = 6 THEN
+    has_straight := true;
+    FOR i IN 1..6 LOOP
+      IF dice_counts[i] != 1 THEN
+        has_straight := false;
+        EXIT;
+      END IF;
+    END LOOP;
+
+    IF has_straight THEN
+      result.score := 1000;
+      result.valid_dice := selected_dice;
+      RETURN result;
+    END IF;
+  END IF;
+
+  -- Check for three pairs
+  IF array_length(selected_dice, 1) = 6 THEN
+    pair_count := 0;
+    FOR i IN 1..6 LOOP
+      IF dice_counts[i] = 2 THEN
+        pair_count := pair_count + 1;
+      END IF;
+    END LOOP;
+
+    IF pair_count = 3 THEN
+      result.score := 750;
+      result.valid_dice := selected_dice;
+      RETURN result;
+    END IF;
+  END IF;
   
-  -- Handle three of a kind first
+  -- Handle multiples (3 or more of a kind)
   FOR i IN 1..6 LOOP
     IF dice_counts[i] >= 3 THEN
-      -- Add score for three of a kind
+      -- Calculate base score for three of a kind
       IF i = 1 THEN
-        result.score := result.score + 1000;
+        base_score := 1000;
       ELSE
-        result.score := result.score + (i * 100);
+        base_score := i * 100;
+      END IF;
+      
+      -- Add base score for initial three dice
+      result.score := base_score;
+      
+      -- Add base score for each additional die
+      IF dice_counts[i] > 3 THEN
+        result.score := result.score + (base_score * (dice_counts[i] - 3));
       END IF;
       
       -- Add these dice to valid_dice array
-      FOR j IN 1..3 LOOP
+      FOR j IN 1..dice_counts[i] LOOP
         result.valid_dice := array_append(result.valid_dice, i);
       END LOOP;
       
-      -- Reduce the count for remaining individual scoring
-      dice_counts[i] := dice_counts[i] - 3;
+      -- Set count to 0 so we don't count these dice again
+      dice_counts[i] := 0;
     END IF;
   END LOOP;
   
@@ -659,6 +703,11 @@ BEGIN
       SET outcome = 'bank'
       WHERE id = v_latest_action.id;
 
+      -- if the score of the latest turn_action is 0, we cannot bank
+      if v_latest_action.score = 0 then
+        RAISE EXCEPTION 'Cannot bank with 0 score from previous turn';
+      end if;
+
         -- Sum up all scores from this turn's actions
       SELECT COALESCE(SUM(score), 0)
       INTO v_score_result.score
@@ -674,6 +723,19 @@ BEGIN
   -- update turn_action with new dice values, kept_dice, and score, and available_dice
     
     v_remaining_dice := v_latest_action.available_dice;
+    if v_remaining_dice = 0 then
+      -- if v_remaining_dice is 0, check if we rolled all bankable dice
+      -- if we did, set v_remaining_dice to 6
+      -- check if the score is greater than 0
+      -- check if the length of the dice_values array is equal to the length of the kept_dice array
+      -- if both are true, set v_remaining_dice to 6
+      -- otherwise throw an exception
+      if v_latest_action.score > 0 and array_length(v_latest_action.dice_values, 1) = array_length(v_latest_action.kept_dice, 1) then
+        v_remaining_dice := 6;
+      else
+        RAISE EXCEPTION 'Cannot continue turn with 0 available dice';
+      end if;
+    end if;
 
     v_roll_results := roll_dice(v_remaining_dice);
 
@@ -917,3 +979,148 @@ CREATE TRIGGER maintain_current_players
   AFTER INSERT OR UPDATE OF is_active ON game_players
   FOR EACH ROW
   EXECUTE FUNCTION update_current_players();
+
+
+-- Test functions for game_turns.sql
+-- These tests verify the scoring and game mechanics functions
+
+-- Test function for calculate_turn_score
+CREATE OR REPLACE FUNCTION test_calculate_turn_score()
+RETURNS SETOF text AS $$
+DECLARE
+  result turn_score_result;
+BEGIN
+  -- Test single 1s and 5s
+  result := calculate_turn_score(ARRAY[1]);
+  ASSERT result.score = 100, 'Single 1 should score 100';
+  
+  result := calculate_turn_score(ARRAY[5]);
+  ASSERT result.score = 50, 'Single 5 should score 50';
+  
+  result := calculate_turn_score(ARRAY[1, 5]);
+  ASSERT result.score = 150, 'One 1 and one 5 should score 150';
+  
+  -- Test three of a kind
+  result := calculate_turn_score(ARRAY[1, 1, 1]);
+  ASSERT result.score = 1000, 'Three 1s should score 1000';
+  
+  result := calculate_turn_score(ARRAY[2, 2, 2]);
+  ASSERT result.score = 200, 'Three 2s should score 200';
+  
+  result := calculate_turn_score(ARRAY[3, 3, 3]);
+  ASSERT result.score = 300, 'Three 3s should score 300';
+  
+  result := calculate_turn_score(ARRAY[4, 4, 4]);
+  ASSERT result.score = 400, 'Three 4s should score 400';
+  
+  result := calculate_turn_score(ARRAY[5, 5, 5]);
+  ASSERT result.score = 500, 'Three 5s should score 500';
+  
+  result := calculate_turn_score(ARRAY[6, 6, 6]);
+  ASSERT result.score = 600, 'Three 6s should score 600';
+
+  -- Test four of a kind (adds base score once)
+  result := calculate_turn_score(ARRAY[1, 1, 1, 1]);
+  ASSERT result.score = 2000, 'Four 1s should score 2000';
+  
+  result := calculate_turn_score(ARRAY[2, 2, 2, 2]);
+  ASSERT result.score = 400, 'Four 2s should score 400';
+  
+  result := calculate_turn_score(ARRAY[3, 3, 3, 3]);
+  ASSERT result.score = 600, 'Four 3s should score 600';
+  
+  result := calculate_turn_score(ARRAY[4, 4, 4, 4]);
+  ASSERT result.score = 800, 'Four 4s should score 800';
+  
+  result := calculate_turn_score(ARRAY[5, 5, 5, 5]);
+  ASSERT result.score = 1000, 'Four 5s should score 1000';
+  
+  result := calculate_turn_score(ARRAY[6, 6, 6, 6]);
+  ASSERT result.score = 1200, 'Four 6s should score 1200';
+
+  -- Test five of a kind (adds base score twice)
+  result := calculate_turn_score(ARRAY[1, 1, 1, 1, 1]);
+  ASSERT result.score = 3000, 'Five 1s should score 3000';
+  
+  result := calculate_turn_score(ARRAY[2, 2, 2, 2, 2]);
+  ASSERT result.score = 600, 'Five 2s should score 600';
+  
+  result := calculate_turn_score(ARRAY[3, 3, 3, 3, 3]);
+  ASSERT result.score = 900, 'Five 3s should score 900';
+  
+  result := calculate_turn_score(ARRAY[4, 4, 4, 4, 4]);
+  ASSERT result.score = 1200, 'Five 4s should score 1200';
+  
+  result := calculate_turn_score(ARRAY[5, 5, 5, 5, 5]);
+  ASSERT result.score = 1500, 'Five 5s should score 1500';
+  
+  result := calculate_turn_score(ARRAY[6, 6, 6, 6, 6]);
+  ASSERT result.score = 1800, 'Five 6s should score 1800';
+
+  -- Test six of a kind (adds base score three times)
+  result := calculate_turn_score(ARRAY[1, 1, 1, 1, 1, 1]);
+  ASSERT result.score = 4000, 'Six 1s should score 4000';
+  
+  result := calculate_turn_score(ARRAY[2, 2, 2, 2, 2, 2]);
+  ASSERT result.score = 800, 'Six 2s should score 800';
+  
+  result := calculate_turn_score(ARRAY[3, 3, 3, 3, 3, 3]);
+  ASSERT result.score = 1200, 'Six 3s should score 1200';
+  
+  result := calculate_turn_score(ARRAY[4, 4, 4, 4, 4, 4]);
+  ASSERT result.score = 1600, 'Six 4s should score 1600';
+  
+  result := calculate_turn_score(ARRAY[5, 5, 5, 5, 5, 5]);
+  ASSERT result.score = 2000, 'Six 5s should score 2000';
+  
+  result := calculate_turn_score(ARRAY[6, 6, 6, 6, 6, 6]);
+  ASSERT result.score = 2400, 'Six 6s should score 2400';
+  
+  -- Test straight (1-6)
+  result := calculate_turn_score(ARRAY[1, 2, 3, 4, 5, 6]);
+  ASSERT result.score = 1000, 'Straight 1-6 should score 1000';
+  
+  result := calculate_turn_score(ARRAY[6, 5, 4, 3, 2, 1]);
+  ASSERT result.score = 1000, 'Straight 6-1 should score 1000';
+  
+  result := calculate_turn_score(ARRAY[3, 1, 4, 6, 2, 5]);
+  ASSERT result.score = 1000, 'Mixed order straight should score 1000';
+
+  -- Test three pairs
+  result := calculate_turn_score(ARRAY[2, 2, 3, 3, 4, 4]);
+  ASSERT result.score = 750, 'Three pairs should score 750';
+  
+  result := calculate_turn_score(ARRAY[1, 1, 3, 3, 6, 6]);
+  ASSERT result.score = 750, 'Three pairs with 1s should score 750';
+  
+  result := calculate_turn_score(ARRAY[5, 5, 2, 2, 4, 4]);
+  ASSERT result.score = 750, 'Three pairs with 5s should score 750';
+  
+  -- Test combinations
+  result := calculate_turn_score(ARRAY[1, 1, 1, 5]);
+  ASSERT result.score = 1050, 'Three 1s and a 5 should score 1050';
+  
+  result := calculate_turn_score(ARRAY[5, 5, 5, 1]);
+  ASSERT result.score = 600, 'Three 5s and a 1 should score 600';
+  
+  result := calculate_turn_score(ARRAY[2, 2, 2, 1, 5]);
+  ASSERT result.score = 350, 'Three 2s with 1 and 5 should score 350';
+  
+  -- Test non-scoring dice
+  result := calculate_turn_score(ARRAY[2]);
+  ASSERT result.score = 0, 'Single 2 should score 0';
+  
+  result := calculate_turn_score(ARRAY[3, 4, 6]);
+  ASSERT result.score = 0, 'Non-scoring combination should score 0';
+  
+  RETURN NEXT 'All calculate_turn_score tests passed!';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to run all tests
+CREATE OR REPLACE FUNCTION run_all_tests()
+RETURNS SETOF text AS $$
+BEGIN
+  RETURN QUERY SELECT * FROM test_calculate_turn_score();
+END;
+$$ LANGUAGE plpgsql; 

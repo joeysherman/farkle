@@ -178,6 +178,20 @@ export const Home = (): FunctionComponent => {
 		}
 	};
 
+	const runAllTests = async (): Promise<void> => {
+		try {
+			setLoading(true);
+			const { error } = await supabase.rpc('run_all_tests');
+			if (error) throw error;
+			alert('Tests completed successfully!');
+		} catch (error) {
+			console.error('Test error:', error);
+			alert('Failed to run tests. Check console for details.');
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	return (
 		<div className="min-h-screen bg-gray-100">
 			<Navbar />
@@ -291,6 +305,13 @@ export const Home = (): FunctionComponent => {
 								className="mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
 							>
 								View Profile
+							</button>
+							<button
+								onClick={runAllTests}
+								disabled={loading}
+								className="mt-2 w-full inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+							>
+								{loading ? 'Running Tests...' : 'Run All Tests'}
 							</button>
 						</div>
 					</div>
