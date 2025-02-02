@@ -1,13 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { supabase } from '../lib/supabaseClient';
-import { Navbar } from '../components/Navbar';
+import { Navbar } from '../components/layout/navbar/Navbar';
 import { Route as RoomRoute } from '../routes/room';
-import { Scene, SceneRef } from '../_game/test';
+import type { SceneRef } from '../_game/test';
+import { Scene } from '../_game/test';
 import { nanoid } from 'nanoid';
 import { generateRoomName } from '../utils/roomNames';
-import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimePostgresChangesPayload, RealtimeChannel } from '@supabase/supabase-js';
+
 
 interface GameRoom {
   id: string;
@@ -49,8 +50,8 @@ interface TurnAction {
   id: string;
   turn_id: string;
   action_number: number;
-  dice_values: number[];
-  kept_dice: number[];
+  dice_values: Array<number>;
+  kept_dice: Array<number>;
   score: number;
   turn_action_outcome: 'bust' | 'bank' | 'continue' | null;
   available_dice: number;
@@ -66,46 +67,28 @@ const pulseAnimation = `
   }
 `;
 
-export function Room() {
+export function Room(): JSX.Element {
   const navigate = useNavigate();
   const search = useSearch({ from: RoomRoute.id });
   const roomId = search.roomId;
   const sceneRef = useRef<SceneRef>(null);
   
   const [room, setRoom] = useState<GameRoom | null>(null);
-  const [players, setPlayers] = useState<GamePlayer[]>([]);
+  const [players, setPlayers] = useState<Array<GamePlayer>>([]);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inputRoomId, setInputRoomId] = useState('');
   const [diceValues, setDiceValues] = useState([1, 2, 3, 4, 5, 6]);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteCode, setInviteCode] = useState('');
+  
   const [copied, setCopied] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [username, setUsername] = useState('');
+  
   const [currentTurn, setCurrentTurn] = useState<GameTurn | null>(null);
-  const [turnActions, setTurnActions] = useState<TurnAction[]>([]);
-  const [selectedDiceIndices, setSelectedDiceIndices] = useState<number[]>([]);
+  const [turnActions, setTurnActions] = useState<Array<TurnAction>>([]);
+  const [selectedDiceIndices, setSelectedDiceIndices] = useState<Array<number>>([]);
   const turnActionsRef = useRef<HTMLDivElement>(null);
-
-  const handleNumberChange = (index: number, value: string) => {
-    const numValue = parseInt(value);
-    if (numValue >= 1 && numValue <= 6) {
-      setDiceValues(prev => {
-        const newValues = [...prev];
-        newValues[index] = numValue;
-        return newValues;
-      });
-    }
-  };
-
-  const handleRollClick = (index: number) => {
-    const value = diceValues[index];
-    if (value !== undefined) {
-      sceneRef.current?.roll(index, value);
-    }
-  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -190,8 +173,8 @@ export function Room() {
           }
         }
 
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+      } catch (error_) {
+        setError(error_ instanceof Error ? error_.message : 'An error occurred');
       } finally {
         setLoading(false);
       }
@@ -340,8 +323,8 @@ export function Room() {
                         const newAction = actionPayload.new as TurnAction;
                         if (!newAction) return;
 
-                        setTurnActions(prev => {
-                          const newActions = [...prev];
+                        setTurnActions(previous => {
+                          const newActions = [...previous];
                           const index = newActions.findIndex(a => a.id === newAction.id);
                           if (index >= 0) {
                             newActions[index] = newAction;
@@ -366,8 +349,8 @@ export function Room() {
               setSelectedDiceIndices([]);
               currentTurnId = null;
             }
-          } catch (err) {
-            console.error('Error handling turn update:', err);
+          } catch (error_) {
+            console.error('Error handling turn update:', error_);
             // Reset states on error
             setCurrentTurn(null);
             setTurnActions([]);
@@ -495,9 +478,9 @@ export function Room() {
       setShowInviteModal(false);
       setError(null); // Clear any existing errors
       
-    } catch (err) {
-      console.error('Join game error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to join game. Please try again.');
+    } catch (error_) {
+      console.error('Join game error:', error_);
+      setError(error_ instanceof Error ? error_.message : 'Failed to join game. Please try again.');
     }
   };
 
@@ -505,7 +488,7 @@ export function Room() {
     const url = `${window.location.origin}/room?roomId=${roomId}`;
     await navigator.clipboard.writeText(url);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => { setCopied(false); }, 2000);
   };
 
   const handleStartGame = async () => {
@@ -518,9 +501,9 @@ export function Room() {
         console.error('Start game error:', error);
         setError('Failed to start game. Please try again.');
       }
-    } catch (err) {
-      console.error('Start game error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start game. Please try again.');
+    } catch (error_) {
+      console.error('Start game error:', error_);
+      setError(error_ instanceof Error ? error_.message : 'Failed to start game. Please try again.');
     }
   };
 
@@ -534,18 +517,18 @@ export function Room() {
         console.error('End game error:', error);
         setError('Failed to end game. Please try again.');
       }
-    } catch (err) {
-      console.error('End game error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to end game. Please try again.');
+    } catch (error_) {
+      console.error('End game error:', error_);
+      setError(error_ instanceof Error ? error_.message : 'Failed to end game. Please try again.');
     }
   };
 
   // Add roll handler
-  const handleRoll = async (numDice: number = 6) => {
+  const handleRoll = async (numberDice: number = 6) => {
     try {
       const { data: rollResults, error } = await supabase.rpc('perform_roll', {
         p_game_id: roomId,
-        p_num_dice: numDice
+        p_num_dice: numberDice
       });
 
       if (error) {
@@ -562,9 +545,9 @@ export function Room() {
         sceneRef.current?.roll(index, value);
       });
 
-    } catch (err) {
-      console.error('Roll error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to roll dice');
+    } catch (error_) {
+      console.error('Roll error:', error_);
+      setError(error_ instanceof Error ? error_.message : 'Failed to roll dice');
     }
   };
 
@@ -583,14 +566,14 @@ export function Room() {
 
       // Navigate to the new room
       navigate({ to: '/room', search: { roomId } });
-    } catch (err) {
-      console.error('Create room error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create room. Please try again.');
+    } catch (error_) {
+      console.error('Create room error:', error_);
+      setError(error_ instanceof Error ? error_.message : 'Failed to create room. Please try again.');
     }
   };
 
   // Add the handleTurnAction function near other handlers
-  const handleTurnAction = async (keptDice: number[], outcome: 'bust' | 'bank' | 'continue') => {
+  const handleTurnAction = async (keptDice: Array<number>, outcome: 'bust' | 'bank' | 'continue') => {
     if (!roomId) return;
     
     try {
@@ -611,45 +594,9 @@ export function Room() {
         setSelectedDiceIndices([]);
         setDiceValues([1, 2, 3, 4, 5, 6]); // Reset dice values to initial state
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process turn action');
+    } catch (error_) {
+      setError(error_ instanceof Error ? error_.message : 'Failed to process turn action');
     }
-  };
-
-  // Add a function to calculate available dice
-  const calculateAvailableDice = (actions: TurnAction[]): number => {
-    if (actions.length === 0) return 6;
-    
-    const latestAction = actions[actions.length - 1];
-    if (!latestAction) return 6;
-    
-    // If the latest action has no outcome, no dice are available
-    if (!latestAction.turn_action_outcome) return 0;
-    
-    // If all dice were kept, give 6 new dice (hot dice)
-    if (latestAction.kept_dice.length === latestAction.dice_values.length) {
-      return 6;
-    }
-    
-    // Otherwise return remaining dice
-    return latestAction.dice_values.length - latestAction.kept_dice.length;
-  };
-
-  // Add a function to calculate remaining dice from current roll
-  const calculateRemainingDice = (actions: TurnAction[]): number => {
-    if (actions.length === 0) return 6;
-    
-    const latestAction = actions[actions.length - 1];
-    if (!latestAction) return 6;
-    
-    // If the latest action has an outcome, we'll be doing a new roll
-    if (latestAction.turn_action_outcome) return 6;
-    
-    // Otherwise, show remaining dice from current roll
-    const remainingDice = latestAction.dice_values.filter(
-      value => !latestAction.kept_dice.includes(value)
-    );
-    return remainingDice.length;
   };
 
   // Invite Modal Component
@@ -667,24 +614,24 @@ export function Room() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Room Code</label>
                   <input
-                    type="text"
                     readOnly
-                    value={room?.invite_code}
                     className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
+                    type="text"
+                    value={room?.invite_code}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Room URL</label>
                   <div className="mt-1 flex rounded-md shadow-sm">
                     <input
-                      type="text"
                       readOnly
-                      value={`${window.location.origin}/room?roomId=${roomId}`}
                       className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
+                      type="text"
+                      value={`${window.location.origin}/room?roomId=${roomId}`}
                     />
                     <button
-                      onClick={copyInviteLink}
                       className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                      onClick={copyInviteLink}
                     >
                       {copied ? 'Copied!' : 'Copy'}
                     </button>
@@ -700,28 +647,28 @@ export function Room() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Username</label>
                     <input
+                      className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
+                      placeholder="Enter your username"
                       type="text"
                       value={localUsername}
-                      onChange={(e) => setLocalUsername(e.target.value)}
-                      placeholder="Enter your username"
-                      className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
+                      onChange={(e) => { setLocalUsername(e.target.value); }}
                     />
                   </div>
                 )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Room Code</label>
                   <input
-                    type="text"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
                     maxLength={6}
                     placeholder="Enter 6-digit code"
-                    className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
+                    type="text"
+                    value={code}
+                    onChange={(e) => { setCode(e.target.value); }}
                   />
                 </div>
                 <button
-                  onClick={() => handleJoinWithCode(code, localUsername)}
                   className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                  onClick={() => handleJoinWithCode(code, localUsername)}
                 >
                   Join Game
                 </button>
@@ -729,8 +676,8 @@ export function Room() {
             </>
           )}
           <button
-            onClick={() => setShowInviteModal(false)}
             className="mt-4 w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            onClick={() => { setShowInviteModal(false); }}
           >
             Close
           </button>
@@ -759,32 +706,32 @@ export function Room() {
           <div className="max-w-md mx-auto bg-white shadow rounded-lg p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Join or Create a Room</h2>
             <div className="space-y-4">
-              <form onSubmit={handleJoinRoom} className="space-y-4">
+              <form className="space-y-4" onSubmit={handleJoinRoom}>
                 <div>
-                  <label htmlFor="roomId" className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-gray-700" htmlFor="roomId">
                     Room Code
                   </label>
                   <input
-                    type="text"
-                    id="roomId"
-                    value={inputRoomId}
-                    onChange={(e) => setInputRoomId(e.target.value)}
-                    placeholder="Enter 6-digit room code"
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    id="roomId"
                     maxLength={6}
+                    placeholder="Enter 6-digit room code"
+                    type="text"
+                    value={inputRoomId}
+                    onChange={(e) => { setInputRoomId(e.target.value); }}
                   />
                 </div>
                 <div className="flex justify-between">
                   <button
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     type="button"
                     onClick={() => navigate({ to: '/' })}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                     Back to Home
                   </button>
                   <button
-                    type="submit"
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    type="submit"
                   >
                     Join Room
                   </button>
@@ -799,8 +746,8 @@ export function Room() {
                 </div>
               </div>
               <button
-                onClick={handleCreateRoom}
                 className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                onClick={handleCreateRoom}
               >
                 Create New Room
               </button>
@@ -824,8 +771,8 @@ export function Room() {
               </div>
               <div className="mt-5">
                 <button
-                  onClick={() => navigate({ to: '/' })}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  onClick={() => navigate({ to: '/' })}
                 >
                   Return Home
                 </button>
@@ -896,10 +843,10 @@ export function Room() {
                   <div className="mt-4 flex flex-wrap gap-2">
                     {room.current_players < room.max_players && room.status === 'waiting' && (
                       <button
-                        onClick={() => setShowInviteModal(true)}
                         className="flex-1 min-w-[140px] inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        onClick={() => { setShowInviteModal(true); }}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                           <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
                         </svg>
                         Invite
@@ -907,22 +854,22 @@ export function Room() {
                     )}
                     {room.status === 'waiting' && (
                       <button
-                        onClick={handleStartGame}
                         className="flex-1 min-w-[140px] inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                        onClick={handleStartGame}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                        <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <path clipRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" fillRule="evenodd" />
                         </svg>
                         Start
                       </button>
                     )}
                     {room.status === 'in_progress' && (
                       <button
-                        onClick={handleEndGame}
                         className="flex-1 min-w-[140px] inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        onClick={handleEndGame}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                        <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <path clipRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" fillRule="evenodd" />
                         </svg>
                         End Game
                       </button>
@@ -1052,8 +999,8 @@ export function Room() {
                       
                       {room.status === 'waiting' ? (
                         <div className="text-center py-6">
-                          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
                           </svg>
                           <h3 className="mt-2 text-sm font-medium text-gray-900">Waiting for game to start</h3>
                           <p className="mt-1 text-sm text-gray-500">
@@ -1064,11 +1011,11 @@ export function Room() {
                           {user && room.created_by === user.id && room.current_players >= 2 && (
                             <div className="mt-6">
                               <button
-                                onClick={handleStartGame}
                                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                onClick={handleStartGame}
                               >
-                                <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                <svg className="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                  <path clipRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" fillRule="evenodd" />
                                 </svg>
                                 Start Game
                               </button>
@@ -1109,8 +1056,8 @@ export function Room() {
                                           Click below to begin your turn
                                         </p>
                                         <button
-                                          onClick={() => handleRoll(6)}
                                           className="w-full max-w-xs h-12 inline-flex justify-center items-center px-6 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                          onClick={() => handleRoll(6)}
                                         >
                                           Roll Dice
                                         </button>
@@ -1146,7 +1093,7 @@ export function Room() {
                             <div className="space-y-2">
                               {turnActions.map((action) => {
                                 const remainingDice = action.dice_values.filter(
-                                  (value, idx) => !action.kept_dice.includes(value)
+                                  (value, index) => !action.kept_dice.includes(value)
                                 );
                                 
                                 return (
@@ -1175,21 +1122,9 @@ export function Room() {
                                           <div className="grid grid-cols-[120px_1fr] items-center gap-2">
                                             <span className="font-medium text-gray-500">Dice left:</span>
                                             <div className="flex gap-1 flex-wrap">
-                                              {remainingDice.map((value, idx) => (
+                                              {remainingDice.map((value, index) => (
                                                 <button
-                                                  key={idx}
-                                                  onClick={() => {
-                                                    if (action === turnActions[turnActions.length - 1] && !action.turn_action_outcome) {
-                                                      const originalIndex = action.dice_values.indexOf(value);
-                                                      setSelectedDiceIndices(prev => {
-                                                        if (prev.includes(originalIndex)) {
-                                                          return prev.filter(i => i !== originalIndex);
-                                                        } else {
-                                                          return [...prev, originalIndex];
-                                                        }
-                                                      });
-                                                    }
-                                                  }}
+                                                  key={index}
                                                   disabled={action !== turnActions[turnActions.length - 1] || Boolean(action.turn_action_outcome)}
                                                   className={`w-8 h-8 flex items-center justify-center rounded ${
                                                     selectedDiceIndices.includes(action.dice_values.indexOf(value))
@@ -1200,6 +1135,18 @@ export function Room() {
                                                       ? 'hover:bg-indigo-100 cursor-pointer'
                                                       : 'cursor-default'
                                                   }`}
+                                                  onClick={() => {
+                                                    if (action === turnActions[turnActions.length - 1] && !action.turn_action_outcome) {
+                                                      const originalIndex = action.dice_values.indexOf(value);
+                                                      setSelectedDiceIndices(previous => {
+                                                        if (previous.includes(originalIndex)) {
+                                                          return previous.filter(index_ => index_ !== originalIndex);
+                                                        } else {
+                                                          return [...previous, originalIndex];
+                                                        }
+                                                      });
+                                                    }
+                                                  }}
                                                 >
                                                   {value}
                                                 </button>
@@ -1214,9 +1161,9 @@ export function Room() {
                                           <div className="grid grid-cols-[120px_1fr] items-center gap-2">
                                             <span className="font-medium text-gray-500">Scoring dice:</span>
                                             <div className="flex gap-1 flex-wrap">
-                                              {action.kept_dice.map((value, idx) => (
+                                              {action.kept_dice.map((value, index) => (
                                                 <div
-                                                  key={idx}
+                                                  key={index}
                                                   className="w-8 h-8 flex items-center justify-center rounded bg-green-100 border border-green-300 text-green-700"
                                                 >
                                                   {value}
@@ -1244,43 +1191,49 @@ export function Room() {
                             <div className="flex-none grid grid-cols-2 gap-3">
                               {turnActions.length > 0 && turnActions[turnActions.length - 1]?.score == 0 ? (
                                 <button 
+                                  className="col-span-2 w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" 
                                   onClick={() => {
                                     const latestAction = turnActions[turnActions.length - 1];
                                     if (latestAction?.kept_dice) {
                                       handleTurnAction(latestAction.kept_dice, 'bust');
                                     }
-                                  }} 
-                                  className="col-span-2 w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                  }}
                                 >
                                   End Turn
                                 </button>
                               ) : turnActions.length === 0 || (turnActions[turnActions.length - 1]?.turn_action_outcome) ? (
                                 <button
-                                  onClick={() => handleRoll(6)}
                                   className="col-span-2 w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                  onClick={() => handleRoll(6)}
                                 >
                                   Roll Dice
                                 </button>
                               ) : (
                                 <>
                                   <button
+                                    className="w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                                    disabled={!turnActions.length || Boolean(turnActions[turnActions.length - 1]?.turn_action_outcome)}
                                     onClick={() => {
                                       const latestAction = turnActions[turnActions.length - 1];
                                       if (latestAction && !latestAction.turn_action_outcome) {
                                         handleTurnAction(latestAction.kept_dice, 'bank');
                                       }
                                     }}
-                                    disabled={!turnActions.length || Boolean(turnActions[turnActions.length - 1]?.turn_action_outcome)}
-                                    className="w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
                                   >
                                     Bank Score
                                   </button>
                                   <button
+                                    className="w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                                    disabled={
+                                      turnActions.length === 0 || 
+                                      (turnActions[turnActions.length - 1]?.score ?? 0) === 0 &&
+                                      (turnActions[turnActions.length - 1]?.available_dice ?? 0) <= 0
+                                    }
                                     onClick={() => {
                                       const latestAction = turnActions[turnActions.length - 1];
                                       if (latestAction && !latestAction.turn_action_outcome) {
                                         const keptDice = selectedDiceIndices
-                                          .map(idx => latestAction.dice_values[idx])
+                                          .map(index => latestAction.dice_values[index])
                                           .filter(Boolean);
                                         const validScoringDice = latestAction.kept_dice;
                                         const allKeptDice = [...validScoringDice, ...keptDice];
@@ -1288,12 +1241,6 @@ export function Room() {
                                         setSelectedDiceIndices([]);
                                       }
                                     }}
-                                    disabled={
-                                      turnActions.length === 0 || 
-                                      (turnActions[turnActions.length - 1]?.score ?? 0) === 0 &&
-                                      (turnActions[turnActions.length - 1]?.available_dice ?? 0) <= 0
-                                    }
-                                    className="w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                                   >
                                     {turnActions[turnActions.length - 1]?.available_dice == 0 && turnActions[turnActions.length - 1]?.score > 0 && "Hot Dice! Roll 6 dice"}
                                     

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { FunctionComponent } from "../common/types";
-import { Navbar } from "../components/Navbar";
+import { Navbar } from "../components/layout/navbar/Navbar";
 import { supabase } from "../lib/supabaseClient";
 import { nanoid } from 'nanoid';
 import { generateRoomName } from '../utils/roomNames';

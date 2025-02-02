@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 
 type AuthTab = 'magic-link' | 'password';
 
-export function Signup(): JSX.Element {
+export function Signin(): JSX.Element {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -50,7 +50,7 @@ export function Signup(): JSX.Element {
 
       setMessage({
         type: 'success',
-        text: 'Check your email for the signup link!',
+        text: 'Check your email for the login link!',
       });
     } catch (error) {
       setMessage({
@@ -69,16 +69,13 @@ export function Signup(): JSX.Element {
       setLoading(true);
       setMessage(null);
 
-      const { error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (error) throw error;
-      setMessage({
-        type: 'success',
-        text: 'Check your email to confirm your account!',
-      });
+      void navigate({ to: '/' });
     } catch (error) {
       setMessage({
         type: 'error',
@@ -135,13 +132,13 @@ export function Signup(): JSX.Element {
     );
   }
 
-  // Original signup UI for non-authenticated users
+  // Original signin UI for non-authenticated users
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
+            Sign in to your account
           </h2>
         </div>
 
@@ -244,13 +241,13 @@ export function Signup(): JSX.Element {
               </label>
               <div className="mt-1">
                 <input
-                  autoComplete="new-password"
+                  autoComplete="current-password"
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   disabled={loading}
                   id="password"
                   name="password"
                   onChange={(event): void => { setPassword(event.target.value); }}
-                  placeholder="Create a password"
+                  placeholder="Enter your password"
                   required
                   type="password"
                   value={password}
@@ -266,7 +263,7 @@ export function Signup(): JSX.Element {
                 disabled={loading}
                 type="submit"
               >
-                {loading ? 'Creating account...' : 'Create account'}
+                {loading ? 'Signing in...' : 'Sign in'}
               </button>
             </div>
           </form>
@@ -275,9 +272,9 @@ export function Signup(): JSX.Element {
         <div className="text-center">
           <Link
             className="text-sm text-indigo-600 hover:text-indigo-500"
-            to="/signin"
+            to="/signup"
           >
-            Already have an account? Sign in
+            Don't have an account? Sign up
           </Link>
         </div>
       </div>

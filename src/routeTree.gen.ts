@@ -12,14 +12,21 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as SignupImport } from './routes/signup'
+import { Route as SigninImport } from './routes/signin'
 import { Route as RoomImport } from './routes/room'
 import { Route as IndexImport } from './routes/index'
+import { Route as RoomsRoomIdImport } from './routes/rooms/$roomId'
 import { Route as AuthCallbackImport } from './routes/auth.callback'
 
 // Create/Update Routes
 
 const SignupRoute = SignupImport.update({
   path: '/signup',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const SigninRoute = SigninImport.update({
+  path: '/signin',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -30,6 +37,11 @@ const RoomRoute = RoomImport.update({
 
 const IndexRoute = IndexImport.update({
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const RoomsRoomIdRoute = RoomsRoomIdImport.update({
+  path: '/rooms/$roomId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -56,6 +68,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RoomImport
       parentRoute: typeof rootRoute
     }
+    '/signin': {
+      id: '/signin'
+      path: '/signin'
+      fullPath: '/signin'
+      preLoaderRoute: typeof SigninImport
+      parentRoute: typeof rootRoute
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -70,6 +89,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackImport
       parentRoute: typeof rootRoute
     }
+    '/rooms/$roomId': {
+      id: '/rooms/$roomId'
+      path: '/rooms/$roomId'
+      fullPath: '/rooms/$roomId'
+      preLoaderRoute: typeof RoomsRoomIdImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
@@ -78,8 +104,10 @@ declare module '@tanstack/react-router' {
 export const routeTree = rootRoute.addChildren({
   IndexRoute,
   RoomRoute,
+  SigninRoute,
   SignupRoute,
   AuthCallbackRoute,
+  RoomsRoomIdRoute,
 })
 
 /* prettier-ignore-end */
@@ -88,12 +116,14 @@ export const routeTree = rootRoute.addChildren({
 {
   "routes": {
     "__root__": {
-      "filePath": "__root.ts",
+      "filePath": "__root.tsx",
       "children": [
         "/",
         "/room",
+        "/signin",
         "/signup",
-        "/auth/callback"
+        "/auth/callback",
+        "/rooms/$roomId"
       ]
     },
     "/": {
@@ -102,11 +132,17 @@ export const routeTree = rootRoute.addChildren({
     "/room": {
       "filePath": "room.ts"
     },
+    "/signin": {
+      "filePath": "signin.ts"
+    },
     "/signup": {
       "filePath": "signup.ts"
     },
     "/auth/callback": {
       "filePath": "auth.callback.tsx"
+    },
+    "/rooms/$roomId": {
+      "filePath": "rooms/$roomId.tsx"
     }
   }
 }
