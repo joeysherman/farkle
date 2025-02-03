@@ -149,34 +149,7 @@ CREATE POLICY "Players can update their own status in a game"
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.game_players;
 
--- Create game states table
-CREATE TABLE IF NOT EXISTS public.game_states (
-  game_id uuid references public.game_rooms(id) on delete cascade primary key,
-  current_turn_number int not null,
-  current_player_id uuid references public.game_players(id) not null,
-  last_updated_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
-ALTER TABLE public.game_states ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Game states are viewable by authenticated users"
-  ON public.game_states FOR SELECT
-  USING (true);
-
-CREATE POLICY "Players can update game state"
-  ON public.game_states FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM game_players
-      WHERE game_id = game_states.game_id
-      AND user_id = auth.uid()
-      AND is_active = true
-    )
-  );
-
-ALTER PUBLICATION supabase_realtime ADD TABLE public.game_states;
-
--- Create game turns and actions tables
+-- Create game turns and actions tables first (moved up)
 CREATE TABLE IF NOT EXISTS public.game_turns (
   id uuid default gen_random_uuid() primary key,
   game_id uuid references public.game_rooms(id) on delete cascade not null,
@@ -215,6 +188,34 @@ CREATE POLICY "Turn actions are viewable by authenticated users"
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.game_turns;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.turn_actions;
+
+-- Now create game states table (moved down, after game_turns)
+CREATE TABLE IF NOT EXISTS public.game_states (
+  game_id uuid references public.game_rooms(id) on delete cascade primary key,
+  current_turn_number int not null,
+  current_player_id uuid references public.game_players(id) not null,
+  current_turn uuid references public.game_turns(id),
+  last_updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+ALTER TABLE public.game_states ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Game states are viewable by authenticated users"
+  ON public.game_states FOR SELECT
+  USING (true);
+
+CREATE POLICY "Players can update game state"
+  ON public.game_states FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM game_players
+      WHERE game_id = game_states.game_id
+      AND user_id = auth.uid()
+      AND is_active = true
+    )
+  );
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.game_states;
 
 -- Create game history table
 CREATE TABLE IF NOT EXISTS public.game_history (
@@ -256,6 +257,8 @@ RETURNS UUID AS $$
 DECLARE
   v_room_id UUID;
   v_invite_code CHAR(6);
+  v_player_id UUID;
+  v_turn_id UUID;
 BEGIN
   -- Generate invite code
   SELECT generate_invite_code() INTO v_invite_code;
@@ -288,6 +291,34 @@ BEGIN
     1,
     0,
     true
+  ) RETURNING id INTO v_player_id;
+
+  -- Create initial turn
+  INSERT INTO game_turns (
+    game_id,
+    player_id,
+    turn_number,
+    started_at
+  ) VALUES (
+    v_room_id,
+    v_player_id,
+    1,
+    now()
+  ) RETURNING id INTO v_turn_id;
+
+  -- Create game state record with current player as first player
+  -- and current turn number as 1
+  -- and game status as waiting
+  INSERT INTO game_states (
+    game_id,
+    current_player_id,
+    current_turn_number,
+    current_turn
+  ) VALUES (
+    v_room_id,
+    v_player_id,
+    1,
+    v_turn_id
   );
 
   RETURN v_room_id;
@@ -831,6 +862,7 @@ DECLARE
   v_turn game_turns;
   v_next_player_id UUID;
   v_pending_actions INTEGER;
+  v_new_turn_id UUID;
 BEGIN
   -- Check if all actions have outcomes before ending turn
   SELECT COUNT(*)
@@ -881,10 +913,24 @@ BEGIN
     LIMIT 1;
   END IF;
 
+  -- Create new turn for next player
+  INSERT INTO game_turns (
+    game_id,
+    player_id,
+    turn_number,
+    started_at
+  ) VALUES (
+    p_game_id,
+    v_next_player_id,
+    v_turn.turn_number + 1,
+    now()
+  ) RETURNING id INTO v_new_turn_id;
+
   -- Update game state for next turn
   UPDATE game_states
   SET current_player_id = v_next_player_id,
       current_turn_number = v_turn.turn_number + 1,
+      current_turn = v_new_turn_id,
       last_updated_at = now()
   WHERE game_id = p_game_id;
 END;
