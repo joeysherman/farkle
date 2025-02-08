@@ -1,0 +1,49 @@
+<mxfile host="65bd71144e">
+    <diagram id="database-schema" name="Database Schema">
+        <mxGraphModel dx="744" dy="638" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" background="#FFFFFF" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="profiles" value="profiles&#10;--&#10;id: uuid (PK)&#10;username: text&#10;avatar_url: text&#10;total_games: int&#10;games_won: int&#10;highest_score: int&#10;created_at: timestamp&#10;updated_at: timestamp" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=130;fillColor=#dae8fc;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="40" width="200" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="game_rooms" value="game_rooms&#10;--&#10;id: uuid (PK)&#10;name: text&#10;created_by: uuid (FK)&#10;status: game_status&#10;max_players: int&#10;current_players: int&#10;winner_id: uuid (FK)&#10;invite_code: char(6)&#10;ended_at: timestamp&#10;created_at: timestamp&#10;updated_at: timestamp" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=180;fillColor=#d5e8d4;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="320" y="40" width="200" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="game_players" value="game_players&#10;--&#10;id: uuid (PK)&#10;game_id: uuid (FK)&#10;user_id: uuid (FK)&#10;player_order: int&#10;score: int&#10;is_active: boolean&#10;joined_at: timestamp" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=120;fillColor=#ffe6cc;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;strokeColor=#d79b00;" parent="1" vertex="1">
+                    <mxGeometry x="600" y="40" width="200" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="game_states" value="game_states&#10;--&#10;game_id: uuid (PK, FK)&#10;current_turn_number: int&#10;current_player_id: uuid (FK)&#10;current_turn: uuid (FK)&#10;last_updated_at: timestamp" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=100;fillColor=#e1d5e7;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;strokeColor=#9673a6;" parent="1" vertex="1">
+                    <mxGeometry x="320" y="270" width="200" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="game_turns" value="game_turns&#10;--&#10;id: uuid (PK)&#10;game_id: uuid (FK)&#10;player_id: uuid (FK)&#10;turn_number: int&#10;started_at: timestamp&#10;ended_at: timestamp&#10;score_gained: int&#10;is_farkle: boolean" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=140;fillColor=#fff2cc;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="280" width="200" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="turn_actions" value="turn_actions&#10;--&#10;id: uuid (PK)&#10;turn_id: uuid (FK)&#10;action_number: int&#10;dice_values: int[]&#10;kept_dice: int[]&#10;score: int&#10;outcome: turn_action_outcome&#10;available_dice: int&#10;created_at: timestamp" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=160;fillColor=#f8cecc;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="600" y="280" width="200" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="game_history" value="game_history&#10;--&#10;id: uuid (PK)&#10;game_room_id: uuid (FK)&#10;winner_id: uuid (FK)&#10;final_scores: jsonb&#10;duration: interval&#10;created_at: timestamp" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=120;fillColor=#f5f5f5;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+                    <mxGeometry x="310" y="480" width="200" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel1" value="" style="endArrow=ERmany;html=1;rounded=0;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;endFill=0;" parent="1" source="profiles" target="game_rooms" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel2" value="" style="endArrow=ERmany;html=1;rounded=0;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;endFill=0;" parent="1" source="game_rooms" target="game_players" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel3" value="" style="endArrow=ERone;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endFill=0;" parent="1" source="game_rooms" target="game_states" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel4" value="" style="endArrow=ERmany;html=1;rounded=0;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;endFill=0;" parent="1" source="game_rooms" target="game_turns" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel5" value="" style="endArrow=ERmany;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endFill=0;" parent="1" source="game_turns" target="turn_actions" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel6" value="" style="endArrow=ERmany;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endFill=0;" parent="1" source="game_states" target="game_history" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
