@@ -3,7 +3,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { supabase } from "../lib/supabaseClient";
 import { Navbar } from "../components/layout/navbar/Navbar";
 import { Route as RoomRoute } from "../routes/room";
-import { Scene, type SceneRef } from "../_game/test";
+import { GameScene } from "../_game";
 import { nanoid } from "nanoid";
 import { generateRoomName } from "../utils/roomNames";
 import type {
@@ -368,7 +368,6 @@ export function Room(): JSX.Element {
 	const navigate = useNavigate();
 	const search = useSearch({ from: RoomRoute.id });
 	const roomId = search.roomId;
-	const sceneRef = useRef<SceneRef>(null);
 
 	const [room, setRoom] = useState<GameRoom | null>(null);
 	const [players, setPlayers] = useState<Array<GamePlayer>>([]);
@@ -909,9 +908,9 @@ export function Room(): JSX.Element {
 			// ]
 			setDiceValues(rollResults.map((value: number) => ({ number: value })));
 			// Trigger the roll animation for each die
-			rollResults.forEach((value: number, index: number) => {
-				sceneRef.current?.roll(index, value);
-			});
+			// rollResults.forEach((value: number, index: number) => {
+			// 	sceneRef.current?.roll(index, value);
+			// });
 		} catch (error_) {
 			console.error("Roll error:", error_);
 			setError(
@@ -1211,17 +1210,17 @@ export function Room(): JSX.Element {
 	}
 
 	// Only show game room UI if user is authenticated and has joined
-	const isPlayerInRoom = players.some((player) => player.user_id === user?.id);
-	if (!isPlayerInRoom) {
-		return (
-			<div className="min-h-screen bg-gray-50">
-				<Navbar />
-				<div className="flex items-center justify-center h-[calc(100vh-64px)]">
-					<InviteModal />
-				</div>
-			</div>
-		);
-	}
+	// const isPlayerInRoom = players.some((player) => player.user_id === user?.id);
+	// if (!isPlayerInRoom) {
+	// 	return (
+	// 		<div className="min-h-screen bg-gray-50">
+	// 			<Navbar />
+	// 			<div className="flex items-center justify-center h-[calc(100vh-64px)]">
+	// 				<InviteModal />
+	// 			</div>
+	// 		</div>
+	// 	);
+	// }
 
 	// Main game room UI
 	return (
@@ -1304,7 +1303,7 @@ export function Room(): JSX.Element {
 									/>
 								</div>
 								<div className="flex-1 bg-gray-50 rounded-lg overflow-hidden">
-									<Scene ref={sceneRef} diceStates={diceValues} />
+									<GameScene diceStates={diceValues} />
 								</div>
 							</div>
 						</div>

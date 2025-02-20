@@ -1,11 +1,9 @@
-import { useRef, useState, useEffect } from "react";
 import { useGLTF } from "@react-three/drei";
-import * as THREE from "three";
-import { DICE_URL } from "./constants";
 import { useFrame } from "@react-three/fiber";
+import { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
 
-// Preload the dice model
-useGLTF.preload(DICE_URL);
+import { Model as DiceModel } from "./modals/DiceModel";
 
 interface DiceProps {
 	desiredNumber?: number;
@@ -38,109 +36,46 @@ function getRotationForNumber(number: number): [number, number, number] {
 	}
 }
 
+function getPositionByPlacement(placement: number): [number, number, number] {
+	switch (placement) {
+		case 1:
+			return [-4, 0, -4];
+		case 2:
+			return [4, 0, -4];
+		case 3:
+			return [-4, 0, 0];
+		case 4:
+			return [4, 0, 0];
+		case 5:
+			return [-4, 0, 4];
+		case 6:
+			return [4, 0, 4];
+		default:
+			return [0, 0, 0];
+	}
+}
+
 /**
  * Static Dice component that shows a specific number facing up
  */
 export function Dice({
-	desiredNumber = 6,
-	position = [0, 0, 0],
-	isSpinning,
-	onDiceClick,
-	isScoring = false,
-	index,
+	placement,
+	value,
+	isScoringNumber,
 }: DiceProps): JSX.Element {
-	const { scene } = useGLTF(DICE_URL);
-	const clonedScene = scene.clone(true);
+	const originalPosition = getPositionByPlacement(placement);
+	const originalRotation = getRotationForNumber(value);
 
-	const originalMaterials = useRef(
-		new Map<string, THREE.MeshStandardMaterial>()
-	);
-
-	const meshRef = useRef<THREE.Mesh>(null);
-	const [hovered, setHovered] = useState(false);
-
-	const originalRotation = useRef<[number, number, number]>(
-		getRotationForNumber(desiredNumber)
-	);
-
-	// Apply green tint to scoring dice
-	useEffect(() => {
-		clonedScene.traverse((child) => {
-			if (
-				child instanceof THREE.Mesh &&
-				child.material instanceof THREE.MeshStandardMaterial
-			) {
-				const meshId = child.uuid;
-				// Store original material if not already stored
-				if (!originalMaterials.current.has(meshId)) {
-					originalMaterials.current.set(meshId, child.material.clone());
-				}
-
-				if (isScoring && child.material.name === "Dice") {
-					child.material.color = new THREE.Color(0xb8ffc9);
-					child.material.emissive = new THREE.Color(0x00ff00);
-					child.material.emissiveIntensity = 0.5;
-				} else {
-					// Restore original material
-					const originalMaterial = originalMaterials.current.get(meshId);
-					if (originalMaterial) {
-						child.material = originalMaterial.clone();
-					}
-				}
-			}
-		});
-
-		return (): void => {
-			clonedScene.traverse((child) => {
-				if (
-					child instanceof THREE.Mesh &&
-					child.material instanceof THREE.MeshStandardMaterial
-				) {
-					const originalMaterial = originalMaterials.current.get(child.uuid);
-					if (originalMaterial) {
-						child.material = originalMaterial.clone();
-					}
-				}
-			});
-		};
-	}, [isScoring, clonedScene]);
-
-	useFrame((_, delta) => {
-		if (isSpinning && meshRef.current) {
-			const rotationSpeed = 10;
-			meshRef.current.rotation.x += delta * rotationSpeed;
-			meshRef.current.rotation.y += delta * rotationSpeed;
-			meshRef.current.rotation.z += delta * rotationSpeed;
-		} else if (!isSpinning && meshRef.current) {
-			meshRef.current.rotation.set(...originalRotation.current);
-		}
-	});
-
-	useFrame(() => {
-		if (hovered && meshRef.current) {
-			meshRef.current.position.y =
-				position[1] + Math.sin(Date.now() * 0.01) * 0.1;
-		} else if (meshRef.current) {
-			meshRef.current.position.y = position[1];
-		}
-	});
-
+	if (isScoringNumber) {
+		debugger;
+	}
 	return (
-		<mesh
-			ref={meshRef}
-			position={position}
-			rotation={originalRotation.current}
-			onClick={() => {
-				onDiceClick(desiredNumber);
-			}}
-			onPointerEnter={() => {
-				setHovered(true);
-			}}
-			onPointerLeave={() => {
-				setHovered(false);
-			}}
-		>
-			<primitive object={clonedScene} scale={[1, 1, 1]} />
-		</mesh>
+		<DiceModel
+			position={originalPosition}
+			rotation={originalRotation}
+			placement={placement}
+			value={value}
+			isScoringNumber={isScoringNumber}
+		/>
 	);
 }
