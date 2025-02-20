@@ -12,8 +12,10 @@ import type {
 	User,
 } from "@supabase/supabase-js";
 import { TurnActions } from "./TurnActions";
+import { PlayersList } from "../features/PlayersList";
+import { RoomControls } from "../features/RoomControls";
 
-interface GameRoom {
+export interface GameRoom {
 	id: string;
 	name: string;
 	created_by: string;
@@ -23,7 +25,7 @@ interface GameRoom {
 	invite_code: string;
 }
 
-interface GamePlayer {
+export interface GamePlayer {
 	id: string;
 	user_id: string;
 	player_order: number;
@@ -31,7 +33,7 @@ interface GamePlayer {
 	is_active: boolean;
 }
 
-interface GameState {
+export interface GameState {
 	game_id: string;
 	current_turn_number: number;
 	current_player_id: string;
@@ -60,210 +62,6 @@ export interface TurnAction {
 	available_dice: number;
 	created_at: string;
 }
-
-// Room Controls Component
-const RoomControls: React.FC<{
-	room: GameRoom;
-	user: User | null;
-	onStartGame: () => Promise<void>;
-	onEndGame: () => Promise<void>;
-	onShowInvite: () => void;
-}> = ({ room, user, onStartGame, onEndGame, onShowInvite }) => {
-	if (!user || room.created_by !== user.id) return null;
-
-	return (
-		<div className="mt-4 flex flex-wrap gap-2">
-			{room.current_players < room.max_players && room.status === "waiting" && (
-				<button
-					className="flex-1 min-w-[140px] inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-					onClick={onShowInvite}
-				>
-					<svg
-						className="h-4 w-4 mr-2"
-						fill="currentColor"
-						viewBox="0 0 20 20"
-						xmlns="http://www.w3.org/2000/svg"
-					>
-						<path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-					</svg>
-					Invite
-				</button>
-			)}
-			{room.status === "waiting" && (
-				<button
-					className="flex-1 min-w-[140px] inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-					onClick={onStartGame}
-				>
-					<svg
-						className="h-4 w-4 mr-2"
-						fill="currentColor"
-						viewBox="0 0 20 20"
-						xmlns="http://www.w3.org/2000/svg"
-					>
-						<path
-							clipRule="evenodd"
-							d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-							fillRule="evenodd"
-						/>
-					</svg>
-					Start
-				</button>
-			)}
-			{room.status === "in_progress" && (
-				<button
-					className="flex-1 min-w-[140px] inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-					onClick={onEndGame}
-				>
-					<svg
-						className="h-4 w-4 mr-2"
-						fill="currentColor"
-						viewBox="0 0 20 20"
-						xmlns="http://www.w3.org/2000/svg"
-					>
-						<path
-							clipRule="evenodd"
-							d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z"
-							fillRule="evenodd"
-						/>
-					</svg>
-					End Game
-				</button>
-			)}
-		</div>
-	);
-};
-
-// Player List Item Component
-const PlayerListItem: React.FC<{
-	player: GamePlayer;
-	isCurrentTurn: boolean;
-	isCurrentUser: boolean;
-}> = ({ player, isCurrentTurn, isCurrentUser }) => {
-	return (
-		<div
-			key={player.id}
-			className={`relative rounded-lg border ${
-				isCurrentTurn
-					? "border-indigo-500 bg-indigo-50"
-					: isCurrentUser
-						? "border-green-500 bg-green-50"
-						: "border-gray-300 bg-white"
-			} p-3 shadow-sm transition-colors duration-200`}
-			style={{
-				animation: isCurrentTurn ? "softPulse 2s infinite" : "none",
-			}}
-		>
-			<div className="flex items-center gap-3">
-				<div className="flex-shrink-0">
-					<div
-						className={`w-10 h-10 rounded-full ${
-							isCurrentTurn
-								? "bg-indigo-200"
-								: isCurrentUser
-									? "bg-green-200"
-									: "bg-gray-200"
-						} flex items-center justify-center`}
-					>
-						<span
-							className={`font-medium ${
-								isCurrentTurn
-									? "text-indigo-900"
-									: isCurrentUser
-										? "text-green-900"
-										: "text-gray-900"
-							}`}
-						>
-							P{player.player_order}
-						</span>
-					</div>
-				</div>
-				<div className="min-w-0 flex-1">
-					<div className="flex flex-wrap gap-2 items-center">
-						<p className="text-sm font-medium text-gray-900 truncate">
-							Player {player.player_order}
-						</p>
-						<div className="flex flex-wrap gap-1">
-							{isCurrentTurn && (
-								<span className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-indigo-800 bg-indigo-100 rounded">
-									Current Turn
-								</span>
-							)}
-							{isCurrentUser && (
-								<span className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-green-800 bg-green-100 rounded">
-									You
-								</span>
-							)}
-						</div>
-					</div>
-					<div className="mt-1 flex items-center justify-between">
-						<p className="text-sm text-gray-500">
-							Score: <span className="font-medium">{player.score}</span>
-						</p>
-						<span
-							className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-								player.is_active
-									? "bg-green-100 text-green-800"
-									: "bg-gray-100 text-gray-800"
-							}`}
-						>
-							{player.is_active ? "Online" : "Offline"}
-						</span>
-					</div>
-				</div>
-			</div>
-		</div>
-	);
-};
-
-// Empty Player Slot Component
-const EmptyPlayerSlot: React.FC<{ slotNumber: number }> = ({ slotNumber }) => (
-	<div className="relative rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 shadow-sm">
-		<div className="flex items-center gap-3">
-			<div className="flex-shrink-0">
-				<div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-					<span className="text-gray-400 font-medium">{slotNumber}</span>
-				</div>
-			</div>
-			<div className="min-w-0 flex-1">
-				<p className="text-sm text-gray-500">Waiting for player...</p>
-			</div>
-		</div>
-	</div>
-);
-
-// Players List Component
-const PlayersList: React.FC<{
-	players: Array<GamePlayer>;
-	gameState: GameState | null;
-	user: User | null;
-	room: GameRoom;
-}> = ({ players, gameState, user, room }) => {
-	return (
-		<div className="space-y-3">
-			{players.map((player) => {
-				const isCurrentTurn = gameState?.current_player_id === player.id;
-				const isCurrentUser = player.user_id === user?.id;
-				return (
-					<PlayerListItem
-						key={player.id}
-						player={player}
-						isCurrentTurn={isCurrentTurn}
-						isCurrentUser={isCurrentUser}
-					/>
-				);
-			})}
-
-			{Array.from({ length: room.max_players - players.length }).map(
-				(_, index) => (
-					<EmptyPlayerSlot
-						key={`empty-${index}`}
-						slotNumber={players.length + index + 1}
-					/>
-				)
-			)}
-		</div>
-	);
-};
 
 // Game Actions Component
 const GameActions: React.FC<{
