@@ -376,7 +376,14 @@ export function Room(): JSX.Element {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [inputRoomId, setInputRoomId] = useState("");
-	const [diceValues, setDiceValues] = useState([1, 2, 3, 4, 5, 6]);
+	const [diceValues, setDiceValues] = useState([
+		{ number: 1 },
+		{ number: 2 },
+		{ number: 3 },
+		{ number: 4 },
+		{ number: 5 },
+		{ number: 6 },
+	]);
 	const [showInviteModal, setShowInviteModal] = useState(false);
 	const [copied, setCopied] = useState(false);
 	const [user, setUser] = useState<User | null>(null);
@@ -477,6 +484,24 @@ export function Room(): JSX.Element {
 
 								if (actionsData) {
 									setTurnActions(actionsData as Array<TurnAction>);
+									// Set the dice values to the newest action
+									// if there are no actions, set the dice values to the initial state
+									if (actionsData.length > 0) {
+										setDiceValues(
+											actionsData[actionsData.length - 1].dice_values.map(
+												(value: number) => ({ number: value })
+											)
+										);
+									} else {
+										setDiceValues([
+											{ number: 1 },
+											{ number: 2 },
+											{ number: 3 },
+											{ number: 4 },
+											{ number: 5 },
+											{ number: 6 },
+										]);
+									}
 								}
 							}
 						}
@@ -648,6 +673,12 @@ export function Room(): JSX.Element {
 													}
 													return newActions;
 												});
+												// Set the dice values to the newest action
+												setDiceValues(
+													newAction.dice_values.map((value: number) => ({
+														number: value,
+													}))
+												);
 											}
 										)
 										.subscribe();
@@ -868,7 +899,15 @@ export function Room(): JSX.Element {
 
 			console.log("Roll results:", rollResults);
 			// Update dice values for the scene
-			setDiceValues(rollResults);
+			// [
+			// 	{ number: 6 },
+			// 	{ number: 2 },
+			// 	{ number: 3 },
+			// 	{ number: 4 },
+			// 	{ number: 5 },
+			// 	{ number: 6 },
+			// ]
+			setDiceValues(rollResults.map((value: number) => ({ number: value })));
 			// Trigger the roll animation for each die
 			rollResults.forEach((value: number, index: number) => {
 				sceneRef.current?.roll(index, value);
@@ -929,7 +968,14 @@ export function Room(): JSX.Element {
 				setCurrentTurn(null);
 				setTurnActions([]);
 				setSelectedDiceIndices([]);
-				setDiceValues([1, 2, 3, 4, 5, 6]); // Reset dice values to initial state
+				setDiceValues([
+					{ number: 1 },
+					{ number: 2 },
+					{ number: 3 },
+					{ number: 4 },
+					{ number: 5 },
+					{ number: 6 },
+				]); // Reset dice values to initial state
 			}
 		} catch (error_) {
 			setError(
@@ -1258,7 +1304,7 @@ export function Room(): JSX.Element {
 									/>
 								</div>
 								<div className="flex-1 bg-gray-50 rounded-lg overflow-hidden">
-									<Scene ref={sceneRef} />
+									<Scene ref={sceneRef} diceStates={diceValues} />
 								</div>
 							</div>
 						</div>

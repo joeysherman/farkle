@@ -18,15 +18,15 @@ export interface SceneRef {
 	startSpin: () => void;
 }
 
-export const Scene = forwardRef<SceneRef>((_, ref) => {
-	const [diceStates, setDiceStates] = useState([
-		{ number: 1 },
-		{ number: 2 },
-		{ number: 3 },
-		{ number: 4 },
-		{ number: 5 },
-		{ number: 6 },
-	]);
+export const Scene = forwardRef<SceneRef>(({ diceStates }, ref) => {
+	// const [diceStates, setDiceStates] = useState([
+	// 	{ number: 6 },
+	// 	{ number: 2 },
+	// 	{ number: 3 },
+	// 	{ number: 4 },
+	// 	{ number: 5 },
+	// 	{ number: 6 },
+	// ]);
 
 	const [isSpinning, setIsSpinning] = useState(false);
 
@@ -46,12 +46,6 @@ export const Scene = forwardRef<SceneRef>((_, ref) => {
 			setIsSpinning(false);
 		}, 2000);
 	};
-
-	// Expose functions via ref
-	useImperativeHandle(ref, () => ({
-		roll: rollDie,
-		startSpin: startSpin,
-	}));
 
 	return (
 		<>

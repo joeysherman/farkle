@@ -76,10 +76,15 @@ export function DiceScene({
 			{diceStates.map((state, index) => (
 				<Dice
 					key={index}
+					index={index}
 					desiredNumber={state.number}
 					position={positions[index]}
 					isSpinning={isSpinning}
-					setIsSpinning={setIsSpinning}
+					onDiceClick={(diceIndex) => {
+						// Handle dice click
+						setIsSpinning(true);
+					}}
+					isScoring={index === 0}
 				/>
 			))}
 
