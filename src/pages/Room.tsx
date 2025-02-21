@@ -175,12 +175,22 @@ export function Room(): JSX.Element {
 	const [currentTurn, setCurrentTurn] = useState<GameTurn | null>(null);
 	const [turnActions, setTurnActions] = useState<Array<TurnAction>>([]);
 
+	const [diceStates, setDiceStates] = useState([
+		{ number: 1 },
+		{ number: 2 },
+		{ number: 3 },
+		{ number: 4 },
+		{ number: 5 },
+		{ number: 6 },
+	]);
+
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
+	// ref for the game state subscription
+	const gameStateSubscriptionRef = useRef<RealtimeChannel | null>(null);
 	// ref for the action subscription
 	const actionSubscriptionRef = useRef<RealtimeChannel | null>(null);
-
 	// user
 	useEffect(() => {
 		const fetchUser = async () => {
@@ -333,10 +343,44 @@ export function Room(): JSX.Element {
 		}
 		return () => {
 			if (actionSubscriptionRef.current) {
+				console.log("unsubscribing from turn actions");
 				actionSubscriptionRef.current.unsubscribe();
+				actionSubscriptionRef.current = null;
 			}
 		};
 	}, [currentTurn]);
+
+	// game turn
+
+	// react to the game state changes
+	// if the game_state.current_turn changes, we need to update the current turn
+	useEffect(() => {
+		if (!gameStateSubscriptionRef.current && roomId) {
+			gameStateSubscriptionRef.current = supabase
+				.channel("game_state_changes")
+				.on(
+					"postgres_changes",
+					{
+						event: "UPDATE",
+						schema: "public",
+						table: "game_states",
+						filter: `game_id=eq.${roomId}`,
+					},
+					(payload) => {
+						debugger;
+						setGameState(payload.new as GameState);
+					}
+				)
+				.subscribe();
+		}
+		return () => {
+			if (gameStateSubscriptionRef.current) {
+				console.log("unsubscribing from game state");
+				gameStateSubscriptionRef.current.unsubscribe();
+				gameStateSubscriptionRef.current = null;
+			}
+		};
+	}, [roomId]);
 
 	// Add the handleTurnAction function near other handlers
 	const handleTurnAction = async (
@@ -665,7 +709,7 @@ export function Room(): JSX.Element {
 									)}
 								</div>
 								<div className="flex-1 bg-gray-50 rounded-lg overflow-hidden">
-									{/* <GameScene diceStates={diceValues} /> */}
+									<GameScene diceStates={diceStates} />
 								</div>
 							</div>
 						</div>
