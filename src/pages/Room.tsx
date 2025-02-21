@@ -167,32 +167,23 @@ export function Room(): JSX.Element {
 	const search = useSearch({ from: RoomRoute.id });
 	const roomId = search.roomId;
 
+	const [user, setUser] = useState<User | null>(null);
+
 	const [room, setRoom] = useState<GameRoom | null>(null);
 	const [players, setPlayers] = useState<Array<GamePlayer>>([]);
 	const [gameState, setGameState] = useState<GameState | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-	const [inputRoomId, setInputRoomId] = useState("");
-	const [diceValues, setDiceValues] = useState([
-		{ number: 1 },
-		{ number: 2 },
-		{ number: 3 },
-		{ number: 4 },
-		{ number: 5 },
-		{ number: 6 },
-	]);
-	const [showInviteModal, setShowInviteModal] = useState(false);
-	const [copied, setCopied] = useState(false);
-	const [user, setUser] = useState<User | null>(null);
 	const [currentTurn, setCurrentTurn] = useState<GameTurn | null>(null);
 	const [turnActions, setTurnActions] = useState<Array<TurnAction>>([]);
-	const [selectedDiceIndices, setSelectedDiceIndices] = useState<Array<number>>(
-		[]
-	);
-	const turnActionsRef = useRef<HTMLDivElement>(null);
 
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
+	// ref for the action subscription
+	const actionSubscriptionRef = useRef<RealtimeChannel | null>(null);
+
+	// user
 	useEffect(() => {
-		const checkAuth = async () => {
+		const fetchUser = async () => {
 			const {
 				data: { user: authUser },
 				error: authError,
@@ -202,480 +193,188 @@ export function Room(): JSX.Element {
 				return;
 			}
 			setUser(authUser);
-
-			if (!roomId) {
-				setLoading(false);
-				return;
-			}
-
-			try {
-				// Fetch room details
-				const { data: roomData, error: roomError } = await supabase
-					.from("game_rooms")
-					.select("*")
-					.eq("id", roomId)
-					.single();
-
-				if (roomError) throw roomError;
-				if (!roomData) {
-					setError("Room not found");
-					return;
-				}
-
-				setRoom(roomData as GameRoom);
-
-				// Always fetch players in the room
-				const { data: playersData, error: playersError } = await supabase
-					.from("game_players")
-					.select("*")
-					.eq("game_id", roomId)
-					.order("player_order", { ascending: true });
-
-				if (playersError) throw playersError;
-				setPlayers((playersData as Array<GamePlayer>) || []);
-
-				// Check if user is already a player in the room or is the creator
-				const isCreator = authUser?.id === roomData.created_by;
-				const isPlayer = playersData?.some(
-					(player) => player.user_id === authUser?.id
-				);
-
-				// Only show invite modal if user is not a player and not the creator
-				if (!isCreator && !isPlayer) {
-					setShowInviteModal(true);
-				}
-
-				// Fetch game state if user is a player or creator
-				if (isPlayer || isCreator) {
-					const { data: gameStateData, error: gameStateError } = await supabase
-						.from("game_states")
-						.select("*")
-						.eq("game_id", roomId)
-						.single();
-
-					if (gameStateError && gameStateError.code !== "PGRST116")
-						throw gameStateError;
-					setGameState((gameStateData as GameState) || null);
-
-					// Fetch current turn and actions if game is in progress
-					if (
-						gameStateData &&
-						(roomData as GameRoom).status === "in_progress"
-					) {
-						const { data: turnData, error: turnError } = await supabase
-							.from("game_turns")
-							.select("*")
-							.eq("game_id", roomId)
-							.eq("turn_number", gameStateData.current_turn_number)
-							.single();
-
-						if (!turnError) {
-							setCurrentTurn(turnData as GameTurn);
-
-							if (turnData) {
-								const { data: actionsData } = await supabase
-									.from("turn_actions")
-									.select("*")
-									.eq("turn_id", turnData.id)
-									.order("action_number", { ascending: true });
-
-								if (actionsData) {
-									setTurnActions(actionsData as Array<TurnAction>);
-									// Set the dice values to the newest action
-									// if there are no actions, set the dice values to the initial state
-									if (actionsData.length > 0) {
-										setDiceValues(
-											actionsData[actionsData.length - 1].dice_values.map(
-												(value: number) => ({ number: value })
-											)
-										);
-									} else {
-										setDiceValues([
-											{ number: 1 },
-											{ number: 2 },
-											{ number: 3 },
-											{ number: 4 },
-											{ number: 5 },
-											{ number: 6 },
-										]);
-									}
-								}
-							}
-						}
-					}
-				}
-			} catch (error_) {
-				setError(
-					error_ instanceof Error ? error_.message : "An error occurred"
-				);
-			} finally {
-				setLoading(false);
-			}
 		};
+		void fetchUser();
+	}, []);
 
-		void checkAuth();
-
-		if (roomId) {
-			// Set up real-time subscriptions
-			const roomSubscription = supabase
-				.channel("room_changes")
-				.on(
-					"postgres_changes",
-					{
-						event: "*",
-						schema: "public",
-						table: "game_rooms",
-						filter: `id=eq.${roomId}`,
-					},
-					(payload) => {
-						setRoom(payload.new as GameRoom);
-					}
-				)
-				.subscribe();
-
-			const playersSubscription = supabase
-				.channel("player_changes")
-				.on(
-					"postgres_changes",
-					{
-						event: "*",
-						schema: "public",
-						table: "game_players",
-						filter: `game_id=eq.${roomId}`,
-					},
-					() => {
-						// Refresh players list when there are changes
-						supabase
-							.from("game_players")
-							.select("*")
-							.eq("game_id", roomId)
-							.order("player_order", { ascending: true })
-							.then(({ data }) => {
-								if (data) setPlayers(data);
-							});
-					}
-				)
-				.subscribe();
-
-			const gameStateSubscription = supabase
-				.channel("game_state_changes")
-				.on(
-					"postgres_changes",
-					{
-						event: "*",
-						schema: "public",
-						table: "game_states",
-						filter: `game_id=eq.${roomId}`,
-					},
-					(payload) => {
-						setGameState(payload.new as GameState);
-					}
-				)
-				.subscribe();
-
-			return () => {
-				roomSubscription.unsubscribe();
-				playersSubscription.unsubscribe();
-				gameStateSubscription.unsubscribe();
-			};
-		}
-	}, [roomId, navigate]);
-
+	// room
 	useEffect(() => {
-		if (!roomId) return;
-
-		let actionSubscription: RealtimeChannel | null = null;
-		let currentTurnId: string | null = null;
-
-		const turnSubscription = supabase
-			.channel("turn_changes")
-			.on<GameTurn>(
-				"postgres_changes" as any,
-				{
-					event: "*",
-					schema: "public",
-					table: "game_turns",
-					filter: `game_id=eq.${roomId}`,
-				},
-				async (payload: RealtimePostgresChangesPayload<GameTurn>) => {
-					const newTurn = payload.new as GameTurn;
-					if (!newTurn) return;
-
-					try {
-						// If this is a different turn than what we're currently tracking
-						if (currentTurnId !== newTurn.id) {
-							// Clean up existing subscription
-							if (actionSubscription) {
-								await actionSubscription.unsubscribe();
-								actionSubscription = null;
-							}
-
-							// Reset states immediately
-							setCurrentTurn(null);
-							setTurnActions([]);
-							setSelectedDiceIndices([]);
-
-							// Update our tracked turn ID
-							currentTurnId = newTurn.id;
-
-							// Fetch the complete turn data
-							const { data: turnData, error: turnError } = await supabase
-								.from("game_turns")
-								.select("*")
-								.eq("id", newTurn.id)
-								.single();
-
-							if (turnData) {
-								// Only set up new subscription if the turn is not ended
-								if (!turnData.ended_at) {
-									setCurrentTurn(turnData);
-
-									// Fetch initial actions
-									const { data: actionsData } = await supabase
-										.from("turn_actions")
-										.select("*")
-										.eq("turn_id", turnData.id)
-										.order("action_number", { ascending: true });
-
-									if (actionsData) {
-										setTurnActions(actionsData);
-									}
-
-									// Set up new action subscription
-									actionSubscription = supabase
-										.channel(`action_changes_${turnData.id}`)
-										.on<TurnAction>(
-											"postgres_changes" as any,
-											{
-												event: "*",
-												schema: "public",
-												table: "turn_actions",
-												filter: `turn_id=eq.${turnData.id}`,
-											},
-											(
-												actionPayload: RealtimePostgresChangesPayload<TurnAction>
-											) => {
-												const newAction = actionPayload.new as TurnAction;
-												if (!newAction) return;
-
-												setTurnActions((previous) => {
-													const newActions = [...previous];
-													const index = newActions.findIndex(
-														(a) => a.id === newAction.id
-													);
-													if (index >= 0) {
-														newActions[index] = newAction;
-													} else {
-														newActions.push(newAction);
-													}
-													return newActions;
-												});
-												// Set the dice values to the newest action
-												setDiceValues(
-													newAction.dice_values.map((value: number) => ({
-														number: value,
-													}))
-												);
-											}
-										)
-										.subscribe();
-								}
-							}
-						} else if (newTurn.ended_at) {
-							// If this is our current turn and it just ended
-							if (actionSubscription) {
-								await actionSubscription.unsubscribe();
-								actionSubscription = null;
-							}
-							setCurrentTurn(null);
-							setTurnActions([]);
-							setSelectedDiceIndices([]);
-							currentTurnId = null;
-						}
-					} catch (error_) {
-						console.error("Error handling turn update:", error_);
-						// Reset states on error
-						setCurrentTurn(null);
-						setTurnActions([]);
-						setSelectedDiceIndices([]);
-						if (actionSubscription) {
-							await actionSubscription.unsubscribe();
-							actionSubscription = null;
-						}
-						currentTurnId = null;
-					}
-				}
-			)
-			.subscribe();
-
-		return () => {
-			if (actionSubscription) {
-				actionSubscription.unsubscribe();
-			}
-			turnSubscription.unsubscribe();
-		};
-	}, [roomId]);
-
-	// Add effect to scroll to bottom when turnActions changes
-	useEffect(() => {
-		if (turnActionsRef.current) {
-			turnActionsRef.current.scrollTop = turnActionsRef.current.scrollHeight;
-		}
-	}, [turnActions]);
-
-	const handleJoinRoom = (e: React.FormEvent) => {
-		e.preventDefault();
-		if (inputRoomId.trim()) {
-			navigate({ to: "/room", search: { roomId: inputRoomId.trim() } });
-		}
-	};
-
-	const handleJoinWithCode = async (code: string, username: string) => {
-		try {
-			if (!username.trim() && !user) {
-				setError("Please enter a username");
-				return;
-			}
-
-			let userId = user?.id;
-
-			// If no user, create an anonymous one
-			if (!userId) {
-				// First sign up the user
-				const { data: signUpData, error: signUpError } =
-					await supabase.auth.signUp({
-						email: `${nanoid(10)}@anonymous.farkle.com`,
-						password: nanoid(12),
-					});
-
-				if (signUpError) {
-					console.error("Sign up error:", signUpError);
-					throw new Error("Failed to create anonymous user");
-				}
-
-				if (!signUpData.user?.id) {
-					throw new Error("No user ID returned from sign up");
-				}
-
-				userId = signUpData.user.id;
-
-				// Wait a moment for the auth to propagate
-				await new Promise((resolve) => setTimeout(resolve, 1000));
-
-				// Create profile for anonymous user
-				const { error: profileError } = await supabase.from("profiles").insert([
-					{
-						id: userId,
-						username: username,
-						created_at: new Date().toISOString(),
-						updated_at: new Date().toISOString(),
-					},
-				]);
-
-				if (profileError) {
-					console.error("Profile creation error:", profileError);
-					throw new Error("Failed to create user profile");
-				}
-
-				// Set the user in state
-				setUser(signUpData.user);
-			}
-
-			// Verify the invite code and join the game
-			const { error: joinError } = await supabase.rpc("join_game", {
-				room_id: roomId,
-				code: code,
-			});
-
-			if (joinError) {
-				console.error("Join game error:", joinError);
-				throw new Error(joinError.message);
-			}
-
-			// Reload the room data after joining
+		const fetchRoom = async () => {
 			const { data: roomData, error: roomError } = await supabase
 				.from("game_rooms")
 				.select("*")
 				.eq("id", roomId)
 				.single();
 
-			if (roomError) {
-				console.error("Room fetch error:", roomError);
-				throw new Error("Failed to fetch room data");
+			if (roomError) throw roomError;
+			if (!roomData) {
+				setError("Room not found");
+				return;
 			}
+			setRoom(roomData as GameRoom);
+		};
 
-			setRoom(roomData);
+		void fetchRoom();
+	}, []);
 
-			// Fetch updated players list
+	// players
+	useEffect(() => {
+		const fetchPlayers = async () => {
 			const { data: playersData, error: playersError } = await supabase
 				.from("game_players")
 				.select("*")
 				.eq("game_id", roomId)
 				.order("player_order", { ascending: true });
 
-			if (playersError) {
-				console.error("Players fetch error:", playersError);
-				throw new Error("Failed to fetch players data");
+			if (playersError) throw playersError;
+			if (!playersData) {
+				setError("Players not found");
+				return;
 			}
 
-			setPlayers(playersData || []);
-			setShowInviteModal(false);
-			setError(null); // Clear any existing errors
-		} catch (error_) {
-			console.error("Join game error:", error_);
-			setError(
-				error_ instanceof Error
-					? error_.message
-					: "Failed to join game. Please try again."
-			);
-		}
-	};
+			setPlayers(playersData as Array<GamePlayer>);
+		};
 
-	const copyInviteLink = async () => {
-		const url = `${window.location.origin}/room?roomId=${roomId}`;
-		await navigator.clipboard.writeText(url);
-		setCopied(true);
-		setTimeout(() => {
-			setCopied(false);
-		}, 2000);
-	};
+		void fetchPlayers();
+	}, []);
 
-	const handleStartGame = async () => {
-		try {
-			const { error } = await supabase.rpc("start_game", {
-				room_id: roomId,
-			});
+	// game state
+	useEffect(() => {
+		const fetchGameState = async () => {
+			const { data: gameStateData, error: gameStateError } = await supabase
+				.from("game_states")
+				.select("*")
+				.eq("game_id", roomId)
+				.single();
 
-			if (error) {
-				console.error("Start game error:", error);
-				setError("Failed to start game. Please try again.");
+			if (gameStateError) throw gameStateError;
+			if (!gameStateData) {
+				setError("Game state not found");
+				return;
 			}
-		} catch (error_) {
-			console.error("Start game error:", error_);
-			setError(
-				error_ instanceof Error
-					? error_.message
-					: "Failed to start game. Please try again."
-			);
-		}
-	};
 
-	const handleEndGame = async () => {
+			setGameState(gameStateData as GameState);
+		};
+
+		void fetchGameState();
+	}, []);
+
+	// fetch current turn based on the
+	// gameState.current_turn id which is the id of the turn in the game_turns table
+	useEffect(() => {
+		const fetchCurrentTurn = async () => {
+			// get the turn from the game_turns table based on the gameState.current_turn id
+			const { data: turnData, error: turnError } = await supabase
+				.from("game_turns")
+				.select("*")
+				.eq("id", gameState?.current_turn)
+				.single();
+
+			if (turnError) throw turnError;
+			if (!turnData) {
+				setError("Turn not found");
+				return;
+			}
+
+			setCurrentTurn(turnData as GameTurn);
+		};
+
+		if (gameState?.current_turn) {
+			void fetchCurrentTurn();
+		}
+	}, [gameState]);
+
+	// turn actions
+	useEffect(() => {
+		const fetchTurnActions = async () => {
+			const { data: actionsData, error: actionsError } = await supabase
+				.from("turn_actions")
+				.select("*")
+				.eq("turn_id", currentTurn?.id)
+				.order("action_number", { ascending: true });
+
+			if (actionsError) throw actionsError;
+			if (!actionsData) {
+				setError("Turn actions not found");
+				return;
+			}
+
+			setTurnActions(actionsData as Array<TurnAction>);
+		};
+		if (currentTurn?.id) {
+			void fetchTurnActions();
+		}
+	}, [currentTurn]);
+
+	useEffect(() => {
+		// setup the action subscription if it's not already setup
+		if (currentTurn?.id) {
+			if (!actionSubscriptionRef.current) {
+				actionSubscriptionRef.current = supabase
+					.channel(`action_changes_${currentTurn.id}`)
+					.on<TurnAction>(
+						"postgres_changes" as any,
+						{
+							event: "INSERT",
+							schema: "public",
+							table: "turn_actions",
+							filter: `turn_id=eq.${currentTurn.id}`,
+						},
+						(actionPayload: RealtimePostgresChangesPayload<TurnAction>) => {
+							const newAction = actionPayload.new as TurnAction;
+							if (!newAction) return;
+							debugger;
+							// add the new action to the turn actions
+							setTurnActions((previous) => [...previous, newAction]);
+						}
+					)
+					.subscribe();
+			}
+		}
+		return () => {
+			if (actionSubscriptionRef.current) {
+				actionSubscriptionRef.current.unsubscribe();
+			}
+		};
+	}, [currentTurn]);
+
+	// Add the handleTurnAction function near other handlers
+	const handleTurnAction = async (
+		keptDice: Array<number>,
+		outcome: "bust" | "bank" | "continue"
+	) => {
+		if (!roomId) return;
+
 		try {
-			const { error } = await supabase.rpc("end_game", {
+			const latestAction = turnActions[turnActions.length - 1];
+			if (!latestAction) return;
+
+			const { error } = await supabase.rpc("process_turn_action", {
 				p_game_id: roomId,
+				p_outcome: outcome,
 			});
 
-			if (error) {
-				console.error("End game error:", error);
-				setError("Failed to end game. Please try again.");
+			if (error) throw error;
+
+			// Reset states if the turn is ending (bank or bust)
+			if (outcome === "bank" || outcome === "bust") {
+				setCurrentTurn(null);
+				setTurnActions([]);
+				// setSelectedDiceIndices([]);
+				// setDiceValues([
+				// 	{ number: 1 },
+				// 	{ number: 2 },
+				// 	{ number: 3 },
+				// 	{ number: 4 },
+				// 	{ number: 5 },
+				// 	{ number: 6 },
+				// ]); // Reset dice values to initial state
 			}
 		} catch (error_) {
-			console.error("End game error:", error_);
 			setError(
 				error_ instanceof Error
 					? error_.message
-					: "Failed to end game. Please try again."
+					: "Failed to process turn action"
 			);
 		}
 	};
@@ -704,7 +403,7 @@ export function Room(): JSX.Element {
 			// 	{ number: 5 },
 			// 	{ number: 6 },
 			// ]
-			setDiceValues(rollResults.map((value: number) => ({ number: value })));
+			//setDiceValues(rollResults.map((value: number) => ({ number: value })));
 			// Trigger the roll animation for each die
 			// rollResults.forEach((value: number, index: number) => {
 			// 	sceneRef.current?.roll(index, value);
@@ -717,176 +416,195 @@ export function Room(): JSX.Element {
 		}
 	};
 
-	const handleCreateRoom = async () => {
-		try {
-			const roomName = generateRoomName();
-			const { data: roomId, error } = await supabase.rpc("create_room", {
-				p_name: roomName,
-			});
+	// useEffect(() => {
+	// 	const checkAuth = async () => {
+	// 		const {
+	// 			data: { user: authUser },
+	// 			error: authError,
+	// 		} = await supabase.auth.getUser();
+	// 		if (authError) {
+	// 			console.error("Auth error:", authError);
+	// 			return;
+	// 		}
+	// 		setUser(authUser);
 
-			if (error) {
-				console.error("Create room error:", error);
-				setError("Failed to create room. Please try again.");
-				return;
-			}
+	// 		if (!roomId) {
+	// 			setLoading(false);
+	// 			return;
+	// 		}
 
-			// Navigate to the new room
-			navigate({ to: "/room", search: { roomId } });
-		} catch (error_) {
-			console.error("Create room error:", error_);
-			setError(
-				error_ instanceof Error
-					? error_.message
-					: "Failed to create room. Please try again."
-			);
-		}
-	};
+	// 		try {
+	// 			// Fetch room details
+	// 			const { data: roomData, error: roomError } = await supabase
+	// 				.from("game_rooms")
+	// 				.select("*")
+	// 				.eq("id", roomId)
+	// 				.single();
 
-	// Add the handleTurnAction function near other handlers
-	const handleTurnAction = async (
-		keptDice: Array<number>,
-		outcome: "bust" | "bank" | "continue"
-	) => {
-		if (!roomId) return;
+	// 			if (roomError) throw roomError;
+	// 			if (!roomData) {
+	// 				setError("Room not found");
+	// 				return;
+	// 			}
 
-		try {
-			const latestAction = turnActions[turnActions.length - 1];
-			if (!latestAction) return;
+	// 			setRoom(roomData as GameRoom);
 
-			const { error } = await supabase.rpc("process_turn_action", {
-				p_game_id: roomId,
-				p_outcome: outcome,
-			});
+	// 			// Always fetch players in the room
+	// 			const { data: playersData, error: playersError } = await supabase
+	// 				.from("game_players")
+	// 				.select("*")
+	// 				.eq("game_id", roomId)
+	// 				.order("player_order", { ascending: true });
 
-			if (error) throw error;
+	// 			if (playersError) throw playersError;
+	// 			setPlayers((playersData as Array<GamePlayer>) || []);
 
-			// Reset states if the turn is ending (bank or bust)
-			if (outcome === "bank" || outcome === "bust") {
-				setCurrentTurn(null);
-				setTurnActions([]);
-				setSelectedDiceIndices([]);
-				setDiceValues([
-					{ number: 1 },
-					{ number: 2 },
-					{ number: 3 },
-					{ number: 4 },
-					{ number: 5 },
-					{ number: 6 },
-				]); // Reset dice values to initial state
-			}
-		} catch (error_) {
-			setError(
-				error_ instanceof Error
-					? error_.message
-					: "Failed to process turn action"
-			);
-		}
-	};
+	// 			// Check if user is already a player in the room or is the creator
+	// 			const isCreator = authUser?.id === roomData.created_by;
+	// 			const isPlayer = playersData?.some(
+	// 				(player) => player.user_id === authUser?.id
+	// 			);
 
-	// Invite Modal Component
-	const InviteModal = () => {
-		const [code, setCode] = useState("");
-		const [localUsername, setLocalUsername] = useState("");
+	// 			// Only show invite modal if user is not a player and not the creator
+	// 			if (!isCreator && !isPlayer) {
+	// 				setShowInviteModal(true);
+	// 			}
 
-		return (
-			<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-				<div className="bg-white rounded-lg p-6 max-w-md w-full">
-					{user && room?.created_by === user.id ? (
-						<>
-							<h3 className="text-lg font-medium mb-4">
-								Invite Players to {room?.name}
-							</h3>
-							<div className="space-y-4">
-								<div>
-									<label className="block text-sm font-medium text-gray-700">
-										Room Code
-									</label>
-									<input
-										readOnly
-										className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
-										type="text"
-										value={room?.invite_code}
-									/>
-								</div>
-								<div>
-									<label className="block text-sm font-medium text-gray-700">
-										Room URL
-									</label>
-									<div className="mt-1 flex rounded-md shadow-sm">
-										<input
-											readOnly
-											className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
-											type="text"
-											value={`${window.location.origin}/room?roomId=${roomId}`}
-										/>
-										<button
-											className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-											onClick={copyInviteLink}
-										>
-											{copied ? "Copied!" : "Copy"}
-										</button>
-									</div>
-								</div>
-							</div>
-						</>
-					) : (
-						<>
-							<h3 className="text-lg font-medium mb-4">
-								Join {room?.name || "Game"}
-							</h3>
-							<div className="space-y-4">
-								{!user && (
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Username
-										</label>
-										<input
-											className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
-											placeholder="Enter your username"
-											type="text"
-											value={localUsername}
-											onChange={(e) => {
-												setLocalUsername(e.target.value);
-											}}
-										/>
-									</div>
-								)}
-								<div>
-									<label className="block text-sm font-medium text-gray-700">
-										Room Code
-									</label>
-									<input
-										className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
-										maxLength={6}
-										placeholder="Enter 6-digit code"
-										type="text"
-										value={code}
-										onChange={(e) => {
-											setCode(e.target.value);
-										}}
-									/>
-								</div>
-								<button
-									className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-									onClick={() => handleJoinWithCode(code, localUsername)}
-								>
-									Join Game
-								</button>
-							</div>
-						</>
-					)}
-					<button
-						className="mt-4 w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-						onClick={() => {
-							setShowInviteModal(false);
-						}}
-					>
-						Close
-					</button>
-				</div>
-			</div>
-		);
-	};
+	// 			// Fetch game state if user is a player or creator
+	// 			if (isPlayer || isCreator) {
+	// 				const { data: gameStateData, error: gameStateError } = await supabase
+	// 					.from("game_states")
+	// 					.select("*")
+	// 					.eq("game_id", roomId)
+	// 					.single();
+
+	// 				if (gameStateError && gameStateError.code !== "PGRST116")
+	// 					throw gameStateError;
+	// 				setGameState((gameStateData as GameState) || null);
+
+	// 				// Fetch current turn and actions if game is in progress
+	// 				if (
+	// 					gameStateData &&
+	// 					(roomData as GameRoom).status === "in_progress"
+	// 				) {
+	// 					const { data: turnData, error: turnError } = await supabase
+	// 						.from("game_turns")
+	// 						.select("*")
+	// 						.eq("game_id", roomId)
+	// 						.eq("turn_number", gameStateData.current_turn_number)
+	// 						.single();
+
+	// 					if (!turnError) {
+	// 						setCurrentTurn(turnData as GameTurn);
+
+	// 						if (turnData) {
+	// 							const { data: actionsData } = await supabase
+	// 								.from("turn_actions")
+	// 								.select("*")
+	// 								.eq("turn_id", turnData.id)
+	// 								.order("action_number", { ascending: true });
+
+	// 							if (actionsData) {
+	// 								setTurnActions(actionsData as Array<TurnAction>);
+	// 								// Set the dice values to the newest action
+	// 								// if there are no actions, set the dice values to the initial state
+	// 								if (actionsData.length > 0) {
+	// 									setDiceValues(
+	// 										actionsData[actionsData.length - 1].dice_values.map(
+	// 											(value: number) => ({ number: value })
+	// 										)
+	// 									);
+	// 								} else {
+	// 									setDiceValues([
+	// 										{ number: 1 },
+	// 										{ number: 2 },
+	// 										{ number: 3 },
+	// 										{ number: 4 },
+	// 										{ number: 5 },
+	// 										{ number: 6 },
+	// 									]);
+	// 								}
+	// 							}
+	// 						}
+	// 					}
+	// 				}
+	// 			}
+	// 		} catch (error_) {
+	// 			setError(
+	// 				error_ instanceof Error ? error_.message : "An error occurred"
+	// 			);
+	// 		} finally {
+	// 			setLoading(false);
+	// 		}
+	// 	};
+
+	// 	void checkAuth();
+
+	// 	if (roomId) {
+	// 		// Set up real-time subscriptions
+	// 		const roomSubscription = supabase
+	// 			.channel("room_changes")
+	// 			.on(
+	// 				"postgres_changes",
+	// 				{
+	// 					event: "*",
+	// 					schema: "public",
+	// 					table: "game_rooms",
+	// 					filter: `id=eq.${roomId}`,
+	// 				},
+	// 				(payload) => {
+	// 					setRoom(payload.new as GameRoom);
+	// 				}
+	// 			)
+	// 			.subscribe();
+
+	// 		const playersSubscription = supabase
+	// 			.channel("player_changes")
+	// 			.on(
+	// 				"postgres_changes",
+	// 				{
+	// 					event: "*",
+	// 					schema: "public",
+	// 					table: "game_players",
+	// 					filter: `game_id=eq.${roomId}`,
+	// 				},
+	// 				() => {
+	// 					// Refresh players list when there are changes
+	// 					supabase
+	// 						.from("game_players")
+	// 						.select("*")
+	// 						.eq("game_id", roomId)
+	// 						.order("player_order", { ascending: true })
+	// 						.then(({ data }) => {
+	// 							if (data) setPlayers(data);
+	// 						});
+	// 				}
+	// 			)
+	// 			.subscribe();
+
+	// 		const gameStateSubscription = supabase
+	// 			.channel("game_state_changes")
+	// 			.on(
+	// 				"postgres_changes",
+	// 				{
+	// 					event: "*",
+	// 					schema: "public",
+	// 					table: "game_states",
+	// 					filter: `game_id=eq.${roomId}`,
+	// 				},
+	// 				(payload) => {
+	// 					setGameState(payload.new as GameState);
+	// 				}
+	// 			)
+	// 			.subscribe();
+
+	// 		return () => {
+	// 			roomSubscription.unsubscribe();
+	// 			playersSubscription.unsubscribe();
+	// 			gameStateSubscription.unsubscribe();
+	// 		};
+	// 	}
+	// }, [roomId, navigate]);
 
 	if (loading) {
 		return (
@@ -899,128 +617,6 @@ export function Room(): JSX.Element {
 		);
 	}
 
-	// Show room ID input if no roomId in query params
-	if (!roomId) {
-		return (
-			<div className="min-h-screen bg-gray-50">
-				<Navbar />
-				<div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-					<div className="max-w-md mx-auto bg-white shadow rounded-lg p-6">
-						<h2 className="text-2xl font-bold text-gray-900 mb-6">
-							Join or Create a Room
-						</h2>
-						<div className="space-y-4">
-							<form className="space-y-4" onSubmit={handleJoinRoom}>
-								<div>
-									<label
-										className="block text-sm font-medium text-gray-700"
-										htmlFor="roomId"
-									>
-										Room Code
-									</label>
-									<input
-										className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-										id="roomId"
-										maxLength={6}
-										placeholder="Enter 6-digit room code"
-										type="text"
-										value={inputRoomId}
-										onChange={(e) => {
-											setInputRoomId(e.target.value);
-										}}
-									/>
-								</div>
-								<div className="flex justify-between">
-									<button
-										className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-										type="button"
-										onClick={() => navigate({ to: "/" })}
-									>
-										Back to Home
-									</button>
-									<button
-										className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-										type="submit"
-									>
-										Join Room
-									</button>
-								</div>
-							</form>
-							<div className="relative">
-								<div className="absolute inset-0 flex items-center">
-									<div className="w-full border-t border-gray-300" />
-								</div>
-								<div className="relative flex justify-center text-sm">
-									<span className="px-2 bg-white text-gray-500">Or</span>
-								</div>
-							</div>
-							<button
-								className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-								onClick={handleCreateRoom}
-							>
-								Create New Room
-							</button>
-						</div>
-					</div>
-				</div>
-			</div>
-		);
-	}
-
-	if (error || !room) {
-		return (
-			<div className="min-h-screen bg-gray-50">
-				<Navbar />
-				<div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-					<div className="bg-white shadow sm:rounded-lg">
-						<div className="px-4 py-5 sm:p-6">
-							<h3 className="text-lg font-medium leading-6 text-gray-900">
-								Error
-							</h3>
-							<div className="mt-2 max-w-xl text-sm text-gray-500">
-								<p>{error || "Room not found"}</p>
-							</div>
-							<div className="mt-5">
-								<button
-									className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-									onClick={() => navigate({ to: "/" })}
-								>
-									Return Home
-								</button>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		);
-	}
-
-	// Show invite modal for users who need to join
-	if (showInviteModal) {
-		return (
-			<div className="min-h-screen bg-gray-50">
-				<Navbar />
-				<div className="flex items-center justify-center h-[calc(100vh-64px)]">
-					<InviteModal />
-				</div>
-			</div>
-		);
-	}
-
-	// Only show game room UI if user is authenticated and has joined
-	// const isPlayerInRoom = players.some((player) => player.user_id === user?.id);
-	// if (!isPlayerInRoom) {
-	// 	return (
-	// 		<div className="min-h-screen bg-gray-50">
-	// 			<Navbar />
-	// 			<div className="flex items-center justify-center h-[calc(100vh-64px)]">
-	// 				<InviteModal />
-	// 			</div>
-	// 		</div>
-	// 	);
-	// }
-
-	// Main game room UI
 	return (
 		<div className="min-h-screen bg-gray-50">
 			<Navbar />
@@ -1030,52 +626,18 @@ export function Room(): JSX.Element {
 					<div className="w-full h-[calc(50vh-64px)] md:h-full md:w-1/4 mb-4 md:mb-0 overflow-y-auto">
 						<div className="bg-white shadow rounded-lg h-full flex flex-col">
 							{/* Room Header */}
-							<div className="p-4 border-b border-gray-200">
-								<div className="flex flex-col justify-between gap-4">
-									<div className="flex items-center space-x-3">
-										<h2 className="text-2xl font-bold text-gray-900 truncate">
-											{room.name}
-										</h2>
-									</div>
-									<div className="flex items-center justify-between text-sm text-gray-500 gap-2">
-										<span
-											className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-												room.status === "waiting"
-													? "bg-yellow-100 text-yellow-800"
-													: room.status === "in_progress"
-														? "bg-green-100 text-green-800"
-														: "bg-gray-100 text-gray-800"
-											}`}
-										>
-											{room.status === "waiting"
-												? "Waiting"
-												: room.status === "in_progress"
-													? "In Progress"
-													: "Completed"}
-										</span>
-										<span className="font-medium ml-1">
-											Players: {room.current_players}/{room.max_players}
-										</span>
-									</div>
-								</div>
-
-								<RoomControls
-									room={room}
-									user={user}
-									onStartGame={handleStartGame}
-									onEndGame={handleEndGame}
-									onShowInvite={() => setShowInviteModal(true)}
-								/>
-							</div>
+							{room && user && <RoomHeader room={room} user={user} />}
 
 							{/* Players List */}
 							<div className="flex-1 overflow-y-auto p-4">
-								<PlayersList
-									players={players}
-									gameState={gameState}
-									user={user}
-									room={room}
-								/>
+								{players && gameState && user && room && (
+									<PlayersList
+										players={players}
+										gameState={gameState}
+										user={user}
+										room={room}
+									/>
+								)}
 							</div>
 						</div>
 					</div>
@@ -1086,29 +648,71 @@ export function Room(): JSX.Element {
 							<div className="h-full p-2 flex flex-col">
 								<div className="flex-1 flex flex-col">
 									<div className="flex-1 bg-gray-50 rounded-lg overflow-hidden">
-										<TurnActions turnActions={turnActions} />
+										{turnActions && <TurnActions turnActions={turnActions} />}
 									</div>
 
-									<GameActions
-										gameState={gameState}
-										user={user}
-										players={players}
-										turnActions={turnActions}
-										selectedDiceIndices={selectedDiceIndices}
-										onTurnAction={handleTurnAction}
-										onRoll={handleRoll}
-										setSelectedDiceIndices={setSelectedDiceIndices}
-									/>
+									{gameState && user && players && turnActions && (
+										<GameActions
+											gameState={gameState}
+											user={user}
+											players={players}
+											turnActions={turnActions}
+											selectedDiceIndices={[]}
+											onTurnAction={handleTurnAction}
+											onRoll={handleRoll}
+											setSelectedDiceIndices={() => {}}
+										/>
+									)}
 								</div>
 								<div className="flex-1 bg-gray-50 rounded-lg overflow-hidden">
-									<GameScene diceStates={diceValues} />
+									{/* <GameScene diceStates={diceValues} /> */}
 								</div>
 							</div>
 						</div>
 					</div>
 				</div>
 			</main>
-			{showInviteModal && <InviteModal />}
+		</div>
+	);
+}
+function RoomHeader({ room, user }: { room: GameRoom; user: User }) {
+	return (
+		<div className="p-4 border-b border-gray-200">
+			<div className="flex flex-col justify-between gap-4">
+				<div className="flex items-center space-x-3">
+					<h2 className="text-2xl font-bold text-gray-900 truncate">
+						{room.name}
+					</h2>
+				</div>
+				<div className="flex items-center justify-between text-sm text-gray-500 gap-2">
+					<span
+						className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+							room.status === "waiting"
+								? "bg-yellow-100 text-yellow-800"
+								: room.status === "in_progress"
+									? "bg-green-100 text-green-800"
+									: "bg-gray-100 text-gray-800"
+						}`}
+					>
+						{room.status === "waiting"
+							? "Waiting"
+							: room.status === "in_progress"
+								? "In Progress"
+								: "Completed"}
+					</span>
+					<span className="font-medium ml-1">
+						Players: {room.current_players}/{room.max_players}
+					</span>
+				</div>
+			</div>
+
+			{/* <RoomControls
+				room={room}
+				user={user}
+				onStartGame={handleStartGame}
+				onEndGame={handleEndGame}
+				onShowInvite={() => setShowInviteModal(true)}
+			/> */}
 		</div>
 	);
 }
