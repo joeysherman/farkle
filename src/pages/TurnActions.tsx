@@ -1,9 +1,16 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TurnAction } from "./Room";
 
 export function TurnActions({ turnActions }: { turnActions: TurnAction[] }) {
 	const turnActionsRef = useRef<HTMLDivElement>(null);
 	const [selectedDiceIndices, setSelectedDiceIndices] = useState<number[]>([]);
+
+	// Add effect to scroll to bottom when turnActions changes
+	useEffect(() => {
+		if (turnActionsRef.current) {
+			turnActionsRef.current.scrollTop = turnActionsRef.current.scrollHeight;
+		}
+	}, [turnActions]);
 
 	return (
 		<div

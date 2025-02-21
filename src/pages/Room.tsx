@@ -162,6 +162,45 @@ const GameActions: React.FC<{
 	);
 };
 
+function getScoringDice(
+	dice_values: number[],
+	kept_dice: number[]
+): { number: number; isScoringNumber: boolean }[] {
+	// kept_dice is the dice that were kept from the dice_values array
+	// walk the dice_values array and output the dice states with number and isScoringNumber
+	// then walk the kept_dice array and set the isScoringNumber to true for the first
+	// occurrence of the dice value in the dice_values array where isScoringNumber is false
+	// example:
+	// dice_values = [4, 2, 6, 2, 6, 5]
+	// kept_dice = [5]
+	// output should be [
+	// 	{ number: 4, isScoringNumber: false },
+	// 	{ number: 2, isScoringNumber: false },
+	// 	{ number: 6, isScoringNumber: false },
+	// 	{ number: 2, isScoringNumber: false },
+	// 	{ number: 6, isScoringNumber: false },
+	// 	{ number: 5, isScoringNumber: true },
+	// ]
+
+	// Create an array of objects with number and isScoringNumber set to false
+	const diceStates = dice_values.map((value) => ({
+		number: value,
+		isScoringNumber: false,
+	}));
+
+	// Iterate over kept_dice and update the first occurrence in diceStates
+	kept_dice.forEach((kept) => {
+		for (let dice of diceStates) {
+			if (dice.number === kept && !dice.isScoringNumber) {
+				dice.isScoringNumber = true;
+				break; // Stop after the first occurrence
+			}
+		}
+	});
+
+	return diceStates;
+}
+
 export function Room(): JSX.Element {
 	const navigate = useNavigate();
 	const search = useSearch({ from: RoomRoute.id });
@@ -308,8 +347,17 @@ export function Room(): JSX.Element {
 				setError("Turn actions not found");
 				return;
 			}
-
 			setTurnActions(actionsData as Array<TurnAction>);
+
+			// if there are actions, set the dice states to the dice values of the last action
+			if (actionsData?.length > 0) {
+				debugger;
+				const scoringDice = getScoringDice(
+					actionsData[actionsData.length - 1].dice_values,
+					actionsData[actionsData.length - 1].kept_dice
+				);
+				setDiceStates(scoringDice);
+			}
 		};
 		if (currentTurn?.id) {
 			void fetchTurnActions();
@@ -336,6 +384,16 @@ export function Room(): JSX.Element {
 							debugger;
 							// add the new action to the turn actions
 							setTurnActions((previous) => [...previous, newAction]);
+							// update the dice states
+							// newAction.dice_values is an array of the rolled dice
+							// newAction.kept_dice is an array of the dice that were kept from the previous action
+
+							const scoringDice = getScoringDice(
+								newAction.dice_values,
+								newAction.kept_dice
+							);
+							debugger;
+							setDiceStates(scoringDice);
 						}
 					)
 					.subscribe();
@@ -367,7 +425,6 @@ export function Room(): JSX.Element {
 						filter: `game_id=eq.${roomId}`,
 					},
 					(payload) => {
-						debugger;
 						setGameState(payload.new as GameState);
 					}
 				)
@@ -690,25 +747,20 @@ export function Room(): JSX.Element {
 					<div className="w-full h-[calc(50vh-64px)] md:h-full md:w-3/4">
 						<div className="bg-white shadow rounded-lg h-full flex flex-col">
 							<div className="h-full p-2 flex flex-col">
-								<div className="flex-1 flex flex-col">
-									<div className="flex-1 bg-gray-50 rounded-lg overflow-hidden">
-										{turnActions && <TurnActions turnActions={turnActions} />}
-									</div>
-
-									{gameState && user && players && turnActions && (
-										<GameActions
-											gameState={gameState}
-											user={user}
-											players={players}
-											turnActions={turnActions}
-											selectedDiceIndices={[]}
-											onTurnAction={handleTurnAction}
-											onRoll={handleRoll}
-											setSelectedDiceIndices={() => {}}
-										/>
-									)}
-								</div>
-								<div className="flex-1 bg-gray-50 rounded-lg overflow-hidden">
+								<TurnActions turnActions={turnActions} />
+								{gameState && user && players && turnActions && (
+									<GameActions
+										gameState={gameState}
+										user={user}
+										players={players}
+										turnActions={turnActions}
+										selectedDiceIndices={[]}
+										onTurnAction={handleTurnAction}
+										onRoll={handleRoll}
+										setSelectedDiceIndices={() => {}}
+									/>
+								)}
+								<div className="flex-1 min-h-0 bg-gray-50 rounded-lg overflow-hidden">
 									<GameScene diceStates={diceStates} />
 								</div>
 							</div>

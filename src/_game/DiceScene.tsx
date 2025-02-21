@@ -26,7 +26,7 @@ export function DiceScene({
 						key={index}
 						placement={index + 1}
 						value={diceState.number}
-						isScoringNumber={diceState.number === 1}
+						isScoringNumber={diceState?.isScoringNumber || false}
 					/>
 				);
 			})}

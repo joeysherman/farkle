@@ -67,7 +67,6 @@ export function Dice({
 	const originalRotation = getRotationForNumber(value);
 
 	if (isScoringNumber) {
-		debugger;
 	}
 	return (
 		<DiceModel
