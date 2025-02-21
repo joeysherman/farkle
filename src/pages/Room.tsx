@@ -213,6 +213,15 @@ export function Room(): JSX.Element {
 	const [gameState, setGameState] = useState<GameState | null>(null);
 	const [currentTurn, setCurrentTurn] = useState<GameTurn | null>(null);
 	const [turnActions, setTurnActions] = useState<Array<TurnAction>>([]);
+	const [isSpinning, setIsSpinning] = useState(false);
+
+	// Function to start dice spin
+	const startSpin = (): void => {
+		setIsSpinning(true);
+		setTimeout(() => {
+			setIsSpinning(false);
+		}, 2000);
+	};
 
 	const [diceStates, setDiceStates] = useState([
 		{ number: 1 },
@@ -449,6 +458,7 @@ export function Room(): JSX.Element {
 		try {
 			const latestAction = turnActions[turnActions.length - 1];
 			if (!latestAction) return;
+			startSpin();
 
 			const { error } = await supabase.rpc("process_turn_action", {
 				p_game_id: roomId,
@@ -483,6 +493,7 @@ export function Room(): JSX.Element {
 	// Add roll handler
 	const handleRoll = async (numberDice: number = 6) => {
 		try {
+			startSpin();
 			const { data: rollResults, error } = await supabase.rpc("perform_roll", {
 				p_game_id: roomId,
 				p_num_dice: numberDice,
@@ -495,6 +506,7 @@ export function Room(): JSX.Element {
 			}
 
 			console.log("Roll results:", rollResults);
+
 			// Update dice values for the scene
 			// [
 			// 	{ number: 6 },
@@ -747,7 +759,6 @@ export function Room(): JSX.Element {
 					<div className="w-full h-[calc(50vh-64px)] md:h-full md:w-3/4">
 						<div className="bg-white shadow rounded-lg h-full flex flex-col">
 							<div className="h-full p-2 flex flex-col">
-								<TurnActions turnActions={turnActions} />
 								{gameState && user && players && turnActions && (
 									<GameActions
 										gameState={gameState}
@@ -760,8 +771,12 @@ export function Room(): JSX.Element {
 										setSelectedDiceIndices={() => {}}
 									/>
 								)}
-								<div className="flex-1 min-h-0 bg-gray-50 rounded-lg overflow-hidden">
-									<GameScene diceStates={diceStates} />
+								<TurnActions turnActions={turnActions} />
+								<div
+									style={{ flex: "1.5 1 0%" }}
+									className="min-h-0 bg-gray-50 rounded-lg overflow-hidden"
+								>
+									<GameScene diceStates={diceStates} isSpinning={isSpinning} />
 								</div>
 							</div>
 						</div>

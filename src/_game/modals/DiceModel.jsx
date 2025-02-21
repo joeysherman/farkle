@@ -4,14 +4,16 @@ Command: npx gltfjsx@6.5.3 dice.glb --transform
 Files: dice.glb [744.73KB] > /Users/joey/Documents/Projects/vite-react-boilerplate-main/src/_game/modals/dice-transformed.glb [41.22KB] (94%)
 */
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+import { useFrame } from "@react-three/fiber";
 
 export function Model(props) {
+	const meshRef = useRef(null);
 	const { nodes, materials } = useGLTF("/dice-transformed.glb");
-	const { isScoringNumber } = props;
-
+	const { position, rotation, isScoringNumber, isSpinning = false } = props;
+	const [hovered, setHovered] = useState(false);
 	const diceMaterials = materials.Dice.clone();
 	// if isScoringNumber is true, then we need to change the material of the dice to the scoring material
 	if (isScoringNumber) {
@@ -19,8 +21,38 @@ export function Model(props) {
 		diceMaterials.color = new THREE.Color(0, 1, 0);
 	}
 
+	useFrame((_, delta) => {
+		if (isSpinning && meshRef.current) {
+			const rotationSpeed = 10;
+			meshRef.current.rotation.x += delta * rotationSpeed;
+			meshRef.current.rotation.y += delta * rotationSpeed;
+			meshRef.current.rotation.z += delta * rotationSpeed;
+		} else if (!isSpinning && meshRef.current) {
+			meshRef.current.rotation.set(...rotation);
+		}
+	});
+
+	useFrame(() => {
+		if (hovered && meshRef.current) {
+			meshRef.current.position.y =
+				position[1] + Math.sin(Date.now() * 0.01) * 0.5;
+		} else if (meshRef.current) {
+			meshRef.current.position.y = position[1];
+		}
+	});
+
 	return (
-		<group {...props} dispose={null}>
+		<group
+			{...props}
+			dispose={null}
+			ref={meshRef}
+			onPointerEnter={() => {
+				setHovered(true);
+			}}
+			onPointerLeave={() => {
+				setHovered(false);
+			}}
+		>
 			<mesh geometry={nodes.Cube_1.geometry} material={materials.Dot} />
 			<mesh
 				geometry={nodes.Cube_2.geometry}

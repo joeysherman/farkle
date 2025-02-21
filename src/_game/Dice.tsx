@@ -62,16 +62,17 @@ export function Dice({
 	placement,
 	value,
 	isScoringNumber,
+	isSpinning,
+	onDiceClick,
 }: DiceProps): JSX.Element {
 	const originalPosition = getPositionByPlacement(placement);
 	const originalRotation = getRotationForNumber(value);
 
-	if (isScoringNumber) {
-	}
 	return (
 		<DiceModel
 			position={originalPosition}
 			rotation={originalRotation}
+			isSpinning={isSpinning}
 			placement={placement}
 			value={value}
 			isScoringNumber={isScoringNumber}

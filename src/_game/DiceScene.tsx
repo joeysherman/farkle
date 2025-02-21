@@ -13,11 +13,7 @@ interface DiceSceneProps {
 /**
  * Main scene component that displays all dice
  */
-export function DiceScene({
-	diceStates,
-	isSpinning,
-	setIsSpinning,
-}: DiceSceneProps) {
+export function DiceScene({ diceStates, isSpinning }: DiceSceneProps) {
 	return (
 		<Suspense fallback={null}>
 			{diceStates.map((diceState, index) => {
@@ -26,6 +22,7 @@ export function DiceScene({
 						key={index}
 						placement={index + 1}
 						value={diceState.number}
+						isSpinning={isSpinning}
 						isScoringNumber={diceState?.isScoringNumber || false}
 					/>
 				);

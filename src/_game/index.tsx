@@ -10,17 +10,8 @@ export interface SceneRef {
 	startSpin: () => void;
 }
 
-export const GameScene = ({ diceStates }) => {
+export const GameScene = ({ diceStates, isSpinning }) => {
 	const controls = useRef<any>(null);
-	const [isSpinning, setIsSpinning] = useState(false);
-
-	// Function to start dice spin
-	const startSpin = (): void => {
-		setIsSpinning(true);
-		setTimeout(() => {
-			setIsSpinning(false);
-		}, 2000);
-	};
 
 	return (
 		<div className="relative w-full h-full" style={{ minHeight: "300px" }}>
@@ -68,11 +59,7 @@ export const GameScene = ({ diceStates }) => {
 					shadow-camera-bottom={-20}
 				/>
 				<BoxingRing />
-				<DiceScene
-					diceStates={diceStates}
-					isSpinning={isSpinning}
-					setIsSpinning={setIsSpinning as Dispatch<SetStateAction<boolean>>}
-				/>
+				<DiceScene diceStates={diceStates} isSpinning={isSpinning} />
 			</Canvas>
 		</div>
 	);
