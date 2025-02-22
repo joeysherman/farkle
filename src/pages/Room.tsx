@@ -358,7 +358,12 @@ export function Room(): JSX.Element {
 					actionsData[actionsData.length - 1].dice_values,
 					actionsData[actionsData.length - 1].kept_dice
 				);
-				setDiceStates(scoringDice);
+				// map over the scoringDice and set the key placement to the index + 1
+				const scoringDiceWithPlacement = scoringDice.map((dice, index) => ({
+					...dice,
+					placement: index + 1,
+				}));
+				setDiceStates(scoringDiceWithPlacement);
 			}
 		};
 		if (currentTurn?.id) {
@@ -398,7 +403,19 @@ export function Room(): JSX.Element {
 									newAction.dice_values,
 									newAction.kept_dice
 								);
-								setDiceStates(scoringDice);
+
+								debugger;
+								setDiceStates((previous) => {
+									// for each previous diceState, map the placement over to the scoringDiceWithPlacement.placement at the same index
+									const newDiceStates = scoringDice.map((dice, index) => {
+										// set the dice.placement to the previous[index].placement
+										return {
+											...dice,
+											placement: previous[index].placement,
+										};
+									});
+									return newDiceStates;
+								});
 							}, 1000);
 						}
 					)
@@ -455,6 +472,11 @@ export function Room(): JSX.Element {
 		try {
 			const latestAction = turnActions[turnActions.length - 1];
 			if (!latestAction) return;
+			// filter out the diceStates where isScoringNumber is true
+			const leftOverDice = diceStates.filter((dice) => !dice.isScoringNumber);
+			// set the diceStates to the leftOverDice
+			debugger;
+			setDiceStates(leftOverDice);
 			startSpin();
 
 			const { error } = await supabase.rpc("process_turn_action", {

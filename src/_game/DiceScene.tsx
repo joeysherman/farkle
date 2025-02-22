@@ -17,13 +17,14 @@ export function DiceScene({ diceStates, isSpinning }: DiceSceneProps) {
 	return (
 		<Suspense fallback={null}>
 			{diceStates.map((diceState, index) => {
+				const { placement, number, isScoringNumber } = diceState;
 				return (
 					<Dice
 						key={index}
-						placement={index + 1}
-						value={diceState.number}
+						placement={placement}
+						value={number}
 						isSpinning={isSpinning}
-						isScoringNumber={diceState?.isScoringNumber || false}
+						isScoringNumber={isScoringNumber || false}
 					/>
 				);
 			})}
