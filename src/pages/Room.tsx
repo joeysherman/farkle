@@ -223,14 +223,7 @@ export function Room(): JSX.Element {
 		}, 2000);
 	};
 
-	const [diceStates, setDiceStates] = useState([
-		{ number: 1 },
-		{ number: 2 },
-		{ number: 3 },
-		{ number: 4 },
-		{ number: 5 },
-		{ number: 6 },
-	]);
+	const [diceStates, setDiceStates] = useState([]);
 
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -391,18 +384,22 @@ export function Room(): JSX.Element {
 							const newAction = actionPayload.new as TurnAction;
 							if (!newAction) return;
 							debugger;
-							// add the new action to the turn actions
-							setTurnActions((previous) => [...previous, newAction]);
-							// update the dice states
-							// newAction.dice_values is an array of the rolled dice
-							// newAction.kept_dice is an array of the dice that were kept from the previous action
 
-							const scoringDice = getScoringDice(
-								newAction.dice_values,
-								newAction.kept_dice
-							);
-							debugger;
-							setDiceStates(scoringDice);
+							// wait 1 second, then stop the spin, then update the turn actions and dice states
+							setTimeout(() => {
+								setIsSpinning(false);
+								// add the new action to the turn actions
+								setTurnActions((previous) => [...previous, newAction]);
+								// update the dice states
+								// newAction.dice_values is an array of the rolled dice
+								// newAction.kept_dice is an array of the dice that were kept from the previous action
+
+								const scoringDice = getScoringDice(
+									newAction.dice_values,
+									newAction.kept_dice
+								);
+								setDiceStates(scoringDice);
+							}, 1000);
 						}
 					)
 					.subscribe();
@@ -773,8 +770,8 @@ export function Room(): JSX.Element {
 								)}
 								<TurnActions turnActions={turnActions} />
 								<div
-									style={{ flex: "1.5 1 0%" }}
 									className="min-h-0 bg-gray-50 rounded-lg overflow-hidden"
+									style={{ flex: "1.5 1 0%" }}
 								>
 									<GameScene diceStates={diceStates} isSpinning={isSpinning} />
 								</div>
