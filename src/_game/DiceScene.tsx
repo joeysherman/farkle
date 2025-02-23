@@ -13,7 +13,12 @@ interface DiceSceneProps {
 /**
  * Main scene component that displays all dice
  */
-export function DiceScene({ diceStates, isSpinning }: DiceSceneProps) {
+export function DiceScene({
+	diceStates,
+	isSpinning,
+	selectedDiceIndices,
+	setSelectedDiceIndices,
+}: DiceSceneProps) {
 	return (
 		<Suspense fallback={null}>
 			{diceStates.map((diceState, index) => {
@@ -21,10 +26,21 @@ export function DiceScene({ diceStates, isSpinning }: DiceSceneProps) {
 				return (
 					<Dice
 						key={index}
+						index={index}
 						placement={placement}
 						value={number}
 						isSpinning={isSpinning}
 						isScoringNumber={isScoringNumber || false}
+						onDiceClick={() => {
+							if (selectedDiceIndices.includes(index)) {
+								setSelectedDiceIndices(
+									selectedDiceIndices.filter((i) => i !== index)
+								);
+							} else {
+								setSelectedDiceIndices([...selectedDiceIndices, index]);
+							}
+						}}
+						selected={selectedDiceIndices.includes(index)}
 					/>
 				);
 			})}

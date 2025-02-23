@@ -8,11 +8,19 @@ import React, { useEffect, useRef, useState } from "react";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
+import { Select } from "@react-three/postprocessing";
 
 export function Model(props) {
 	const meshRef = useRef(null);
 	const { nodes, materials } = useGLTF("/dice-transformed.glb");
-	const { position, rotation, isScoringNumber, isSpinning = false } = props;
+	const {
+		position,
+		rotation,
+		isScoringNumber,
+		isSpinning = false,
+		selected = false,
+		onClick,
+	} = props;
 	const [hovered, setHovered] = useState(false);
 	const diceMaterials = materials.Dice.clone();
 	// if isScoringNumber is true, then we need to change the material of the dice to the scoring material
@@ -32,34 +40,46 @@ export function Model(props) {
 		}
 	});
 
-	useFrame(() => {
-		if (hovered && meshRef.current) {
-			meshRef.current.position.y =
-				position[1] + Math.sin(Date.now() * 0.01) * 0.5;
-		} else if (meshRef.current) {
-			meshRef.current.position.y = position[1];
+	useEffect(() => {
+		if (meshRef.current) {
+			if (selected) {
+				meshRef.current.position.y += 0.5; // Move the model up by 0.5 units
+			} else {
+				meshRef.current.position.y = position[1]; // Reset to original position
+			}
 		}
-	});
+	}, [selected]);
 
 	return (
-		<group
-			{...props}
-			dispose={null}
-			ref={meshRef}
-			onPointerEnter={() => {
-				setHovered(true);
-			}}
-			onPointerLeave={() => {
-				setHovered(false);
-			}}
-		>
-			<mesh geometry={nodes.Cube_1.geometry} material={materials.Dot} />
-			<mesh
-				geometry={nodes.Cube_2.geometry}
-				material={isScoringNumber ? diceMaterials : materials.Dice}
-			/>
-			<mesh geometry={nodes.Cube_3.geometry} material={materials["Red Dot"]} />
-		</group>
+		<Select enabled={hovered && !isSpinning && isScoringNumber}>
+			<group
+				{...props}
+				dispose={null}
+				ref={meshRef}
+				onPointerEnter={() => {
+					setHovered(true);
+				}}
+				onPointerLeave={() => {
+					setHovered(false);
+				}}
+				onClick={() => {
+					console.log("clicked");
+					if (isScoringNumber) {
+						props.onClick();
+					}
+				}}
+			>
+				<mesh geometry={nodes.Cube_1.geometry} material={materials.Dot} />
+				<mesh
+					geometry={nodes.Cube_2.geometry}
+					material={isScoringNumber ? diceMaterials : materials.Dice}
+				/>
+				<mesh
+					geometry={nodes.Cube_3.geometry}
+					material={materials["Red Dot"]}
+				/>
+			</group>
+		</Select>
 	);
 }
 

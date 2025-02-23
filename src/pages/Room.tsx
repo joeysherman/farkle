@@ -227,6 +227,9 @@ export function Room(): JSX.Element {
 
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [selectedDiceIndices, setSelectedDiceIndices] = useState<Array<number>>(
+		[]
+	);
 
 	// ref for the game state subscription
 	const gameStateSubscriptionRef = useRef<RealtimeChannel | null>(null);
@@ -795,7 +798,12 @@ export function Room(): JSX.Element {
 									className="min-h-0 bg-gray-50 rounded-lg overflow-hidden"
 									style={{ flex: "1.5 1 0%" }}
 								>
-									<GameScene diceStates={diceStates} isSpinning={isSpinning} />
+									<GameScene
+										diceStates={diceStates}
+										isSpinning={isSpinning}
+										selectedDiceIndices={selectedDiceIndices}
+										setSelectedDiceIndices={setSelectedDiceIndices}
+									/>
 								</div>
 							</div>
 						</div>
