@@ -24,9 +24,12 @@ export function Model(props) {
 	const [hovered, setHovered] = useState(false);
 	const diceMaterials = materials.Dice.clone();
 	// if isScoringNumber is true, then we need to change the material of the dice to the scoring material
-	if (isScoringNumber) {
+	if (isScoringNumber && selected) {
 		// green
 		diceMaterials.color = new THREE.Color(0, 1, 0);
+	} else if (isScoringNumber && !selected) {
+		// light green
+		diceMaterials.color = new THREE.Color(0.5, 1, 0.5);
 	}
 
 	useFrame((_, delta) => {

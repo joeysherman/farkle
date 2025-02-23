@@ -412,9 +412,10 @@ export function Room(): JSX.Element {
 									// for each previous diceState, map the placement over to the scoringDiceWithPlacement.placement at the same index
 									const newDiceStates = scoringDice.map((dice, index) => {
 										// set the dice.placement to the previous[index].placement
+
 										return {
 											...dice,
-											placement: previous[index].placement,
+											placement: previous[index]?.placement || index + 1,
 										};
 									});
 									return newDiceStates;
@@ -515,7 +516,7 @@ export function Room(): JSX.Element {
 	// Add roll handler
 	const handleRoll = async (numberDice: number = 6) => {
 		try {
-			startSpin();
+			setDiceStates([]);
 			const { data: rollResults, error } = await supabase.rpc("perform_roll", {
 				p_game_id: roomId,
 				p_num_dice: numberDice,

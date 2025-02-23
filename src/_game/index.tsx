@@ -113,7 +113,7 @@ export const GameScene = ({
 				</Selection>
 				<PerspectiveCamera
 					makeDefault
-					position={[-ARENA_SIZE * 0.75, ARENA_SIZE * 0.75, ARENA_SIZE * 0.25]}
+					position={[-ARENA_SIZE * 0.75, ARENA_SIZE * 0.75, ARENA_SIZE * 0.75]}
 					fov={45}
 				/>
 				<OrbitControls
