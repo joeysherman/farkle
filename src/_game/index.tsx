@@ -1,4 +1,9 @@
-import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
+import {
+	Text,
+	Billboard,
+	OrbitControls,
+	PerspectiveCamera,
+} from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import {
 	EffectComposer,
@@ -111,6 +116,7 @@ export const GameScene = ({
 						setSelectedDiceIndices={setSelectedDiceIndices}
 					/>
 				</Selection>
+
 				<PerspectiveCamera
 					makeDefault
 					position={[-ARENA_SIZE * 0.75, ARENA_SIZE * 0.75, ARENA_SIZE * 0.75]}
@@ -124,7 +130,7 @@ export const GameScene = ({
 					rotateSpeed={0.5}
 					enablePan={false}
 					enableZoom={true}
-					minDistance={15}
+					//minDistance={10}
 					maxDistance={ARENA_SIZE * 3}
 					zoomSpeed={0.5}
 				/>

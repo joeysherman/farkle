@@ -125,8 +125,11 @@ export function TurnActions({ turnActions }: { turnActions: TurnAction[] }) {
 						</div>
 					);
 				})}
+
 				{turnActions.length === 0 && (
-					<p className="text-sm text-gray-500 italic">No actions yet</p>
+					<div className="flex justify-center items-center h-full pt-4">
+						<p className="text-sm text-gray-500 italic">Start rolling!</p>
+					</div>
 				)}
 			</div>
 		</div>

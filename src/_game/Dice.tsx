@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
 import { Model as DiceModel } from "./modals/DiceModel";
-
+import { Billboard, Text } from "@react-three/drei";
 interface DiceProps {
 	desiredNumber?: number;
 	position?: [number, number, number];
@@ -70,16 +70,39 @@ export function Dice({
 	const originalPosition = getPositionByPlacement(placement);
 	const originalRotation = getRotationForNumber(value);
 
+	// clone the original position for the billboard
+	// add 2 to the y axis
+	const billboardPosition = [
+		originalPosition[0],
+		originalPosition[1] + (selected ? 8 : 4),
+		originalPosition[2],
+	];
+
 	return (
-		<DiceModel
-			position={originalPosition}
-			rotation={originalRotation}
-			isSpinning={isSpinning}
-			placement={placement}
-			value={value}
-			isScoringNumber={isScoringNumber}
-			onClick={() => onDiceClick(index)}
-			selected={selected}
-		/>
+		<>
+			{isScoringNumber && (
+				<Billboard
+					position={billboardPosition}
+					follow={true}
+					lockX={false}
+					lockY={false}
+					lockZ={false} // Lock the rotation on the z axis (default=false)
+				>
+					<Text fontSize={2} color="red">
+						+ 50
+					</Text>
+				</Billboard>
+			)}
+			<DiceModel
+				position={originalPosition}
+				rotation={originalRotation}
+				isSpinning={isSpinning}
+				placement={placement}
+				value={value}
+				isScoringNumber={isScoringNumber}
+				onClick={() => onDiceClick(index)}
+				selected={selected}
+			/>
+		</>
 	);
 }
