@@ -82,15 +82,17 @@ export const GameScene = ({
 				<BoxingRing />
 				<Selection>
 					<EffectComposer multisampling={8} autoClear={false}>
-						{/* <Outline
-							blur
-							visibleEdgeColor="red"
-							edgeStrength={3.85}
-							edgeGlow={1}
-							edgeThickness={3}
-							pulseSpeed={0.5}
-						/> */}
 						<Outline
+							visibleEdgeColor="red"
+							edgeStrength={100}
+							edgeGlow={1}
+							//edgeThickness={5}
+							pulseSpeed={0.5}
+							blur={false}
+							xRay={false}
+							width={1000}
+						/>
+						{/* <Outline
 							patternTexture={null} // a pattern texture
 							edgeStrength={2.5} // the edge strength
 							pulseSpeed={0.0} // a pulse speed. A value of zero disables the pulse effect
@@ -98,17 +100,8 @@ export const GameScene = ({
 							hiddenEdgeColor={0x22090a} // the color of hidden edges
 							blur={false} // whether the outline should be blurred
 							xRay={false} // indicates whether X-Ray outlines are enabled
-						/>
+						/> */}
 					</EffectComposer>
-					{/* <Box position={[-1, 0, 0]} /> */}
-					{/* <DiceModel
-						position={[-5, 0, 0]}
-						isScoringNumber={true}
-						rotation={[Math.PI / 2, 0, 0]}
-						placement={1}
-						value={1}
-						isSpinning={false}
-					/> */}
 					<DiceScene
 						diceStates={diceStates}
 						isSpinning={isSpinning}
@@ -116,7 +109,6 @@ export const GameScene = ({
 						setSelectedDiceIndices={setSelectedDiceIndices}
 					/>
 				</Selection>
-
 				<PerspectiveCamera
 					makeDefault
 					position={[-ARENA_SIZE * 0.75, ARENA_SIZE * 0.75, ARENA_SIZE * 0.75]}

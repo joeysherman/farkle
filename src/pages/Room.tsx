@@ -113,7 +113,12 @@ const GameActions: React.FC<{
 			) : turnActions.length === 0 || latestAction?.turn_action_outcome ? (
 				<button
 					className="col-span-2 w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-					onClick={() => void onRoll(6)}
+					onClick={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						e.target.blur();
+						void onRoll(6);
+					}}
 				>
 					Roll Dice
 				</button>
@@ -122,7 +127,10 @@ const GameActions: React.FC<{
 					<button
 						className="w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
 						disabled={!canContinue}
-						onClick={() => {
+						onClick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							e.target.blur();
 							if (canContinue) {
 								void onTurnAction(latestAction.kept_dice, "bank");
 							}
@@ -137,7 +145,10 @@ const GameActions: React.FC<{
 							latestAction.score === 0 ||
 							latestAction.available_dice <= 0
 						}
-						onClick={() => {
+						onClick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							e.target.blur();
 							if (canContinue) {
 								const keptDice = selectedDiceIndices
 									.map((index) => latestAction.dice_values[index])
@@ -217,10 +228,14 @@ export function Room(): JSX.Element {
 
 	// Function to start dice spin
 	const startSpin = (): void => {
-		setIsSpinning(true);
-		setTimeout(() => {
-			setIsSpinning(false);
-		}, 2000);
+		if (!isSpinning) {
+			console.log("starting spin");
+			setIsSpinning(true);
+			setTimeout(() => {
+				console.log("stopping spin");
+				setIsSpinning(false);
+			}, 2000);
+		}
 	};
 
 	const [diceStates, setDiceStates] = useState([]);
@@ -478,10 +493,6 @@ export function Room(): JSX.Element {
 			if (!latestAction) return;
 			// filter out the diceStates where isScoringNumber is true
 			const leftOverDice = diceStates.filter((dice) => !dice.isScoringNumber);
-			// set the diceStates to the leftOverDice
-			debugger;
-			setDiceStates(leftOverDice);
-			startSpin();
 
 			const { error } = await supabase.rpc("process_turn_action", {
 				p_game_id: roomId,
@@ -494,6 +505,7 @@ export function Room(): JSX.Element {
 			if (outcome === "bank" || outcome === "bust") {
 				setCurrentTurn(null);
 				setTurnActions([]);
+				setDiceStates([]);
 				// setSelectedDiceIndices([]);
 				// setDiceValues([
 				// 	{ number: 1 },
@@ -503,6 +515,13 @@ export function Room(): JSX.Element {
 				// 	{ number: 5 },
 				// 	{ number: 6 },
 				// ]); // Reset dice values to initial state
+			} else if (outcome === "continue") {
+				// set the diceStates to the leftOverDice
+				setDiceStates(leftOverDice);
+				if (!isSpinning) {
+					console.log("starting spin 1");
+					startSpin();
+				}
 			}
 		} catch (error_) {
 			setError(
@@ -516,7 +535,6 @@ export function Room(): JSX.Element {
 	// Add roll handler
 	const handleRoll = async (numberDice: number = 6) => {
 		try {
-			setDiceStates([]);
 			const { data: rollResults, error } = await supabase.rpc("perform_roll", {
 				p_game_id: roomId,
 				p_num_dice: numberDice,
@@ -531,14 +549,7 @@ export function Room(): JSX.Element {
 			console.log("Roll results:", rollResults);
 
 			// Update dice values for the scene
-			// [
-			// 	{ number: 6 },
-			// 	{ number: 2 },
-			// 	{ number: 3 },
-			// 	{ number: 4 },
-			// 	{ number: 5 },
-			// 	{ number: 6 },
-			// ]
+
 			//setDiceValues(rollResults.map((value: number) => ({ number: value })));
 			// Trigger the roll animation for each die
 			// rollResults.forEach((value: number, index: number) => {
@@ -790,7 +801,22 @@ export function Room(): JSX.Element {
 										turnActions={turnActions}
 										selectedDiceIndices={[]}
 										onTurnAction={handleTurnAction}
-										onRoll={handleRoll}
+										onRoll={() => {
+											setDiceStates([
+												{ number: 6, placement: 1, isScoringNumber: true },
+												{ number: 2, placement: 2, isScoringNumber: false },
+												{ number: 3, placement: 3, isScoringNumber: false },
+												{ number: 4, placement: 4, isScoringNumber: false },
+												{ number: 5, placement: 5, isScoringNumber: false },
+												{ number: 6, placement: 6, isScoringNumber: true },
+											]);
+
+											if (!isSpinning) {
+												console.log("starting spin 2");
+												startSpin();
+											}
+											handleRoll();
+										}}
 										setSelectedDiceIndices={() => {}}
 									/>
 								)}

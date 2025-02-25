@@ -51,81 +51,83 @@ export function Model(props) {
 
 	useEffect(() => {
 		if (!isSpinning && isScoringNumber && selected) {
-			setAnimateClass("hovered");
+			setAnimateClass("selected");
 		} else if (!isSpinning && isScoringNumber && !selected) {
 			setAnimateClass("idle");
 		} else if (isSpinning) {
+			console.log("spinning inside dice model");
 			setAnimateClass("spinning");
 		} else if (!isSpinning && animateClass === "spinning") {
+			console.log("stopping spinning inside dice model");
 			setAnimateClass("idle");
 		}
-	}, [isSpinning, isScoringNumber, selected]);
+	}, [isSpinning, isScoringNumber, selected, animateClass]);
+
 	// generate random numbers
 	return (
-		//<Select enabled={hovered && !isSpinning && isScoringNumber}>
-		<motion.group
-			{...props}
-			ref={meshRef}
-			position-x={position[0]}
-			position-y={position[1]}
-			position-z={position[2]}
-			//animate={isSpinning ? (hovered ? "hovered" : "spinning") : "idle"}
-			animate={animateClass}
-			variants={{
-				hovered: {
-					// move up a bit
-					y: 4,
-					transition: {
-						duration: 1 / returnSpeed,
-						ease: "easeOut",
+		<Select enabled={hovered && !isSpinning && isScoringNumber}>
+			<motion.group
+				{...props}
+				ref={meshRef}
+				position-x={position[0]}
+				position-y={position[1]}
+				position-z={position[2]}
+				//animate={isSpinning ? (hovered ? "hovered" : "spinning") : "idle"}
+				animate={animateClass}
+				transition={{
+					type: "spring",
+					stiffness: 100,
+					damping: 10,
+
+					//duration: 1 / returnSpeed,
+				}}
+				variants={{
+					selected: {
+						// move up a bit
+						y: 4,
 					},
-				},
-				idle: {
-					y: 0,
-					rotateX: rotation?.[0] || 0,
-					rotateY: rotation?.[1] || 0,
-					rotateZ: rotation?.[2] || 0,
-					transition: {
-						duration: 1 / returnSpeed,
-						ease: "easeOut",
+					idle: {
+						rotateX: rotation?.[0] || 0,
+						rotateY: rotation?.[1] || 0,
+						rotateZ: rotation?.[2] || 0,
 					},
-				},
-				spinning: {
-					//rotateZ: degToRad(360),
-					//rotateX: randomRotation.x,
-					//rotateY: randomRotation.y,
-					rotateX: degToRad(randomRotation.x),
-					rotateY: degToRad(randomRotation.y),
-					rotateZ: degToRad(randomRotation.z),
-					transition: {
-						duration: 1,
-						repeat: Infinity,
-						ease: "linear",
+					spinning: {
+						//rotateZ: degToRad(360),
+						//rotateX: randomRotation.x,
+						//rotateY: randomRotation.y,
+						rotateX: degToRad(randomRotation.x),
+						rotateY: degToRad(randomRotation.y),
+						rotateZ: degToRad(randomRotation.z),
+						transition: {
+							duration: 1,
+						},
 					},
-				},
-			}}
-			//dispose={null}
-			onPointerEnter={() => {
-				setHovered(true);
-			}}
-			onPointerLeave={() => {
-				setHovered(false);
-			}}
-			// onClick={() => {
-			// 	console.log("clicked");
-			// 	if (isScoringNumber) {
-			// 		props.onClick();
-			// 	}
-			// }}
-		>
-			<mesh geometry={nodes.Cube_1.geometry} material={materials.Dot} />
-			<mesh
-				geometry={nodes.Cube_2.geometry}
-				material={isScoringNumber ? diceMaterials : materials.Dice}
-			/>
-			<mesh geometry={nodes.Cube_3.geometry} material={materials["Red Dot"]} />
-		</motion.group>
-		//</Select>
+				}}
+				//dispose={null}
+				onPointerEnter={() => {
+					setHovered(true);
+				}}
+				onPointerLeave={() => {
+					setHovered(false);
+				}}
+				// onClick={() => {
+				// 	console.log("clicked");
+				// 	if (isScoringNumber) {
+				// 		props.onClick();
+				// 	}
+				// }}
+			>
+				<mesh geometry={nodes.Cube_1.geometry} material={materials.Dot} />
+				<mesh
+					geometry={nodes.Cube_2.geometry}
+					material={isScoringNumber ? diceMaterials : materials.Dice}
+				/>
+				<mesh
+					geometry={nodes.Cube_3.geometry}
+					material={materials["Red Dot"]}
+				/>
+			</motion.group>
+		</Select>
 	);
 }
 

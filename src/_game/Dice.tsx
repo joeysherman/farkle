@@ -79,30 +79,15 @@ export function Dice({
 	];
 
 	return (
-		<>
-			{isScoringNumber && (
-				<Billboard
-					position={billboardPosition}
-					follow={true}
-					lockX={false}
-					lockY={false}
-					lockZ={false} // Lock the rotation on the z axis (default=false)
-				>
-					<Text fontSize={2} color="red">
-						+ 50
-					</Text>
-				</Billboard>
-			)}
-			<DiceModel
-				position={originalPosition}
-				rotation={originalRotation}
-				isSpinning={isSpinning}
-				placement={placement}
-				value={value}
-				isScoringNumber={isScoringNumber}
-				onClick={() => onDiceClick(index)}
-				selected={selected}
-			/>
-		</>
+		<DiceModel
+			position={originalPosition}
+			rotation={originalRotation}
+			isSpinning={isSpinning}
+			placement={placement}
+			value={value}
+			isScoringNumber={isScoringNumber}
+			onClick={() => onDiceClick(index)}
+			selected={selected}
+		/>
 	);
 }
