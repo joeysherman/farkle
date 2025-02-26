@@ -14,6 +14,8 @@ import type {
 import { TurnActions } from "./TurnActions";
 import { PlayersList } from "../features/PlayersList";
 import { RoomControls } from "../features/RoomControls";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { GameActions } from "./GameActions";
 
 export interface GameRoom {
 	id: string;
@@ -62,116 +64,6 @@ export interface TurnAction {
 	available_dice: number;
 	created_at: string;
 }
-
-// Game Actions Component
-const GameActions: React.FC<{
-	gameState: GameState | null;
-	user: User | null;
-	players: Array<GamePlayer>;
-	turnActions: Array<TurnAction>;
-	selectedDiceIndices: Array<number>;
-	onTurnAction: (
-		keptDice: Array<number>,
-		outcome: "bust" | "bank" | "continue"
-	) => Promise<void>;
-	onRoll: (numberDice: number) => Promise<void>;
-	setSelectedDiceIndices: React.Dispatch<React.SetStateAction<Array<number>>>;
-}> = ({
-	gameState,
-	user,
-	players,
-	turnActions,
-	selectedDiceIndices,
-	onTurnAction,
-	onRoll,
-	setSelectedDiceIndices,
-}) => {
-	if (!gameState || !user) return null;
-
-	const currentPlayer = players.find((p) => p.user_id === user.id);
-	const isCurrentPlayerTurn = gameState.current_player_id === currentPlayer?.id;
-
-	if (!isCurrentPlayerTurn) return null;
-
-	const latestAction = turnActions[turnActions.length - 1];
-	const isFarkle = latestAction?.score === 0;
-	const canContinue = latestAction && !latestAction.turn_action_outcome;
-
-	return (
-		<div className="flex-none grid grid-cols-2 gap-6 py-2 px-4">
-			{isFarkle && latestAction ? (
-				<button
-					className="col-span-2 w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-					onClick={() => {
-						if (latestAction?.kept_dice) {
-							void onTurnAction(latestAction.kept_dice, "bust");
-						}
-					}}
-				>
-					End Turn
-				</button>
-			) : turnActions.length === 0 || latestAction?.turn_action_outcome ? (
-				<button
-					className="col-span-2 w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-					onClick={(e) => {
-						e.preventDefault();
-						e.stopPropagation();
-						e.target.blur();
-						void onRoll(6);
-					}}
-				>
-					Roll Dice
-				</button>
-			) : latestAction ? (
-				<>
-					<button
-						className="w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-						disabled={!canContinue}
-						onClick={(e) => {
-							e.preventDefault();
-							e.stopPropagation();
-							e.target.blur();
-							if (canContinue) {
-								void onTurnAction(latestAction.kept_dice, "bank");
-							}
-						}}
-					>
-						Bank Score
-					</button>
-					<button
-						className="w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-						disabled={
-							!canContinue ||
-							latestAction.score === 0 ||
-							latestAction.available_dice <= 0
-						}
-						onClick={(e) => {
-							e.preventDefault();
-							e.stopPropagation();
-							e.target.blur();
-							if (canContinue) {
-								const keptDice = selectedDiceIndices
-									.map((index) => latestAction.dice_values[index])
-									.filter(Boolean);
-								const validScoringDice = latestAction.kept_dice;
-								const allKeptDice = [...validScoringDice, ...keptDice];
-								void onTurnAction(allKeptDice, "continue");
-								setSelectedDiceIndices([]);
-							}
-						}}
-					>
-						{latestAction.available_dice === 0 &&
-							latestAction.score > 0 &&
-							"Hot Dice! Roll 6 dice"}
-						{latestAction.available_dice > 0 &&
-							latestAction.score > 0 &&
-							`Roll ${latestAction.available_dice} dice`}
-					</button>
-				</>
-			) : null}
-		</div>
-	);
-};
 
 function getScoringDice(
 	dice_values: number[],
@@ -226,6 +118,7 @@ export function Room(): JSX.Element {
 	const [turnActions, setTurnActions] = useState<Array<TurnAction>>([]);
 	const [isSpinning, setIsSpinning] = useState(false);
 
+	const { mutate: handleTurnAction, isPending } = useHandleTurnAction();
 	// Function to start dice spin
 	const startSpin = (): void => {
 		if (!isSpinning) {
@@ -309,12 +202,17 @@ export function Room(): JSX.Element {
 	// room
 	useEffect(() => {
 		const fetchRoom = async () => {
-			const { data: roomData, error: roomError } = await supabase
+			const {
+				data: roomData,
+				error: roomError,
+				...rest
+			} = await supabase
 				.from("game_rooms")
 				.select("*")
 				.eq("id", roomId)
 				.single();
 
+			debugger;
 			if (roomError) throw roomError;
 			if (!roomData) {
 				setError("Room not found");
@@ -520,57 +418,6 @@ export function Room(): JSX.Element {
 			}
 		};
 	}, [roomId]);
-
-	// Add the handleTurnAction function near other handlers
-	const handleTurnAction = async (
-		keptDice: Array<number>,
-		outcome: "bust" | "bank" | "continue"
-	) => {
-		if (!roomId) return;
-
-		try {
-			const latestAction = turnActions[turnActions.length - 1];
-			if (!latestAction) return;
-			// filter out the diceStates where isScoringNumber is true
-			const leftOverDice = diceStates.filter((dice) => !dice.isScoringNumber);
-
-			const { error } = await supabase.rpc("process_turn_action", {
-				p_game_id: roomId,
-				p_outcome: outcome,
-			});
-
-			if (error) throw error;
-
-			// Reset states if the turn is ending (bank or bust)
-			if (outcome === "bank" || outcome === "bust") {
-				setCurrentTurn(null);
-				setTurnActions([]);
-				setDiceStates([]);
-				// setSelectedDiceIndices([]);
-				// setDiceValues([
-				// 	{ number: 1 },
-				// 	{ number: 2 },
-				// 	{ number: 3 },
-				// 	{ number: 4 },
-				// 	{ number: 5 },
-				// 	{ number: 6 },
-				// ]); // Reset dice values to initial state
-			} else if (outcome === "continue") {
-				// set the diceStates to the leftOverDice
-				setDiceStates(leftOverDice);
-				if (!isSpinning) {
-					console.log("starting spin 1");
-					startSpin();
-				}
-			}
-		} catch (error_) {
-			setError(
-				error_ instanceof Error
-					? error_.message
-					: "Failed to process turn action"
-			);
-		}
-	};
 
 	// Add roll handler
 	const handleRoll = async (numberDice: number = 6) => {
@@ -861,9 +708,29 @@ export function Room(): JSX.Element {
 											gameState={gameState}
 											user={user}
 											players={players}
+											isPending={isPending || isSpinning}
 											turnActions={turnActions}
 											selectedDiceIndices={[]}
-											onTurnAction={handleTurnAction}
+											onTurnAction={(keptDice, outcome) => {
+												const latestAction =
+													turnActions[turnActions.length - 1];
+												if (!latestAction) return;
+												// filter out the diceStates where isScoringNumber is true
+												const leftOverDice = diceStates.filter(
+													(dice) => !dice.isScoringNumber
+												);
+												// set the diceStates to the leftOverDice
+												if (outcome === "continue") {
+													setDiceStates(leftOverDice);
+													startSpin();
+												} else {
+													setDiceStates([]);
+												}
+												handleTurnAction({
+													roomId: roomId,
+													outcome,
+												});
+											}}
 											onRoll={() => {
 												setDiceStates([
 													{ number: 6, placement: 1, isScoringNumber: true },
@@ -904,6 +771,83 @@ export function Room(): JSX.Element {
 		</div>
 	);
 }
+
+const useHandleTurnAction = () => {
+	return useMutation({
+		mutationFn: async (props) => {
+			const { roomId, outcome } = props;
+			debugger;
+			const { error } = await supabase.rpc("process_turn_action", {
+				p_game_id: roomId,
+				p_outcome: outcome,
+			});
+			return data;
+		},
+	});
+};
+
+function newFunction(
+	roomId: any,
+	turnActions: TurnAction[],
+	diceStates: never[],
+	setCurrentTurn,
+	setTurnActions,
+	setDiceStates,
+	isSpinning: boolean,
+	startSpin: () => void,
+	setError
+) {
+	return async (
+		keptDice: Array<number>,
+		outcome: "bust" | "bank" | "continue"
+	) => {
+		if (!roomId) return;
+
+		try {
+			const latestAction = turnActions[turnActions.length - 1];
+			if (!latestAction) return;
+			// filter out the diceStates where isScoringNumber is true
+			const leftOverDice = diceStates.filter((dice) => !dice.isScoringNumber);
+
+			const { error } = await supabase.rpc("process_turn_action", {
+				p_game_id: roomId,
+				p_outcome: outcome,
+			});
+
+			if (error) throw error;
+
+			// Reset states if the turn is ending (bank or bust)
+			if (outcome === "bank" || outcome === "bust") {
+				setCurrentTurn(null);
+				setTurnActions([]);
+				setDiceStates([]);
+				// setSelectedDiceIndices([]);
+				// setDiceValues([
+				// 	{ number: 1 },
+				// 	{ number: 2 },
+				// 	{ number: 3 },
+				// 	{ number: 4 },
+				// 	{ number: 5 },
+				// 	{ number: 6 },
+				// ]); // Reset dice values to initial state
+			} else if (outcome === "continue") {
+				// set the diceStates to the leftOverDice
+				setDiceStates(leftOverDice);
+				if (!isSpinning) {
+					console.log("starting spin 1");
+					startSpin();
+				}
+			}
+		} catch (error_) {
+			setError(
+				error_ instanceof Error
+					? error_.message
+					: "Failed to process turn action"
+			);
+		}
+	};
+}
+
 function RoomHeader({
 	room,
 	user,
@@ -981,16 +925,31 @@ function TurnSummary({
 						Turn {gameState.current_turn_number}
 					</h3>
 					<div className="">
-						<p className="text-sm text-gray-500 italic">
-							Roll {turnActions.length}
-						</p>
+						{turnActions.length > 0 ? (
+							<p className="text-sm text-gray-500 italic">
+								Roll {turnActions.length}
+							</p>
+						) : (
+							<p className="text-sm text-gray-500 italic opacity-0">tkkofd</p>
+						)}
 					</div>
 				</div>
 				<div className="ml-auto flex flex-col items-end">
-					<p className="text-sm text-gray-500 italic">Roll Score:</p>
-					<p className="text-xl font-bold text-green-600">
-						+{currentTurnScore}
-					</p>
+					{turnActions.length > 0 ? (
+						<>
+							<p className="text-sm text-gray-500 italic">Roll Score:</p>
+							<p className="text-xl font-bold text-green-600">
+								+{currentTurnScore}
+							</p>
+						</>
+					) : (
+						<>
+							<p className="text-sm text-gray-500 italic opacity-0">
+								Roll Score:
+							</p>
+							<p className="text-xl font-bold text-green-600 opacity-0">+</p>
+						</>
+					)}
 				</div>
 			</div>
 		</div>
