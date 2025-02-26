@@ -250,6 +250,46 @@ export function Room(): JSX.Element {
 	const gameStateSubscriptionRef = useRef<RealtimeChannel | null>(null);
 	// ref for the action subscription
 	const actionSubscriptionRef = useRef<RealtimeChannel | null>(null);
+
+	const handleStartGame = async () => {
+		try {
+			const { error } = await supabase.rpc("start_game", {
+				room_id: roomId,
+			});
+
+			if (error) {
+				console.error("Start game error:", error);
+				setError("Failed to start game. Please try again.");
+			}
+		} catch (error_) {
+			console.error("Start game error:", error_);
+			setError(
+				error_ instanceof Error
+					? error_.message
+					: "Failed to start game. Please try again."
+			);
+		}
+	};
+
+	const handleEndGame = async () => {
+		try {
+			const { error } = await supabase.rpc("end_game", {
+				p_game_id: roomId,
+			});
+
+			if (error) {
+				console.error("End game error:", error);
+				setError("Failed to end game. Please try again.");
+			}
+		} catch (error_) {
+			console.error("End game error:", error_);
+			setError(
+				error_ instanceof Error
+					? error_.message
+					: "Failed to end game. Please try again."
+			);
+		}
+	};
 	// user
 	useEffect(() => {
 		const fetchUser = async () => {
@@ -773,7 +813,17 @@ export function Room(): JSX.Element {
 					<div className="w-full h-[calc(50vh-64px)] md:h-full md:w-1/4 mb-4 md:mb-0 overflow-y-auto">
 						<div className="bg-white shadow rounded-lg h-full flex flex-col">
 							{/* Room Header */}
-							{room && user && <RoomHeader room={room} user={user} />}
+							{room && user && (
+								<RoomHeader room={room} user={user}>
+									<RoomControls
+										room={room}
+										user={user}
+										onStartGame={handleStartGame}
+										onEndGame={handleEndGame}
+										//onShowInvite={() => setShowInviteModal(true)}
+									/>
+								</RoomHeader>
+							)}
 
 							{/* Players List */}
 							<div className="flex-1 overflow-y-auto p-4">
@@ -793,34 +843,48 @@ export function Room(): JSX.Element {
 					<div className="w-full h-[calc(50vh-64px)] md:h-full md:w-3/4">
 						<div className="bg-white shadow rounded-lg h-full flex flex-col">
 							<div className="h-full p-2 flex flex-col">
-								{gameState && user && players && turnActions && (
-									<GameActions
-										gameState={gameState}
-										user={user}
+								{players && turnActions && user && gameState && room && (
+									<TurnSummary
 										players={players}
 										turnActions={turnActions}
-										selectedDiceIndices={[]}
-										onTurnAction={handleTurnAction}
-										onRoll={() => {
-											setDiceStates([
-												{ number: 6, placement: 1, isScoringNumber: true },
-												{ number: 2, placement: 2, isScoringNumber: false },
-												{ number: 3, placement: 3, isScoringNumber: false },
-												{ number: 4, placement: 4, isScoringNumber: false },
-												{ number: 5, placement: 5, isScoringNumber: false },
-												{ number: 6, placement: 6, isScoringNumber: true },
-											]);
-
-											if (!isSpinning) {
-												console.log("starting spin 2");
-												startSpin();
-											}
-											handleRoll();
-										}}
-										setSelectedDiceIndices={() => {}}
+										user={user}
+										gameState={gameState}
+										room={room}
 									/>
 								)}
-								<TurnActions turnActions={turnActions} />
+								{gameState &&
+									user &&
+									players &&
+									turnActions &&
+									room?.status === "in_progress" && (
+										<GameActions
+											gameState={gameState}
+											user={user}
+											players={players}
+											turnActions={turnActions}
+											selectedDiceIndices={[]}
+											onTurnAction={handleTurnAction}
+											onRoll={() => {
+												setDiceStates([
+													{ number: 6, placement: 1, isScoringNumber: true },
+													{ number: 2, placement: 2, isScoringNumber: false },
+													{ number: 3, placement: 3, isScoringNumber: false },
+													{ number: 4, placement: 4, isScoringNumber: false },
+													{ number: 5, placement: 5, isScoringNumber: false },
+													{ number: 6, placement: 6, isScoringNumber: true },
+												]);
+
+												if (!isSpinning) {
+													console.log("starting spin 2");
+													startSpin();
+												}
+												handleRoll();
+											}}
+											setSelectedDiceIndices={() => {}}
+										/>
+									)}
+
+								<TurnActions turnActions={turnActions} room={room} />
 								<div
 									className="min-h-0 bg-gray-50 rounded-lg overflow-hidden"
 									style={{ flex: "1.5 1 0%" }}
@@ -840,7 +904,15 @@ export function Room(): JSX.Element {
 		</div>
 	);
 }
-function RoomHeader({ room, user }: { room: GameRoom; user: User }) {
+function RoomHeader({
+	room,
+	user,
+	children,
+}: {
+	room: GameRoom;
+	user: User;
+	children: React.ReactNode;
+}) {
 	return (
 		<div className="p-4 border-b border-gray-200">
 			<div className="flex flex-col justify-between gap-4">
@@ -871,13 +943,56 @@ function RoomHeader({ room, user }: { room: GameRoom; user: User }) {
 				</div>
 			</div>
 
-			<RoomControls
-				room={room}
-				user={user}
-				//onStartGame={handleStartGame}
-				//onEndGame={handleEndGame}
-				//onShowInvite={() => setShowInviteModal(true)}
-			/>
+			{children}
+		</div>
+	);
+}
+
+function TurnSummary({
+	players,
+	turnActions,
+	user,
+	gameState,
+	room,
+}: {
+	turnActions: TurnAction[];
+	user: User;
+	gameState: GameState;
+	room: GameRoom;
+}) {
+	// Calculate total score for the current turn
+	const currentTurnScore = turnActions.reduce(
+		(total, action) => total + action.score,
+		0
+	);
+
+	// Get current player from the game state
+	const isCurrentTurn = players.find(
+		(player) => player.id === gameState.current_player_id
+	);
+	const isCurrentUser = players.find((player) => player.user_id === user.id);
+
+	debugger;
+	return (
+		<div className="bg-gray-50 rounded-lg px-4 py-2">
+			<div className="flex items-baseline mb-2">
+				<div className="flex flex-col">
+					<h3 className="text-lg font-semibold">
+						Turn {gameState.current_turn_number}
+					</h3>
+					<div className="">
+						<p className="text-sm text-gray-500 italic">
+							Roll {turnActions.length}
+						</p>
+					</div>
+				</div>
+				<div className="ml-auto flex flex-col items-end">
+					<p className="text-sm text-gray-500 italic">Roll Score:</p>
+					<p className="text-xl font-bold text-green-600">
+						+{currentTurnScore}
+					</p>
+				</div>
+			</div>
 		</div>
 	);
 }
