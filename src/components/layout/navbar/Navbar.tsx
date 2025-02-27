@@ -2,7 +2,13 @@ import { useEffect, useState, Fragment } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "../../../lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
-import { Menu, Transition } from "@headlessui/react";
+import {
+	Menu,
+	MenuButton,
+	MenuItem,
+	MenuItems,
+	Transition,
+} from "@headlessui/react";
 import { useQuery } from "@tanstack/react-query";
 
 interface Profile {
@@ -163,13 +169,13 @@ export function Navbar(): JSX.Element {
 						) : user ? (
 							<div className="flex items-center">
 								<Menu as="div" className="relative inline-block text-left">
-									<Menu.Button className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+									<MenuButton className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
 										<img
 											alt="User avatar"
 											className="w-8 h-8 rounded-full"
 											src={`/avatars/${profileData?.avatar_name || "default"}.svg`}
 										/>
-									</Menu.Button>
+									</MenuButton>
 									<Transition
 										as={Fragment}
 										enter="transition ease-out duration-100"
@@ -179,9 +185,9 @@ export function Navbar(): JSX.Element {
 										leaveFrom="transform opacity-100 scale-100"
 										leaveTo="transform opacity-0 scale-95"
 									>
-										<Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+										<MenuItems className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
 											<div className="px-1 py-1">
-												<Menu.Item>
+												<MenuItem>
 													{({ active }): JSX.Element => (
 														<Link
 															className={`${
@@ -194,8 +200,8 @@ export function Navbar(): JSX.Element {
 															Profile
 														</Link>
 													)}
-												</Menu.Item>
-												<Menu.Item>
+												</MenuItem>
+												<MenuItem>
 													{({ active }): JSX.Element => (
 														<button
 															className={`${
@@ -208,9 +214,9 @@ export function Navbar(): JSX.Element {
 															Sign out
 														</button>
 													)}
-												</Menu.Item>
+												</MenuItem>
 											</div>
-										</Menu.Items>
+										</MenuItems>
 									</Transition>
 								</Menu>
 							</div>
