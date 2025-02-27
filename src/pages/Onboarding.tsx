@@ -1,15 +1,35 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "../lib/supabaseClient";
+import { Stepper } from "../components/Stepper";
 import type { User } from "@supabase/supabase-js";
 import type { FunctionComponent } from "../common/types";
 
-type OnboardingStep = "username" | "avatar" | "preferences";
+type OnboardingStep = "personalInfo" | "accountInfo" | "confirmation";
 
 interface OnboardingState {
 	username: string;
 	avatarName: string;
 }
+
+interface DatabaseProfile {
+	id: string;
+	username: string | null;
+	avatarName: string;
+	onboardingStep: OnboardingStep | null;
+	onboardingCompleted: boolean;
+}
+
+interface SupabaseResponse<T> {
+	data: T | null;
+	error: Error | null;
+}
+
+const STEPS = [
+	{ label: "Personal Info", id: "personalInfo" },
+	{ label: "Account Info", id: "accountInfo" },
+	{ label: "Confirmation", id: "confirmation" },
+] as const;
 
 const AVAILABLE_AVATARS = [
 	"default",
@@ -24,39 +44,57 @@ export const Onboarding = (): FunctionComponent => {
 	const navigate = useNavigate();
 	const [loading, setLoading] = useState(true);
 	const [user, setUser] = useState<User | null>(null);
-	const [currentStep, setCurrentStep] = useState<OnboardingStep>("username");
+	const [currentStep, setCurrentStep] =
+		useState<OnboardingStep>("personalInfo");
 	const [error, setError] = useState("");
 	const [state, setState] = useState<OnboardingState>({
 		username: "",
 		avatarName: "default",
 	});
 
+	const getStepStatus = (
+		step: (typeof STEPS)[number],
+		currentStep: OnboardingStep
+	): "completed" | "current" | "upcoming" => {
+		const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
+		const stepIndex = STEPS.findIndex((s) => s.id === step.id);
+		if (currentIndex > stepIndex) return "completed";
+		if (step.id === currentStep) return "current";
+		return "upcoming";
+	};
+
+	const stepperSteps = STEPS.map((step) => ({
+		label: step.label,
+		status: getStepStatus(step, currentStep),
+	}));
+
 	useEffect(() => {
 		const checkAuth = async (): Promise<void> => {
 			const {
-				data: { user },
+				data: { user: authUser },
 			} = await supabase.auth.getUser();
-			if (!user) {
+			if (!authUser) {
 				void navigate({ to: "/signup" });
 				return;
 			}
-			setUser(user);
+			setUser(authUser);
 
 			// Check if user already has a profile
-			const { data: profile } = await supabase
-				.from("profiles")
-				.select("*")
-				.eq("id", user.id)
-				.single();
+			const { data: profile }: SupabaseResponse<DatabaseProfile> =
+				await supabase
+					.from("profiles")
+					.select("*")
+					.eq("id", authUser.id)
+					.single();
 
-			if (profile?.onboarding_completed) {
+			if (profile?.onboardingCompleted) {
 				void navigate({ to: "/" });
 				return;
 			}
 
 			// Set current step from profile if it exists
-			if (profile?.onboarding_step) {
-				setCurrentStep(profile.onboarding_step as OnboardingStep);
+			if (profile?.onboardingStep) {
+				setCurrentStep(profile.onboardingStep);
 			}
 
 			setLoading(false);
@@ -66,12 +104,17 @@ export const Onboarding = (): FunctionComponent => {
 	}, [navigate]);
 
 	const updateProfile = async (
-		updates: Partial<OnboardingState & { onboarding_step: OnboardingStep }>
+		updates: Partial<{
+			username: string;
+			avatarName: string;
+			onboardingStep: OnboardingStep;
+			onboardingCompleted: boolean;
+		}>
 	): Promise<void> => {
 		if (!user) return;
 
 		try {
-			const { error } = await supabase
+			const { error: updateError } = await supabase
 				.from("profiles")
 				.upsert({
 					id: user.id,
@@ -79,7 +122,7 @@ export const Onboarding = (): FunctionComponent => {
 				})
 				.select();
 
-			if (error) throw error;
+			if (updateError) throw updateError;
 		} catch (error) {
 			console.error("Error updating profile:", error);
 			setError(error instanceof Error ? error.message : "An error occurred");
@@ -90,7 +133,7 @@ export const Onboarding = (): FunctionComponent => {
 		try {
 			setError("");
 
-			if (currentStep === "username") {
+			if (currentStep === "personalInfo") {
 				if (!state.username.trim()) {
 					setError("Username is required");
 					return;
@@ -98,18 +141,18 @@ export const Onboarding = (): FunctionComponent => {
 
 				await updateProfile({
 					username: state.username.trim(),
-					onboarding_step: "avatar",
+					onboardingStep: "accountInfo",
 				});
-				setCurrentStep("avatar");
-			} else if (currentStep === "avatar") {
+				setCurrentStep("accountInfo");
+			} else if (currentStep === "accountInfo") {
 				await updateProfile({
-					avatar_name: state.avatarName,
-					onboarding_step: "preferences",
+					avatarName: state.avatarName,
+					onboardingStep: "confirmation",
 				});
-				setCurrentStep("preferences");
-			} else if (currentStep === "preferences") {
+				setCurrentStep("confirmation");
+			} else if (currentStep === "confirmation") {
 				await updateProfile({
-					onboarding_completed: true,
+					onboardingCompleted: true,
 				});
 				void navigate({ to: "/" });
 			}
@@ -123,8 +166,8 @@ export const Onboarding = (): FunctionComponent => {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-gray-50">
 				<div className="text-center">
-					<div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin mx-auto"></div>
-					<p className="mt-4 text-gray-600">Loading... onboarding</p>
+					<div className="w-16 h-16 border-t-4 border-blue-600 border-solid rounded-full animate-spin mx-auto"></div>
+					<p className="mt-4 text-gray-600">Loading...</p>
 				</div>
 			</div>
 		);
@@ -132,87 +175,40 @@ export const Onboarding = (): FunctionComponent => {
 
 	return (
 		<div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-			<div className="max-w-md mx-auto">
+			<div className="max-w-3xl mx-auto">
 				<div className="bg-white shadow sm:rounded-lg">
 					<div className="px-4 py-5 sm:p-6">
 						{/* Progress Steps */}
-						<nav aria-label="Progress" className="mb-8">
-							<ol role="list" className="flex items-center justify-between">
-								{["username", "avatar", "preferences"].map((step, index) => (
-									<li
-										key={step}
-										className={`relative ${index !== 2 ? "pr-8 sm:pr-20" : ""}`}
-									>
-										<div
-											className="absolute inset-0 flex items-center"
-											aria-hidden="true"
-										>
-											<div
-												className={`h-0.5 w-full ${
-													index <
-													["username", "avatar", "preferences"].indexOf(
-														currentStep
-													)
-														? "bg-indigo-600"
-														: "bg-gray-200"
-												}`}
-											></div>
-										</div>
-										<div
-											className={`relative flex h-8 w-8 items-center justify-center rounded-full ${
-												step === currentStep
-													? "bg-white border-2 border-indigo-600"
-													: index <
-														  ["username", "avatar", "preferences"].indexOf(
-																currentStep
-														  )
-														? "bg-indigo-600"
-														: "bg-gray-200"
-											}`}
-										>
-											<span
-												className={`${
-													step === currentStep
-														? "text-indigo-600"
-														: index <
-															  ["username", "avatar", "preferences"].indexOf(
-																	currentStep
-															  )
-															? "text-white"
-															: "text-gray-500"
-												}`}
-											>
-												{index + 1}
-											</span>
-										</div>
-									</li>
-								))}
-							</ol>
-						</nav>
+						<div className="mb-8">
+							<Stepper
+								currentStep={STEPS.findIndex((step) => step.id === currentStep)}
+								steps={stepperSteps}
+							/>
+						</div>
 
 						{/* Step Content */}
 						<div>
-							{currentStep === "username" && (
+							{currentStep === "personalInfo" && (
 								<div>
 									<h3 className="text-lg font-medium text-gray-900 mb-4">
-										Choose your username
+										Enter your personal information
 									</h3>
 									<input
-										type="text"
-										className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+										className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
 										placeholder="Enter username"
+										type="text"
 										value={state.username}
-										onChange={(e) =>
-											setState((prev) => ({
-												...prev,
-												username: e.target.value,
-											}))
-										}
+										onChange={(event) => {
+											setState((previous) => ({
+												...previous,
+												username: event.target.value,
+											}));
+										}}
 									/>
 								</div>
 							)}
 
-							{currentStep === "avatar" && (
+							{currentStep === "accountInfo" && (
 								<div>
 									<h3 className="text-lg font-medium text-gray-900 mb-4">
 										Choose your avatar
@@ -223,19 +219,19 @@ export const Onboarding = (): FunctionComponent => {
 												key={avatarName}
 												className={`relative rounded-lg p-2 flex items-center justify-center ${
 													state.avatarName === avatarName
-														? "ring-2 ring-indigo-500"
+														? "ring-2 ring-blue-500"
 														: "hover:bg-gray-50"
 												}`}
-												onClick={() =>
-													setState((prev) => ({
-														...prev,
+												onClick={() => {
+													setState((previous) => ({
+														...previous,
 														avatarName,
-													}))
-												}
+													}));
+												}}
 											>
 												<img
 													alt={`Avatar ${avatarName}`}
-													className="w-16 h-16 rounded-full"
+													className="h-16 w-16 rounded-full"
 													src={`/avatars/${avatarName}.svg`}
 												/>
 											</button>
@@ -244,7 +240,7 @@ export const Onboarding = (): FunctionComponent => {
 								</div>
 							)}
 
-							{currentStep === "preferences" && (
+							{currentStep === "confirmation" && (
 								<div>
 									<h3 className="text-lg font-medium text-gray-900 mb-4">
 										Almost done!
@@ -261,10 +257,12 @@ export const Onboarding = (): FunctionComponent => {
 
 							<div className="mt-6 flex justify-end">
 								<button
-									className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-									onClick={() => void handleNext()}
+									className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+									onClick={() => {
+										void handleNext();
+									}}
 								>
-									{currentStep === "preferences" ? "Finish" : "Next"}
+									{currentStep === "confirmation" ? "Finish" : "Next"}
 								</button>
 							</div>
 						</div>
