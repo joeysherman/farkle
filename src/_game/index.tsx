@@ -2,9 +2,9 @@ import {
 	Text,
 	Billboard,
 	OrbitControls,
-	PerspectiveCamera,
+	CameraControls,
 } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
 	EffectComposer,
 	Outline,
@@ -52,11 +52,16 @@ export const GameScene = ({
 	selectedDiceIndices,
 	setSelectedDiceIndices,
 }: GameSceneProps) => {
+	const cameraControlsRef = useRef();
+	const orbitControlsRef = useRef();
 	return (
 		<div className="relative w-full h-full" style={{ minHeight: "300px" }}>
 			<Canvas
 				shadows
-				camera={{ position: [0, 0, 0], fov: 20 }}
+				camera={{
+					position: [-ARENA_SIZE * 0.75, ARENA_SIZE * 0.75, ARENA_SIZE * 0.75],
+					fov: 20,
+				}}
 				style={{
 					background: "#f3f4f6",
 					position: "absolute",
@@ -109,12 +114,9 @@ export const GameScene = ({
 						setSelectedDiceIndices={setSelectedDiceIndices}
 					/>
 				</Selection>
-				<PerspectiveCamera
-					makeDefault
-					position={[-ARENA_SIZE * 0.75, ARENA_SIZE * 0.75, ARENA_SIZE * 0.75]}
-					fov={45}
-				/>
+				<CameraControls ref={cameraControlsRef} />
 				<OrbitControls
+					ref={orbitControlsRef}
 					enableDamping
 					minPolarAngle={0}
 					maxPolarAngle={Math.PI / 2 - 0.1}
