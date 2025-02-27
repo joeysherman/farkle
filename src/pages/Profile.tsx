@@ -5,10 +5,21 @@ import { Navbar } from "../components/layout/navbar/Navbar";
 import type { User } from "@supabase/supabase-js";
 import type { FunctionComponent } from "../common/types";
 
+const AVAILABLE_AVATARS = [
+	"default",
+	// "avatar1",
+	// "avatar2",
+	// "avatar3",
+	// "avatar4",
+	// "avatar5",
+] as const;
+
+type AvatarName = (typeof AVAILABLE_AVATARS)[number];
+
 interface Profile {
 	id: string;
 	username: string;
-	avatarUrl: string | null;
+	avatarName: AvatarName;
 	createdAt: string;
 	hasChangedUsername: boolean;
 }
@@ -16,7 +27,7 @@ interface Profile {
 interface DatabaseProfile {
 	id: string;
 	username: string;
-	avatar_url: string | null;
+	avatar_name: AvatarName;
 	created_at: string;
 	has_changed_username: boolean;
 }
@@ -29,8 +40,7 @@ export const Profile = (): FunctionComponent => {
 	const [isEditing, setIsEditing] = useState(false);
 	const [newUsername, setNewUsername] = useState("");
 	const [error, setError] = useState("");
-	const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-	const [uploading, setUploading] = useState(false);
+	const [isSelectingAvatar, setIsSelectingAvatar] = useState(false);
 
 	const fetchProfile = async (userId: string): Promise<void> => {
 		try {
@@ -46,13 +56,12 @@ export const Profile = (): FunctionComponent => {
 			const formattedProfile: Profile = {
 				id: dbProfile.id,
 				username: dbProfile.username,
-				avatarUrl: dbProfile.avatar_url,
+				avatarName: dbProfile.avatar_name,
 				createdAt: dbProfile.created_at,
 				hasChangedUsername: dbProfile.has_changed_username,
 			};
 
 			setProfile(formattedProfile);
-			setAvatarUrl(formattedProfile.avatarUrl);
 		} catch (error) {
 			console.error("Error fetching profile:", error);
 		} finally {
@@ -109,47 +118,25 @@ export const Profile = (): FunctionComponent => {
 		}
 	};
 
-	const handleAvatarUpload = async (
-		event: React.ChangeEvent<HTMLInputElement>
-	): Promise<void> => {
+	const handleAvatarSelect = async (avatarName: AvatarName): Promise<void> => {
+		if (!user) return;
+
 		try {
 			setError("");
-			setUploading(true);
-
-			if (!event.target.files || event.target.files.length === 0) {
-				throw new Error("You must select an image to upload.");
-			}
-
-			const file = event.target.files[0];
-			const fileExtension = file.name.split(".").pop();
-			const fileName = `${user?.id}-${Math.random()}.${fileExtension}`;
-
-			const { error: uploadError } = await supabase.storage
-				.from("avatars")
-				.upload(fileName, file);
-
-			if (uploadError) throw uploadError;
-
-			const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
-
 			const { error: updateError } = await supabase
 				.from("profiles")
-				.update({ avatar_url: data.publicUrl })
-				.eq("id", user?.id);
+				.update({ avatar_name: avatarName })
+				.eq("id", user.id);
 
 			if (updateError) throw updateError;
 
-			setAvatarUrl(data.publicUrl);
-			setProfile((previous) =>
-				previous ? { ...previous, avatarUrl: data.publicUrl } : null
-			);
+			setProfile((previous) => (previous ? { ...previous, avatarName } : null));
+			setIsSelectingAvatar(false);
 		} catch (error) {
-			console.error("Error uploading avatar:", error);
+			console.error("Error updating avatar:", error);
 			setError(
-				error instanceof Error ? error.message : "Failed to upload avatar"
+				error instanceof Error ? error.message : "Failed to update avatar"
 			);
-		} finally {
-			setUploading(false);
 		}
 	};
 
@@ -178,23 +165,14 @@ export const Profile = (): FunctionComponent => {
 						<div className="mt-6 flex items-center">
 							<div className="flex-shrink-0">
 								<div className="relative">
-									{avatarUrl ? (
-										<img
-											alt="Profile"
-											className="h-24 w-24 rounded-full object-cover"
-											src={avatarUrl}
-										/>
-									) : (
-										<div className="h-24 w-24 rounded-full bg-gray-200 flex items-center justify-center">
-											<span className="text-gray-500 text-2xl">
-												{profile?.username?.charAt(0).toUpperCase() ||
-													user?.email?.charAt(0).toUpperCase()}
-											</span>
-										</div>
-									)}
-									<label
+									<img
+										alt="Profile"
+										className="h-24 w-24 rounded-full object-cover"
+										src={`/avatars/${profile?.avatarName}.svg`}
+									/>
+									<button
 										className="absolute bottom-0 right-0 bg-indigo-600 rounded-full p-2 cursor-pointer hover:bg-indigo-700"
-										htmlFor="avatar-upload"
+										onClick={() => setIsSelectingAvatar(true)}
 									>
 										<svg
 											className="h-4 w-4 text-white"
@@ -203,27 +181,19 @@ export const Profile = (): FunctionComponent => {
 											viewBox="0 0 24 24"
 										>
 											<path
-												d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+												d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
 												strokeLinecap="round"
 												strokeLinejoin="round"
 												strokeWidth={2}
 											/>
 											<path
-												d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+												d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
 												strokeLinecap="round"
 												strokeLinejoin="round"
 												strokeWidth={2}
 											/>
 										</svg>
-									</label>
-									<input
-										accept="image/*"
-										className="hidden"
-										disabled={uploading}
-										id="avatar-upload"
-										onChange={handleAvatarUpload}
-										type="file"
-									/>
+									</button>
 								</div>
 							</div>
 
@@ -294,6 +264,57 @@ export const Profile = (): FunctionComponent => {
 								</div>
 							</div>
 						</div>
+
+						{/* Avatar Selection Modal */}
+						{isSelectingAvatar && (
+							<div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+								<div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+									<div className="flex justify-between items-center mb-4">
+										<h3 className="text-lg font-medium text-gray-900">
+											Select Avatar
+										</h3>
+										<button
+											className="text-gray-400 hover:text-gray-500"
+											onClick={() => setIsSelectingAvatar(false)}
+										>
+											<span className="sr-only">Close</span>
+											<svg
+												className="h-6 w-6"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M6 18L18 6M6 6l12 12"
+												/>
+											</svg>
+										</button>
+									</div>
+									<div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
+										{AVAILABLE_AVATARS.map((avatarName) => (
+											<button
+												key={avatarName}
+												className={`relative rounded-lg p-2 flex items-center justify-center ${
+													profile?.avatarName === avatarName
+														? "ring-2 ring-indigo-500"
+														: "hover:bg-gray-50"
+												}`}
+												onClick={() => handleAvatarSelect(avatarName)}
+											>
+												<img
+													alt={`Avatar ${avatarName}`}
+													className="w-16 h-16 rounded-full"
+													src={`/avatars/${avatarName}.svg`}
+												/>
+											</button>
+										))}
+									</div>
+								</div>
+							</div>
+						)}
 
 						{error && <div className="mt-4 text-sm text-red-600">{error}</div>}
 					</div>

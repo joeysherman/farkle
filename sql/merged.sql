@@ -36,7 +36,7 @@ $$ LANGUAGE plpgsql;
 CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid references auth.users on delete cascade primary key,
   username text unique,
-  avatar_url text,
+  avatar_name text default 'default',
   has_changed_username boolean default false,
   total_games int default 0,
   games_won int default 0,
