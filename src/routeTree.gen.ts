@@ -15,6 +15,7 @@ import { Route as SignupImport } from './routes/signup'
 import { Route as SigninImport } from './routes/signin'
 import { Route as RoomImport } from './routes/room'
 import { Route as ProfileImport } from './routes/profile'
+import { Route as OnboardingImport } from './routes/onboarding'
 import { Route as IndexImport } from './routes/index'
 import { Route as RoomsRoomIdImport } from './routes/rooms/$roomId'
 import { Route as AuthCallbackImport } from './routes/auth.callback'
@@ -38,6 +39,11 @@ const RoomRoute = RoomImport.update({
 
 const ProfileRoute = ProfileImport.update({
   path: '/profile',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const OnboardingRoute = OnboardingImport.update({
+  path: '/onboarding',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -65,6 +71,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingImport
       parentRoute: typeof rootRoute
     }
     '/profile': {
@@ -116,6 +129,7 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren({
   IndexRoute,
+  OnboardingRoute,
   ProfileRoute,
   RoomRoute,
   SigninRoute,
@@ -133,6 +147,7 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/onboarding",
         "/profile",
         "/room",
         "/signin",
@@ -143,6 +158,9 @@ export const routeTree = rootRoute.addChildren({
     },
     "/": {
       "filePath": "index.ts"
+    },
+    "/onboarding": {
+      "filePath": "onboarding.ts"
     },
     "/profile": {
       "filePath": "profile.ts"

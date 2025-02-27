@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   total_games int default 0,
   games_won int default 0,
   highest_score int default 0,
+  onboarding_step text default 'username',
+  onboarding_completed boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
