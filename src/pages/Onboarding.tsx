@@ -15,9 +15,9 @@ interface OnboardingState {
 interface DatabaseProfile {
 	id: string;
 	username: string | null;
-	avatarName: string;
-	onboardingStep: OnboardingStep | null;
-	onboardingCompleted: boolean;
+	avatar_name: string;
+	onboarding_step: OnboardingStep | null;
+	onboarding_completed: boolean;
 }
 
 interface SupabaseResponse<T> {
@@ -41,6 +41,7 @@ const AVAILABLE_AVATARS = [
 ] as const;
 
 export const Onboarding = (): FunctionComponent => {
+	debugger;
 	const navigate = useNavigate();
 	const [loading, setLoading] = useState(true);
 	const [user, setUser] = useState<User | null>(null);
@@ -87,14 +88,15 @@ export const Onboarding = (): FunctionComponent => {
 					.eq("id", authUser.id)
 					.single();
 
-			if (profile?.onboardingCompleted) {
+			if (profile?.onboarding_completed) {
 				void navigate({ to: "/" });
 				return;
 			}
 
 			// Set current step from profile if it exists
-			if (profile?.onboardingStep) {
-				setCurrentStep(profile.onboardingStep);
+			debugger;
+			if (profile?.onboarding_step) {
+				setCurrentStep(profile.onboarding_step);
 			}
 
 			setLoading(false);
@@ -106,9 +108,9 @@ export const Onboarding = (): FunctionComponent => {
 	const updateProfile = async (
 		updates: Partial<{
 			username: string;
-			avatarName: string;
-			onboardingStep: OnboardingStep;
-			onboardingCompleted: boolean;
+			avatar_name: string;
+			onboarding_step: OnboardingStep;
+			onboarding_completed: boolean;
 		}>
 	): Promise<void> => {
 		if (!user) return;
@@ -141,18 +143,18 @@ export const Onboarding = (): FunctionComponent => {
 
 				await updateProfile({
 					username: state.username.trim(),
-					onboardingStep: "accountInfo",
+					onboarding_step: "accountInfo",
 				});
 				setCurrentStep("accountInfo");
 			} else if (currentStep === "accountInfo") {
 				await updateProfile({
-					avatarName: state.avatarName,
-					onboardingStep: "confirmation",
+					avatar_name: state.avatarName,
+					onboarding_step: "confirmation",
 				});
 				setCurrentStep("confirmation");
 			} else if (currentStep === "confirmation") {
 				await updateProfile({
-					onboardingCompleted: true,
+					onboarding_completed: true,
 				});
 				void navigate({ to: "/" });
 			}

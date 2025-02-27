@@ -35,6 +35,15 @@ function RootLayout(): JSX.Element {
 					setUser(authUser);
 					await navigate({ to: "/onboarding" });
 					return;
+				} else if (profile && isMounted) {
+					setIsAuthChecking(false);
+					setUser(authUser);
+					if (profile.onboarding_completed) {
+						await navigate({ to: "/" });
+					} else {
+						await navigate({ to: "/onboarding" });
+					}
+					return;
 				}
 			} else if (isMounted && !authUser) {
 				setIsAuthChecking(false);
@@ -52,7 +61,7 @@ function RootLayout(): JSX.Element {
 	}, []);
 
 	if (isAuthChecking) {
-		return <div>Loading...</div>;
+		return <div>Loading...root</div>;
 	}
 
 	return (
