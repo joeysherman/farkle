@@ -119,6 +119,11 @@ export function Room(): JSX.Element {
 	const [isSpinning, setIsSpinning] = useState(false);
 
 	const { mutate: handleTurnAction, isPending } = useHandleTurnAction();
+
+	const [copied, setCopied] = useState(false);
+	const [showInviteModal, setShowInviteModal] = useState(false);
+	const [code, setCode] = useState("");
+	const [localUsername, setLocalUsername] = useState("");
 	// Function to start dice spin
 	const startSpin = (): void => {
 		if (!isSpinning) {
@@ -183,6 +188,109 @@ export function Room(): JSX.Element {
 			);
 		}
 	};
+
+	const handleJoinWithCode = async (code: string, username: string) => {
+		debugger;
+		try {
+			if (!username.trim() && !user) {
+				setError("Please enter a username");
+				return;
+			}
+
+			let userId = user?.id;
+
+			// If no user, create an anonymous one
+			if (!userId) {
+				// First sign up the user
+				const { data: signUpData, error: signUpError } =
+					await supabase.auth.signUp({
+						email: `${nanoid(10)}@anonymous.farkle.com`,
+						password: nanoid(12),
+					});
+
+				if (signUpError) {
+					console.error("Sign up error:", signUpError);
+					throw new Error("Failed to create anonymous user");
+				}
+
+				if (!signUpData.user?.id) {
+					throw new Error("No user ID returned from sign up");
+				}
+
+				userId = signUpData.user.id;
+
+				// Wait a moment for the auth to propagate
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+
+				// Create profile for anonymous user
+				const { error: profileError } = await supabase.from("profiles").insert([
+					{
+						id: userId,
+						username: username,
+						created_at: new Date().toISOString(),
+						updated_at: new Date().toISOString(),
+					},
+				]);
+
+				if (profileError) {
+					console.error("Profile creation error:", profileError);
+					throw new Error("Failed to create user profile");
+				}
+
+				// Set the user in state
+				setUser(signUpData.user);
+			}
+
+			// Verify the invite code and join the game
+			const { error: joinError } = await supabase.rpc("join_game", {
+				room_id: roomId,
+				code: code,
+			});
+
+			if (joinError) {
+				console.error("Join game error:", joinError);
+				throw new Error(joinError.message);
+			}
+
+			// Reload the room data after joining
+			const { data: roomData, error: roomError } = await supabase
+				.from("game_rooms")
+				.select("*")
+				.eq("id", roomId)
+				.single();
+
+			if (roomError) {
+				console.error("Room fetch error:", roomError);
+				throw new Error("Failed to fetch room data");
+			}
+
+			setRoom(roomData);
+
+			// Fetch updated players list
+			const { data: playersData, error: playersError } = await supabase
+				.from("game_players")
+				.select("*")
+				.eq("game_id", roomId)
+				.order("player_order", { ascending: true });
+
+			if (playersError) {
+				console.error("Players fetch error:", playersError);
+				throw new Error("Failed to fetch players data");
+			}
+
+			setPlayers(playersData || []);
+			setShowInviteModal(false);
+			setError(null); // Clear any existing errors
+		} catch (err) {
+			console.error("Join game error:", err);
+			setError(
+				err instanceof Error
+					? err.message
+					: "Failed to join game. Please try again."
+			);
+		}
+	};
+
 	// user
 	useEffect(() => {
 		const fetchUser = async () => {
@@ -328,6 +436,16 @@ export function Room(): JSX.Element {
 	}, [currentTurn]);
 
 	useEffect(() => {
+		if (user && players?.length > 0 && !showInviteModal) {
+			const isPlayer = players?.some((player) => player.user_id === user?.id);
+			if (!isPlayer) {
+				debugger;
+				setShowInviteModal(true);
+			}
+		}
+	}, [user, players, showInviteModal]);
+
+	useEffect(() => {
 		// setup the action subscription if it's not already setup
 		if (currentTurn?.id) {
 			if (!actionSubscriptionRef.current) {
@@ -418,6 +536,109 @@ export function Room(): JSX.Element {
 			}
 		};
 	}, [roomId]);
+
+	const copyInviteLink = async () => {
+		const url = `${window.location.origin}/room?roomId=${roomId}`;
+		await navigator.clipboard.writeText(url);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	};
+
+	// Invite Modal Component
+	const InviteModal = () => {
+		return (
+			<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+				<div className="bg-white rounded-lg p-6 max-w-md w-full">
+					{user && room?.created_by === user.id ? (
+						<>
+							<h3 className="text-lg font-medium mb-4">
+								Invite Players to {room?.name}
+							</h3>
+							<div className="space-y-4">
+								<div>
+									<label className="block text-sm font-medium text-gray-700">
+										Room Code
+									</label>
+									<input
+										type="text"
+										readOnly
+										value={room?.invite_code}
+										className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700">
+										Room URL
+									</label>
+									<div className="mt-1 flex rounded-md shadow-sm">
+										<input
+											type="text"
+											readOnly
+											value={`${window.location.origin}/room?roomId=${roomId}`}
+											className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
+										/>
+										<button
+											onClick={copyInviteLink}
+											className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+										>
+											{copied ? "Copied!" : "Copy"}
+										</button>
+									</div>
+								</div>
+							</div>
+						</>
+					) : (
+						<>
+							<h3 className="text-lg font-medium mb-4">
+								Join {room?.name || "Game"}
+							</h3>
+							<div className="space-y-4">
+								{!user && (
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Username
+										</label>
+										<input
+											type="text"
+											value={localUsername}
+											onChange={(e) => setLocalUsername(e.target.value)}
+											placeholder="Enter your username"
+											className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
+										/>
+									</div>
+								)}
+								<div>
+									<label className="block text-sm font-medium text-gray-700">
+										Room Code
+									</label>
+									<input
+										type="text"
+										value={code}
+										onChange={(e) => setCode(e.target.value)}
+										maxLength={6}
+										placeholder="Enter 6-digit code"
+										className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
+									/>
+								</div>
+								<button
+									onClick={() => handleJoinWithCode(code, localUsername)}
+									className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+								>
+									Join Game
+								</button>
+							</div>
+						</>
+					)}
+					<button
+						onClick={() => setShowInviteModal(false)}
+						className="mt-4 w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+					>
+						Close
+					</button>
+				</div>
+			</div>
+		);
+	};
 
 	// Add roll handler
 	const handleRoll = async (numberDice: number = 6) => {
@@ -646,6 +867,18 @@ export function Room(): JSX.Element {
 				<Navbar />
 				<div className="flex items-center justify-center h-[calc(100vh-64px)]">
 					<div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin"></div>
+				</div>
+			</div>
+		);
+	}
+
+	// Show invite modal for users who need to join
+	if (showInviteModal) {
+		return (
+			<div className="min-h-screen bg-gray-50">
+				<Navbar />
+				<div className="flex items-center justify-center h-[calc(100vh-64px)]">
+					<InviteModal />
 				</div>
 			</div>
 		);

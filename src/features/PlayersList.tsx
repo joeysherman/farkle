@@ -13,6 +13,7 @@ export const PlayersList: React.FC<{
 			{players.map((player) => {
 				const isCurrentTurn = gameState?.current_player_id === player.id;
 				const isCurrentUser = player.user_id === user?.id;
+				debugger;
 				return (
 					<PlayerListItem
 						key={player.id}
@@ -79,36 +80,15 @@ export const PlayerListItem: React.FC<{
 					</div>
 				</div>
 				<div className="min-w-0 flex-1">
-					<div className="flex flex-wrap gap-2 items-center">
+					<div className="flex flex-wrap gap-2">
 						<p className="text-sm font-medium text-gray-900 truncate">
 							Player {player.player_order}
 						</p>
-						<div className="flex flex-wrap gap-1">
-							{isCurrentTurn && (
-								<span className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-indigo-800 bg-indigo-100 rounded">
-									Current Turn
-								</span>
-							)}
-							{isCurrentUser && (
-								<span className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-green-800 bg-green-100 rounded">
-									You
-								</span>
-							)}
-						</div>
 					</div>
 					<div className="mt-1 flex items-center justify-between">
 						<p className="text-sm text-gray-500">
 							Score: <span className="font-medium">{player.score}</span>
 						</p>
-						<span
-							className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-								player.is_active
-									? "bg-green-100 text-green-800"
-									: "bg-gray-100 text-gray-800"
-							}`}
-						>
-							{player.is_active ? "Online" : "Offline"}
-						</span>
 					</div>
 				</div>
 			</div>

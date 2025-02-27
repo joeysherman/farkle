@@ -44,40 +44,39 @@ export const Home = (): FunctionComponent => {
 	}, [navigate]);
 
 	useEffect(() => {
+		const fetchRooms = async (): Promise<void> => {
+			const { data } = await supabase
+				.from("game_rooms")
+				.select("*")
+				.in("status", ["waiting", "in_progress"])
+				.order("created_at", { ascending: false });
+
+			if (data) {
+				setAvailableRooms(data);
+			}
+		};
+
 		if (!isAuthChecking) {
-			const fetchRooms = async (): Promise<void> => {
-				const { data } = await supabase
-					.from("game_rooms")
-					.select("*")
-					.in("status", ["waiting", "in_progress"])
-					.order("created_at", { ascending: false });
-
-				if (data) {
-					setAvailableRooms(data);
-				}
-			};
-
 			void fetchRooms();
-
-			const roomSubscription = supabase
-				.channel("room_changes")
-				.on(
-					"postgres_changes",
-					{
-						event: "*",
-						schema: "public",
-						table: "game_rooms",
-					},
-					() => {
-						void fetchRooms();
-					}
-				)
-				.subscribe();
-
-			return () => {
-				void roomSubscription.unsubscribe();
-			};
 		}
+		const roomSubscription = supabase
+			.channel("room_changes")
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "game_rooms",
+				},
+				() => {
+					void fetchRooms();
+				}
+			)
+			.subscribe();
+
+		return () => {
+			void roomSubscription.unsubscribe();
+		};
 	}, [isAuthChecking]);
 
 	if (isAuthChecking) {

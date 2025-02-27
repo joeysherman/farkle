@@ -39,7 +39,7 @@ function RootLayout(): JSX.Element {
 					setIsAuthChecking(false);
 					setUser(authUser);
 					if (profile.onboarding_completed) {
-						await navigate({ to: "/" });
+						//await navigate({ to: "/" });
 					} else {
 						await navigate({ to: "/onboarding" });
 					}
