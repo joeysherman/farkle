@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "../lib/supabaseClient";
 import { Navbar } from "../components/layout/navbar/Navbar";
+import { AvatarSelector, type AvatarName } from "../components/AvatarSelector";
+import { Toaster } from "react-hot-toast";
 import type { User } from "@supabase/supabase-js";
 import type { FunctionComponent } from "../common/types";
+import { useQueryClient } from "@tanstack/react-query";
 
 const AVAILABLE_AVATARS = [
 	"default",
@@ -14,8 +17,6 @@ const AVAILABLE_AVATARS = [
 	"avatar_5",
 	"avatar_6",
 ] as const;
-
-type AvatarName = (typeof AVAILABLE_AVATARS)[number];
 
 interface Profile {
 	id: string;
@@ -34,6 +35,7 @@ interface DatabaseProfile {
 }
 
 export const Profile = (): FunctionComponent => {
+	const queryClient = useQueryClient();
 	const navigate = useNavigate();
 	const [loading, setLoading] = useState(true);
 	const [user, setUser] = useState<User | null>(null);
@@ -122,23 +124,13 @@ export const Profile = (): FunctionComponent => {
 	const handleAvatarSelect = async (avatarName: AvatarName): Promise<void> => {
 		if (!user) return;
 
-		try {
-			setError("");
-			const { error: updateError } = await supabase
-				.from("profiles")
-				.update({ avatar_name: avatarName })
-				.eq("id", user.id);
-
-			if (updateError) throw updateError;
-
-			setProfile((previous) => (previous ? { ...previous, avatarName } : null));
-			setIsSelectingAvatar(false);
-		} catch (error) {
-			console.error("Error updating avatar:", error);
-			setError(
-				error instanceof Error ? error.message : "Failed to update avatar"
-			);
-		}
+		await supabase
+			.from("profiles")
+			.update({ avatar_name: avatarName })
+			.eq("id", user.id);
+		queryClient.invalidateQueries({ queryKey: ["user", "profile", user.id] });
+		setProfile((previous) => (previous ? { ...previous, avatarName } : null));
+		setIsSelectingAvatar(false);
 	};
 
 	if (loading) {
@@ -155,6 +147,7 @@ export const Profile = (): FunctionComponent => {
 	return (
 		<div className="min-h-screen bg-gray-100">
 			<Navbar />
+			<Toaster position="bottom-center" />
 			<div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
 				<div className="bg-white shadow sm:rounded-lg">
 					<div className="px-4 py-5 sm:p-6">
@@ -173,7 +166,9 @@ export const Profile = (): FunctionComponent => {
 									/>
 									<button
 										className="absolute bottom-0 right-0 bg-indigo-600 rounded-full p-2 cursor-pointer hover:bg-indigo-700"
-										onClick={() => setIsSelectingAvatar(true)}
+										onClick={() => {
+											setIsSelectingAvatar(true);
+										}}
 									>
 										<svg
 											className="h-4 w-4 text-white"
@@ -267,53 +262,15 @@ export const Profile = (): FunctionComponent => {
 						</div>
 
 						{/* Avatar Selection Modal */}
-						{isSelectingAvatar && (
+						{isSelectingAvatar && profile && (
 							<div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-								<div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
-									<div className="flex justify-between items-center mb-4">
-										<h3 className="text-lg font-medium text-gray-900">
-											Select Avatar
-										</h3>
-										<button
-											className="text-gray-400 hover:text-gray-500"
-											onClick={() => setIsSelectingAvatar(false)}
-										>
-											<span className="sr-only">Close</span>
-											<svg
-												className="h-6 w-6"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-											>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth={2}
-													d="M6 18L18 6M6 6l12 12"
-												/>
-											</svg>
-										</button>
-									</div>
-									<div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
-										{AVAILABLE_AVATARS.map((avatarName) => (
-											<button
-												key={avatarName}
-												className={`relative rounded-lg p-2 flex items-center justify-center ${
-													profile?.avatarName === avatarName
-														? "ring-2 ring-indigo-500"
-														: "hover:bg-gray-50"
-												}`}
-												onClick={() => handleAvatarSelect(avatarName)}
-											>
-												<img
-													alt={`Avatar ${avatarName}`}
-													className="w-16 h-16 rounded-full"
-													src={`/avatars/${avatarName}.svg`}
-												/>
-											</button>
-										))}
-									</div>
-								</div>
+								<AvatarSelector
+									currentAvatar={profile.avatarName}
+									onClose={() => {
+										setIsSelectingAvatar(false);
+									}}
+									onSelect={handleAvatarSelect}
+								/>
 							</div>
 						)}
 

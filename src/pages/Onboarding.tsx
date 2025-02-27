@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "../lib/supabaseClient";
 import { Stepper } from "../components/Stepper";
+import { AvatarSelector, type AvatarName } from "../components/AvatarSelector";
+import { Toaster } from "react-hot-toast";
 import type { User } from "@supabase/supabase-js";
 import type { FunctionComponent } from "../common/types";
 
@@ -9,15 +11,15 @@ type OnboardingStep = "personalInfo" | "accountInfo" | "confirmation";
 
 interface OnboardingState {
 	username: string;
-	avatarName: string;
+	avatarName: AvatarName;
 }
 
 interface DatabaseProfile {
 	id: string;
 	username: string | null;
-	avatar_name: string;
-	onboarding_step: OnboardingStep | null;
-	onboarding_completed: boolean;
+	avatarName: string;
+	onboardingStep: OnboardingStep | null;
+	onboardingCompleted: boolean;
 }
 
 interface SupabaseResponse<T> {
@@ -41,7 +43,6 @@ const AVAILABLE_AVATARS = [
 ] as const;
 
 export const Onboarding = (): FunctionComponent => {
-	debugger;
 	const navigate = useNavigate();
 	const [loading, setLoading] = useState(true);
 	const [user, setUser] = useState<User | null>(null);
@@ -177,6 +178,7 @@ export const Onboarding = (): FunctionComponent => {
 
 	return (
 		<div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+			<Toaster position="bottom-center" />
 			<div className="max-w-3xl mx-auto">
 				<div className="bg-white shadow sm:rounded-lg">
 					<div className="px-4 py-5 sm:p-6">
@@ -215,30 +217,16 @@ export const Onboarding = (): FunctionComponent => {
 									<h3 className="text-lg font-medium text-gray-900 mb-4">
 										Choose your avatar
 									</h3>
-									<div className="grid grid-cols-3 gap-4">
-										{AVAILABLE_AVATARS.map((avatarName) => (
-											<button
-												key={avatarName}
-												className={`relative rounded-lg p-2 flex items-center justify-center ${
-													state.avatarName === avatarName
-														? "ring-2 ring-blue-500"
-														: "hover:bg-gray-50"
-												}`}
-												onClick={() => {
-													setState((previous) => ({
-														...previous,
-														avatarName,
-													}));
-												}}
-											>
-												<img
-													alt={`Avatar ${avatarName}`}
-													className="h-16 w-16 rounded-full"
-													src={`/avatars/${avatarName}.svg`}
-												/>
-											</button>
-										))}
-									</div>
+									<AvatarSelector
+										currentAvatar={state.avatarName}
+										showCloseButton={false}
+										onSelect={(avatarName) => {
+											setState((previous) => ({
+												...previous,
+												avatarName,
+											}));
+										}}
+									/>
 								</div>
 							)}
 

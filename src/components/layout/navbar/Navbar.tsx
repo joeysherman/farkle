@@ -3,6 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "../../../lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 import { Menu, Transition } from "@headlessui/react";
+import { useQuery } from "@tanstack/react-query";
 
 interface Profile {
 	id: string;
@@ -10,12 +11,46 @@ interface Profile {
 	avatar_name: string;
 }
 
+const useUserData = () => {
+	return useQuery({
+		queryKey: ["currentUser"],
+		queryFn: async () => {
+			const { data, error } = await supabase.auth.getUser();
+			if (error) {
+				throw error;
+			}
+			return data.user;
+		},
+	});
+};
+
+const useProfileData = (userId: string) => {
+	return useQuery({
+		enabled: !!userId,
+		queryKey: ["user", "profile", userId],
+		queryFn: async () => {
+			const { data: profileData } = await supabase
+				.from("profiles")
+				.select("id, username, avatar_name")
+				.eq("id", userId)
+				.single();
+
+			debugger;
+			return profileData;
+		},
+	});
+};
+
 export function Navbar(): JSX.Element {
 	const navigate = useNavigate();
 	const [user, setUser] = useState<User | null>(null);
 	const [profile, setProfile] = useState<Profile | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+	const { data: profileData, isLoading: isProfileLoading } = useProfileData(
+		user?.id ?? ""
+	);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -132,7 +167,7 @@ export function Navbar(): JSX.Element {
 										<img
 											alt="User avatar"
 											className="w-8 h-8 rounded-full"
-											src={`/avatars/${profile?.avatar_name || "default"}.svg`}
+											src={`/avatars/${profileData?.avatar_name || "default"}.svg`}
 										/>
 									</Menu.Button>
 									<Transition
