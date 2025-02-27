@@ -1,38 +1,98 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "../../../lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
+import { Menu, Transition } from "@headlessui/react";
 
-export function Navbar() {
+interface Profile {
+	id: string;
+	username: string;
+	avatar_name: string;
+}
+
+export function Navbar(): JSX.Element {
 	const navigate = useNavigate();
 	const [user, setUser] = useState<User | null>(null);
+	const [profile, setProfile] = useState<Profile | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
 
 	useEffect(() => {
-		// Get initial session
-		supabase.auth.getSession().then(({ data: { session } }) => {
-			setUser(session?.user ?? null);
-			setLoading(false);
-		});
+		let isMounted = true;
+
+		// Get initial session and profile
+		const fetchUserAndProfile = async (): Promise<void> => {
+			try {
+				const {
+					data: { session },
+				} = await supabase.auth.getSession();
+				if (!isMounted) return;
+
+				setUser(session?.user ?? null);
+
+				if (session?.user) {
+					const { data: profileData } = await supabase
+						.from("profiles")
+						.select("id, username, avatar_name")
+						.eq("id", session.user.id)
+						.single();
+					if (!isMounted) return;
+					setProfile(profileData);
+				}
+				if (isMounted) {
+					setLoading(false);
+				}
+			} catch (error) {
+				console.error("Error fetching user and profile:", error);
+				if (isMounted) {
+					setLoading(false);
+				}
+			}
+		};
+
+		void fetchUserAndProfile();
 
 		// Listen for auth changes
 		const {
 			data: { subscription },
-		} = supabase.auth.onAuthStateChange((_event, session) => {
-			setUser(session?.user ?? null);
-		});
+		} = supabase.auth.onAuthStateChange(
+			async (_event, session): Promise<void> => {
+				try {
+					if (!isMounted) return;
+					setUser(session?.user ?? null);
 
-		return () => subscription.unsubscribe();
+					if (session?.user) {
+						const { data: profileData } = await supabase
+							.from("profiles")
+							.select("id, username, avatar_name")
+							.eq("id", session.user.id)
+							.single();
+						if (!isMounted) return;
+						setProfile(profileData);
+					} else {
+						setProfile(null);
+					}
+				} catch (error) {
+					console.error("Error handling auth change:", error);
+				}
+			}
+		);
+
+		return () => {
+			isMounted = false;
+			subscription.unsubscribe();
+		};
 	}, []);
 
-	const handleSignOut = async () => {
+	const handleSignOut = async (): Promise<void> => {
 		try {
 			setIsLoggingOut(true);
 			await supabase.auth.signOut();
 			// Wait a moment to show the splash screen
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-			navigate({ to: "/signup" });
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 1000);
+			});
+			void navigate({ to: "/signup" });
 		} catch (error) {
 			console.error("Error signing out:", error);
 		}
@@ -66,31 +126,64 @@ export function Navbar() {
 						{loading ? (
 							<div className="text-gray-500">Loading...</div>
 						) : user ? (
-							<div className="flex items-center space-x-4">
-								<div className="text-sm">
-									<span className="text-gray-500">Signed in as</span>{" "}
-									<span className="text-gray-900 font-medium">
-										{user.email}
-									</span>
-								</div>
-								<Link
-									to="/profile"
-									className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded text-indigo-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-								>
-									Profile
-								</Link>
-								<button
-									onClick={handleSignOut}
-									className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-								>
-									Sign out
-								</button>
+							<div className="flex items-center">
+								<Menu as="div" className="relative inline-block text-left">
+									<Menu.Button className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+										<img
+											alt="User avatar"
+											className="w-8 h-8 rounded-full"
+											src={`/avatars/${profile?.avatar_name || "default"}.svg`}
+										/>
+									</Menu.Button>
+									<Transition
+										as={Fragment}
+										enter="transition ease-out duration-100"
+										enterFrom="transform opacity-0 scale-95"
+										enterTo="transform opacity-100 scale-100"
+										leave="transition ease-in duration-75"
+										leaveFrom="transform opacity-100 scale-100"
+										leaveTo="transform opacity-0 scale-95"
+									>
+										<Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+											<div className="px-1 py-1">
+												<Menu.Item>
+													{({ active }): JSX.Element => (
+														<Link
+															className={`${
+																active
+																	? "bg-indigo-500 text-white"
+																	: "text-gray-900"
+															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+															to="/profile"
+														>
+															Profile
+														</Link>
+													)}
+												</Menu.Item>
+												<Menu.Item>
+													{({ active }): JSX.Element => (
+														<button
+															className={`${
+																active
+																	? "bg-indigo-500 text-white"
+																	: "text-gray-900"
+															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+															onClick={handleSignOut}
+														>
+															Sign out
+														</button>
+													)}
+												</Menu.Item>
+											</div>
+										</Menu.Items>
+									</Transition>
+								</Menu>
 							</div>
 						) : (
 							<div className="flex items-center space-x-4">
 								<Link
-									to="/signup"
 									className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded text-indigo-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+									to="/signup"
 								>
 									Sign in
 								</Link>

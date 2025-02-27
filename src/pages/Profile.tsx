@@ -7,11 +7,12 @@ import type { FunctionComponent } from "../common/types";
 
 const AVAILABLE_AVATARS = [
 	"default",
-	// "avatar1",
-	// "avatar2",
-	// "avatar3",
-	// "avatar4",
-	// "avatar5",
+	"avatar_1",
+	"avatar_2",
+	"avatar_3",
+	"avatar_4",
+	"avatar_5",
+	"avatar_6",
 ] as const;
 
 type AvatarName = (typeof AVAILABLE_AVATARS)[number];
