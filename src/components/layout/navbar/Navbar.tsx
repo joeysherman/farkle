@@ -41,7 +41,6 @@ const useProfileData = (userId: string) => {
 				.eq("id", userId)
 				.single();
 
-			debugger;
 			return profileData;
 		},
 	});

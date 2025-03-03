@@ -24,16 +24,20 @@ export function TurnActions({
 			className="flex-1 overflow-y-auto mb-4 scroll-smooth"
 		>
 			<div className="space-y-1">
-				{turnActions.map((action) => {
+				{turnActions.map((action, index, array) => {
 					const remainingDice = action.dice_values.filter(
 						(value) => !action.kept_dice.includes(value)
 					);
+
+					const isLatestAction = index === array.length - 1;
 
 					return (
 						<div key={action.id} className="bg-gray-50 rounded p-1.5 text-sm">
 							<div className="flex items-center gap-2">
 								<span className="text-gray-500 min-w-[60px]">
-									Roll {action.action_number}:
+									{isLatestAction
+										? "Latest Roll:"
+										: "Roll " + action.action_number + ":"}
 								</span>
 
 								{/* Combined dice display */}

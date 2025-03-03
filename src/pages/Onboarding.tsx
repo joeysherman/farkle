@@ -95,7 +95,7 @@ export const Onboarding = (): FunctionComponent => {
 			}
 
 			// Set current step from profile if it exists
-			debugger;
+
 			if (profile?.onboarding_step) {
 				setCurrentStep(profile.onboarding_step);
 			}

@@ -148,6 +148,8 @@ export function Room(): JSX.Element {
 	const gameStateSubscriptionRef = useRef<RealtimeChannel | null>(null);
 	// ref for the action subscription
 	const actionSubscriptionRef = useRef<RealtimeChannel | null>(null);
+	// ref for the players subscription
+	const playerSubscriptionRef = useRef<RealtimeChannel | null>(null);
 
 	const handleStartGame = async () => {
 		try {
@@ -190,7 +192,6 @@ export function Room(): JSX.Element {
 	};
 
 	const handleJoinWithCode = async (code: string, username: string) => {
-		debugger;
 		try {
 			if (!username.trim() && !user) {
 				setError("Please enter a username");
@@ -320,7 +321,6 @@ export function Room(): JSX.Element {
 				.eq("id", roomId)
 				.single();
 
-			debugger;
 			if (roomError) throw roomError;
 			if (!roomData) {
 				setError("Room not found");
@@ -360,11 +360,12 @@ export function Room(): JSX.Element {
 				.from("game_states")
 				.select("*")
 				.eq("game_id", roomId)
-				.single();
+				.maybeSingle();
 
 			if (gameStateError) throw gameStateError;
 			if (!gameStateData) {
 				setError("Game state not found");
+
 				return;
 			}
 
@@ -417,7 +418,6 @@ export function Room(): JSX.Element {
 
 			// if there are actions, set the dice states to the dice values of the last action
 			if (actionsData?.length > 0) {
-				debugger;
 				const scoringDice = getScoringDice(
 					actionsData[actionsData.length - 1].dice_values,
 					actionsData[actionsData.length - 1].kept_dice
@@ -439,7 +439,6 @@ export function Room(): JSX.Element {
 		if (user && players?.length > 0 && !showInviteModal) {
 			const isPlayer = players?.some((player) => player.user_id === user?.id);
 			if (!isPlayer) {
-				debugger;
 				setShowInviteModal(true);
 			}
 		}
@@ -462,7 +461,6 @@ export function Room(): JSX.Element {
 						(actionPayload: RealtimePostgresChangesPayload<TurnAction>) => {
 							const newAction = actionPayload.new as TurnAction;
 							if (!newAction) return;
-							debugger;
 
 							// wait 1 second, then stop the spin, then update the turn actions and dice states
 							setTimeout(() => {
@@ -478,7 +476,6 @@ export function Room(): JSX.Element {
 									newAction.kept_dice
 								);
 
-								debugger;
 								setDiceStates((previous) => {
 									// for each previous diceState, map the placement over to the scoringDiceWithPlacement.placement at the same index
 									const newDiceStates = scoringDice.map((dice, index) => {
@@ -533,6 +530,46 @@ export function Room(): JSX.Element {
 				console.log("unsubscribing from game state");
 				gameStateSubscriptionRef.current.unsubscribe();
 				gameStateSubscriptionRef.current = null;
+			}
+		};
+	}, [roomId]);
+
+	// react to the game_players changes
+	useEffect(() => {
+		if (!playerSubscriptionRef.current && roomId) {
+			playerSubscriptionRef.current = supabase
+				.channel("player_changes")
+				.on(
+					"postgres_changes",
+					{
+						select: "score",
+						event: "UPDATE",
+						schema: "public",
+						table: "game_players",
+						filter: `game_id=eq.${roomId}`,
+					},
+					(payload) => {
+						debugger;
+						// find the player in the players array that has the same id
+						// as the payload.new.id and replace the data with the payload.new
+						setPlayers((previous) => {
+							const playerIndex = previous.findIndex(
+								(player) => player.id === payload.new.id
+							);
+							if (playerIndex !== -1) {
+								previous[playerIndex] = payload.new as GamePlayer;
+							}
+							return previous;
+						});
+					}
+				)
+				.subscribe();
+		}
+		return () => {
+			if (playerSubscriptionRef.current) {
+				console.log("unsubscribing from players changes");
+				playerSubscriptionRef.current.unsubscribe();
+				playerSubscriptionRef.current = null;
 			}
 		};
 	}, [roomId]);
@@ -864,7 +901,6 @@ export function Room(): JSX.Element {
 	if (loading) {
 		return (
 			<div className="min-h-screen bg-gray-50">
-				<Navbar />
 				<div className="flex items-center justify-center h-[calc(100vh-64px)]">
 					<div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin"></div>
 				</div>
@@ -876,7 +912,6 @@ export function Room(): JSX.Element {
 	if (showInviteModal) {
 		return (
 			<div className="min-h-screen bg-gray-50">
-				<Navbar />
 				<div className="flex items-center justify-center h-[calc(100vh-64px)]">
 					<InviteModal />
 				</div>
@@ -1009,7 +1044,7 @@ const useHandleTurnAction = () => {
 	return useMutation({
 		mutationFn: async (props) => {
 			const { roomId, outcome } = props;
-			debugger;
+
 			const { error } = await supabase.rpc("process_turn_action", {
 				p_game_id: roomId,
 				p_outcome: outcome,
@@ -1018,68 +1053,6 @@ const useHandleTurnAction = () => {
 		},
 	});
 };
-
-function newFunction(
-	roomId: any,
-	turnActions: TurnAction[],
-	diceStates: never[],
-	setCurrentTurn,
-	setTurnActions,
-	setDiceStates,
-	isSpinning: boolean,
-	startSpin: () => void,
-	setError
-) {
-	return async (
-		keptDice: Array<number>,
-		outcome: "bust" | "bank" | "continue"
-	) => {
-		if (!roomId) return;
-
-		try {
-			const latestAction = turnActions[turnActions.length - 1];
-			if (!latestAction) return;
-			// filter out the diceStates where isScoringNumber is true
-			const leftOverDice = diceStates.filter((dice) => !dice.isScoringNumber);
-
-			const { error } = await supabase.rpc("process_turn_action", {
-				p_game_id: roomId,
-				p_outcome: outcome,
-			});
-
-			if (error) throw error;
-
-			// Reset states if the turn is ending (bank or bust)
-			if (outcome === "bank" || outcome === "bust") {
-				setCurrentTurn(null);
-				setTurnActions([]);
-				setDiceStates([]);
-				// setSelectedDiceIndices([]);
-				// setDiceValues([
-				// 	{ number: 1 },
-				// 	{ number: 2 },
-				// 	{ number: 3 },
-				// 	{ number: 4 },
-				// 	{ number: 5 },
-				// 	{ number: 6 },
-				// ]); // Reset dice values to initial state
-			} else if (outcome === "continue") {
-				// set the diceStates to the leftOverDice
-				setDiceStates(leftOverDice);
-				if (!isSpinning) {
-					console.log("starting spin 1");
-					startSpin();
-				}
-			}
-		} catch (error_) {
-			setError(
-				error_ instanceof Error
-					? error_.message
-					: "Failed to process turn action"
-			);
-		}
-	};
-}
 
 function RoomHeader({
 	room,
@@ -1149,7 +1122,6 @@ function TurnSummary({
 	);
 	const isCurrentUser = players.find((player) => player.user_id === user.id);
 
-	debugger;
 	return (
 		<div className="bg-gray-50 rounded-lg px-4 py-2">
 			<div className="flex items-baseline mb-2">

@@ -13,7 +13,7 @@ export const PlayersList: React.FC<{
 			{players.map((player) => {
 				const isCurrentTurn = gameState?.current_player_id === player.id;
 				const isCurrentUser = player.user_id === user?.id;
-				debugger;
+
 				return (
 					<PlayerListItem
 						key={player.id}

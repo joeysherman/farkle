@@ -32,7 +32,6 @@ export function DiceScene({
 						isSpinning={isSpinning}
 						isScoringNumber={isScoringNumber || false}
 						onDiceClick={() => {
-							debugger;
 							if (selectedDiceIndices.includes(index)) {
 								setSelectedDiceIndices(
 									selectedDiceIndices.filter((i) => i !== index)

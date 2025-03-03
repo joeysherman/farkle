@@ -67,7 +67,7 @@ export const GameActions: React.FC<{
 				<>
 					<button
 						className="w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-						disabled={isPending || !canContinue}
+						disabled={!canContinue || isPending}
 						onClick={(e) => {
 							e.preventDefault();
 							e.stopPropagation();

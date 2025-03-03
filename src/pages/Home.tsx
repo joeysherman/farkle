@@ -31,7 +31,7 @@ export const Home = (): FunctionComponent => {
 			const {
 				data: { user: authUser },
 			} = await supabase.auth.getUser();
-			debugger;
+
 			if (!authUser) {
 				await navigate({ to: "/signup" });
 				return;
@@ -39,7 +39,7 @@ export const Home = (): FunctionComponent => {
 			setUser(authUser);
 			setIsAuthChecking(false);
 		};
-		debugger;
+
 		void checkAuth();
 	}, [navigate]);
 
