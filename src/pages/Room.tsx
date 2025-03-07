@@ -957,69 +957,98 @@ export function Room(): JSX.Element {
 					{/* Right Column - Game Canvas */}
 					<div className="w-full h-[calc(50vh-64px)] md:h-full md:w-3/4">
 						<div className="bg-white shadow rounded-lg h-full flex flex-col">
-							<div className="h-full p-2 flex flex-col">
-								{players && turnActions && user && gameState && room && (
-									<TurnSummary
-										players={players}
-										turnActions={turnActions}
-										user={user}
-										gameState={gameState}
-										room={room}
-									/>
-								)}
-								{gameState &&
-									user &&
-									players &&
-									turnActions &&
-									room?.status === "in_progress" && (
-										<GameActions
-											gameState={gameState}
-											user={user}
-											players={players}
-											isPending={isPending || isSpinning}
-											turnActions={turnActions}
-											selectedDiceIndices={[]}
-											onTurnAction={(keptDice, outcome) => {
-												const latestAction =
-													turnActions[turnActions.length - 1];
-												if (!latestAction) return;
-												// filter out the diceStates where isScoringNumber is true
-												const leftOverDice = diceStates.filter(
-													(dice) => !dice.isScoringNumber
-												);
-												// set the diceStates to the leftOverDice
-												if (outcome === "continue") {
-													setDiceStates(leftOverDice);
-													startSpin();
-												} else {
-													setDiceStates([]);
-												}
-												handleTurnAction({
-													roomId: roomId,
-													outcome,
-												});
-											}}
-											onRoll={() => {
-												setDiceStates([
-													{ number: 6, placement: 1, isScoringNumber: true },
-													{ number: 2, placement: 2, isScoringNumber: false },
-													{ number: 3, placement: 3, isScoringNumber: false },
-													{ number: 4, placement: 4, isScoringNumber: false },
-													{ number: 5, placement: 5, isScoringNumber: false },
-													{ number: 6, placement: 6, isScoringNumber: true },
-												]);
+							<div className="h-full p-2 flex flex-col relative">
+								<div className="flex gap-2 absolute top-0 left-0 w-full z-10">
+									<div className="flex-1 bg-gray-50 rounded shadow-md">
+										{players && turnActions && user && gameState && room && (
+											<TurnSummary
+												players={players}
+												turnActions={turnActions}
+												user={user}
+												gameState={gameState}
+												room={room}
+											/>
+										)}
+										{gameState &&
+											user &&
+											players &&
+											turnActions &&
+											room?.status === "in_progress" && (
+												<GameActions
+													gameState={gameState}
+													user={user}
+													players={players}
+													isPending={isPending || isSpinning}
+													turnActions={turnActions}
+													selectedDiceIndices={[]}
+													onTurnAction={(keptDice, outcome) => {
+														const latestAction =
+															turnActions[turnActions.length - 1];
+														if (!latestAction) return;
+														// filter out the diceStates where isScoringNumber is true
+														const leftOverDice = diceStates.filter(
+															(dice) => !dice.isScoringNumber
+														);
+														// set the diceStates to the leftOverDice
+														if (outcome === "continue") {
+															setDiceStates(leftOverDice);
+															startSpin();
+														} else {
+															setDiceStates([]);
+														}
+														handleTurnAction({
+															roomId: roomId,
+															outcome,
+														});
+													}}
+													onRoll={() => {
+														setDiceStates([
+															{
+																number: 6,
+																placement: 1,
+																isScoringNumber: true,
+															},
+															{
+																number: 2,
+																placement: 2,
+																isScoringNumber: false,
+															},
+															{
+																number: 3,
+																placement: 3,
+																isScoringNumber: false,
+															},
+															{
+																number: 4,
+																placement: 4,
+																isScoringNumber: false,
+															},
+															{
+																number: 5,
+																placement: 5,
+																isScoringNumber: false,
+															},
+															{
+																number: 6,
+																placement: 6,
+																isScoringNumber: true,
+															},
+														]);
 
-												if (!isSpinning) {
-													console.log("starting spin 2");
-													startSpin();
-												}
-												handleRoll();
-											}}
-											setSelectedDiceIndices={() => {}}
-										/>
-									)}
-
-								<TurnActions turnActions={turnActions} room={room} />
+														if (!isSpinning) {
+															console.log("starting spin 2");
+															startSpin();
+														}
+														handleRoll();
+													}}
+													setSelectedDiceIndices={() => {}}
+												/>
+											)}
+									</div>
+									<div className="flex-1 bg-gray-50 rounded shadow-md overflow-y-scroll">
+										<TurnActions turnActions={turnActions} room={room} />
+									</div>
+								</div>
 								<div
 									className="min-h-0 bg-gray-50 rounded-lg overflow-hidden"
 									style={{ flex: "1.5 1 0%" }}
@@ -1116,6 +1145,10 @@ function TurnSummary({
 		0
 	);
 
+	// get the latest turn action if there are any
+	const latestTurnAction = turnActions[turnActions.length - 1];
+	const isFarkle = latestTurnAction?.score === 0;
+
 	// Get current player from the game state
 	const isCurrentTurn = players.find(
 		(player) => player.id === gameState.current_player_id
@@ -1125,27 +1158,30 @@ function TurnSummary({
 	return (
 		<div className="bg-gray-50 rounded-lg px-4 py-2">
 			<div className="flex items-baseline mb-2">
-				<div className="flex flex-col">
+				<div className="flex items-baseline gap-2">
 					<h3 className="text-lg font-semibold">
 						Turn {gameState.current_turn_number}
 					</h3>
-					<div className="">
-						{turnActions.length > 0 ? (
-							<p className="text-sm text-gray-500 italic">
-								Roll {turnActions.length}
-							</p>
-						) : (
-							<p className="text-sm text-gray-500 italic opacity-0">tkkofd</p>
-						)}
-					</div>
+
+					{turnActions.length > 0 ? (
+						<p className="text-sm text-gray-500 italic">
+							Roll {turnActions.length}
+						</p>
+					) : (
+						<p className="text-sm text-gray-500 italic opacity-0">tkkofd</p>
+					)}
 				</div>
-				<div className="ml-auto flex flex-col items-end">
+				<div className="ml-auto flex items-baseline gap-2">
 					{turnActions.length > 0 ? (
 						<>
 							<p className="text-sm text-gray-500 italic">Roll Score:</p>
-							<p className="text-xl font-bold text-green-600">
-								+{currentTurnScore}
-							</p>
+							{isFarkle ? (
+								<p className="text-xl font-bold text-red-600">Farkle</p>
+							) : (
+								<p className="text-xl font-bold text-green-600">
+									{currentTurnScore}
+								</p>
+							)}
 						</>
 					) : (
 						<>

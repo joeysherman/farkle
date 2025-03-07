@@ -59,7 +59,7 @@ export const GameScene = ({
 			<Canvas
 				shadows
 				camera={{
-					position: [-ARENA_SIZE * 0.75, ARENA_SIZE * 0.75, ARENA_SIZE * 0.75],
+					position: [-ARENA_SIZE * 0.5, ARENA_SIZE * 1.5, ARENA_SIZE * 1.75],
 					fov: 20,
 				}}
 				style={{
@@ -85,7 +85,7 @@ export const GameScene = ({
 					shadow-camera-bottom={-20}
 				/>
 				<BoxingRing />
-				<Selection>
+				<Selection enabled={!isSpinning} autoClear={true}>
 					<EffectComposer multisampling={8} autoClear={false}>
 						<Outline
 							visibleEdgeColor="red"
@@ -114,7 +114,6 @@ export const GameScene = ({
 						setSelectedDiceIndices={setSelectedDiceIndices}
 					/>
 				</Selection>
-				<CameraControls ref={cameraControlsRef} />
 				<OrbitControls
 					ref={orbitControlsRef}
 					enableDamping
@@ -123,8 +122,8 @@ export const GameScene = ({
 					dampingFactor={0.05}
 					rotateSpeed={0.5}
 					enablePan={false}
-					enableZoom={true}
-					//minDistance={10}
+					enableZoom={false}
+					minDistance={10}
 					maxDistance={ARENA_SIZE * 3}
 					zoomSpeed={0.5}
 				/>

@@ -64,6 +64,12 @@ export function Model(props) {
 	}, [isSpinning, isScoringNumber, selected, animateClass]);
 
 	// generate random numbers
+	if (selected) {
+		debugger;
+	}
+	if (isScoringNumber) {
+		debugger;
+	}
 	return (
 		<Select enabled={hovered && !isSpinning && isScoringNumber}>
 			<motion.group
@@ -72,6 +78,9 @@ export function Model(props) {
 				position-x={position[0]}
 				position-y={position[1]}
 				position-z={position[2]}
+				// rotation-x={rotation?.[0] || 0}
+				// rotation-y={rotation?.[1] || 0}
+				// rotation-z={rotation?.[2] || 0}
 				//animate={isSpinning ? (hovered ? "hovered" : "spinning") : "idle"}
 				animate={animateClass}
 				transition={{
@@ -84,6 +93,9 @@ export function Model(props) {
 				variants={{
 					selected: {
 						// move up a bit
+						rotateX: rotation?.[0] || 0,
+						rotateY: rotation?.[1] || 0,
+						rotateZ: rotation?.[2] || 0,
 						y: 4,
 					},
 					idle: {

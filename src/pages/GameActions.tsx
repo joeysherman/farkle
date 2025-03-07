@@ -36,7 +36,9 @@ export const GameActions: React.FC<{
 	const latestAction = turnActions[turnActions.length - 1];
 	const isFarkle = latestAction?.score === 0;
 	const canContinue = latestAction && !latestAction.turn_action_outcome;
-
+	if (turnActions?.length > 0) {
+		debugger;
+	}
 	return (
 		<div className="flex-none grid grid-cols-2 gap-6 py-2 px-4">
 			{isFarkle && latestAction ? (
@@ -77,7 +79,7 @@ export const GameActions: React.FC<{
 							}
 						}}
 					>
-						Bank Score
+						Bank {turnActions.reduce((acc, action) => acc + action.score, 0)}
 					</button>
 					<button
 						className="w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"

@@ -19,10 +19,7 @@ export function TurnActions({
 	}, [turnActions]);
 
 	return (
-		<div
-			ref={turnActionsRef}
-			className="flex-1 overflow-y-auto mb-4 scroll-smooth"
-		>
+		<div ref={turnActionsRef} className="flex-0">
 			<div className="space-y-1">
 				{turnActions.map((action, index, array) => {
 					const remainingDice = action.dice_values.filter(
