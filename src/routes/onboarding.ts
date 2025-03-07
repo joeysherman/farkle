@@ -1,12 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Room } from "../pages/Room";
+import { Onboarding } from "../pages/Onboarding";
 
-export interface SearchParams {
-	roomId?: string;
-}
-
-export const Route = createFileRoute("/room")({
-	component: Room,
+export const Route = createFileRoute("/onboarding")({
+	component: Onboarding,
 	// validateSearch: (
 	//   search: Record<string, unknown>
 	// ): SearchParams => {
