@@ -30,7 +30,7 @@
 		"test:unit:coverage": "vitest --coverage src/",
 		"test:e2e": "playwright test",
 		"test:e2e:report": "playwright show-report",
-		"build": "tsc && vite build",
+		"build": "vite build",
 		"preview": "vite preview",
 		"commitlint": "commitlint --edit",
 		"commitizen": "exec < /dev/tty && git cz --hook || true",
