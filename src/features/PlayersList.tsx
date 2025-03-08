@@ -24,14 +24,15 @@ export const PlayersList: React.FC<{
 				);
 			})}
 
-			{Array.from({ length: room.max_players - players.length }).map(
-				(_, index) => (
-					<EmptyPlayerSlot
-						key={`empty-${index}`}
-						slotNumber={players.length + index + 1}
-					/>
-				)
-			)}
+			{room?.status === "waiting" &&
+				Array.from({ length: room.max_players - players.length }).map(
+					(_, index) => (
+						<EmptyPlayerSlot
+							key={`empty-${index}`}
+							slotNumber={players.length + index + 1}
+						/>
+					)
+				)}
 		</div>
 	);
 }; // Player List Item Component
