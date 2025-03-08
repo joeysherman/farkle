@@ -65,10 +65,10 @@ export function Model(props) {
 
 	// generate random numbers
 	if (selected) {
-		debugger;
+		
 	}
 	if (isScoringNumber) {
-		debugger;
+		
 	}
 	return (
 		<Select enabled={hovered && !isSpinning && isScoringNumber}>

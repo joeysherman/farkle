@@ -549,7 +549,6 @@ export function Room(): JSX.Element {
 						filter: `game_id=eq.${roomId}`,
 					},
 					(payload) => {
-						debugger;
 						// find the player in the players array that has the same id
 						// as the payload.new.id and replace the data with the payload.new
 						setPlayers((previous) => {
@@ -959,7 +958,7 @@ export function Room(): JSX.Element {
 						<div className="bg-white shadow rounded-lg h-full flex flex-col">
 							<div className="h-full p-2 flex flex-col relative">
 								<div className="flex gap-2 absolute top-0 left-0 w-full z-10">
-									<div className="flex-1 bg-gray-50 rounded shadow-md">
+									<div className="flex-1 flex flex-col justify-between bg-gray-50 rounded shadow-md">
 										{players && turnActions && user && gameState && room && (
 											<TurnSummary
 												players={players}
@@ -1045,7 +1044,7 @@ export function Room(): JSX.Element {
 												/>
 											)}
 									</div>
-									<div className="flex-1 bg-gray-50 rounded shadow-md overflow-y-scroll">
+									<div className="flex-1 bg-gray-50 rounded shadow-md">
 										<TurnActions turnActions={turnActions} room={room} />
 									</div>
 								</div>

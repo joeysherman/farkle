@@ -36,7 +36,10 @@ export const GameActions: React.FC<{
 	const latestAction = turnActions[turnActions.length - 1];
 	const isFarkle = latestAction?.score === 0;
 	const canContinue = latestAction && !latestAction.turn_action_outcome;
-	if (turnActions?.length > 0) {
+
+	const isDisabled = isPending || !canContinue;
+
+	if (isDisabled) {
 		debugger;
 	}
 	return (
@@ -45,6 +48,7 @@ export const GameActions: React.FC<{
 				<button
 					className="col-span-2 w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
 					onClick={() => {
+						debugger;
 						if (latestAction?.kept_dice) {
 							void onTurnAction(latestAction.kept_dice, "bust");
 						}
@@ -83,12 +87,7 @@ export const GameActions: React.FC<{
 					</button>
 					<button
 						className="w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-						disabled={
-							isPending ||
-							!canContinue ||
-							latestAction.score === 0 ||
-							latestAction.available_dice <= 0
-						}
+						disabled={isDisabled}
 						onClick={(e) => {
 							e.preventDefault();
 							e.stopPropagation();
