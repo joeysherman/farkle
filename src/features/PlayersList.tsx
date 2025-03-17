@@ -1,4 +1,5 @@
 import type { User } from "@supabase/supabase-js";
+import { useUser } from "../services/user";
 import { GamePlayer, GameState, GameRoom } from "../pages/Room";
 
 // Players List Component
@@ -42,19 +43,22 @@ export const PlayerListItem: React.FC<{
 	isCurrentTurn: boolean;
 	isCurrentUser: boolean;
 }> = ({ player, isCurrentTurn, isCurrentUser }) => {
+	const { data: userData, isLoading: userLoading } = useUser(player.user_id);
+	if (userLoading) {
+		return <div>Loading...</div>;
+	}
+
 	return (
 		<div
 			key={player.id}
 			className={`relative rounded-lg border ${
 				isCurrentTurn
-					? "border-indigo-500 bg-indigo-50"
-					: isCurrentUser
-						? "border-green-500 bg-green-50"
-						: "border-gray-300 bg-white"
+					? "border-green-500 bg-green-50"
+					: "border-gray-300 bg-white"
 			} p-3 shadow-sm transition-colors duration-200`}
-			style={{
-				animation: isCurrentTurn ? "softPulse 2s infinite" : "none",
-			}}
+			// style={{
+			// 	animation: isCurrentTurn ? "softPulse 2s infinite" : "none",
+			// }}
 		>
 			<div className="flex items-center gap-3">
 				<div className="flex-shrink-0">
@@ -83,7 +87,7 @@ export const PlayerListItem: React.FC<{
 				<div className="min-w-0 flex-1">
 					<div className="flex flex-wrap gap-2">
 						<p className="text-sm font-medium text-gray-900 truncate">
-							{isCurrentUser ? "You" : player.username}
+							{isCurrentUser ? "You" : userData?.username}
 						</p>
 					</div>
 					<div className="mt-1 flex items-center justify-between">

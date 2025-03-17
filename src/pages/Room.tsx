@@ -1204,7 +1204,6 @@ function TurnSummary({
 	players: GamePlayer[];
 	gameState: GameState;
 }) {
-	debugger;
 	const { data: userData, isLoading: userLoading } = useUser(
 		currentPlayer.user_id
 	);
@@ -1221,9 +1220,8 @@ function TurnSummary({
 	if (userLoading || !userData) {
 		return <div>Loading...</div>;
 	} else {
-		debugger;
 	}
-
+	debugger;
 	return (
 		<div className="bg-gray-50 rounded-lg px-4 py-2">
 			<div className="flex flex-col items-baseline mb-2">
@@ -1270,7 +1268,7 @@ function TurnSummary({
 function CurrentPlayerTurn({ currentPlayer }: { currentPlayer: GamePlayer }) {
 	// show the current player's name and the number of rolls they have made
 	// show the current player's avatar
-	debugger;
+
 	return (
 		<div className="flex items-center gap-2">
 			<img
