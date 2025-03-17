@@ -16,7 +16,7 @@ import { PlayersList } from "../features/PlayersList";
 import { RoomControls } from "../features/RoomControls";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { GameActions } from "./GameActions";
-
+import { useUser } from "../services/user";
 export interface GameRoom {
 	id: string;
 	name: string;
@@ -144,6 +144,8 @@ export function Room(): JSX.Element {
 		[]
 	);
 
+	// ref for the game room subscription
+	const gameRoomSubscriptionRef = useRef<RealtimeChannel | null>(null);
 	// ref for the game state subscription
 	const gameStateSubscriptionRef = useRef<RealtimeChannel | null>(null);
 	// ref for the action subscription
@@ -326,6 +328,7 @@ export function Room(): JSX.Element {
 				setError("Room not found");
 				return;
 			}
+
 			setRoom(roomData as GameRoom);
 		};
 
@@ -569,6 +572,38 @@ export function Room(): JSX.Element {
 				console.log("unsubscribing from players changes");
 				playerSubscriptionRef.current.unsubscribe();
 				playerSubscriptionRef.current = null;
+			}
+		};
+	}, [roomId]);
+
+	// react to the game_players changes
+	useEffect(() => {
+		if (!gameRoomSubscriptionRef.current && roomId) {
+			gameRoomSubscriptionRef.current = supabase
+				.channel("game_room_changes")
+				.on(
+					"postgres_changes",
+					{
+						select: "*",
+						event: "UPDATE",
+						schema: "public",
+						table: "game_rooms",
+						filter: `id=eq.${roomId}`,
+					},
+					(payload) => {
+						// find the player in the players array that has the same id
+						// as the payload.new.id and replace the data with the payload.new
+
+						setRoom(payload.new as GameRoom);
+					}
+				)
+				.subscribe();
+		}
+		return () => {
+			if (gameRoomSubscriptionRef.current) {
+				console.log("unsubscribing from game room changes");
+				gameRoomSubscriptionRef.current.unsubscribe();
+				gameRoomSubscriptionRef.current = null;
 			}
 		};
 	}, [roomId]);
@@ -934,7 +969,7 @@ export function Room(): JSX.Element {
 										user={user}
 										onStartGame={handleStartGame}
 										onEndGame={handleEndGame}
-										//onShowInvite={() => setShowInviteModal(true)}
+										onShowInvite={() => setShowInviteModal(true)}
 									/>
 								</RoomHeader>
 							)}
@@ -959,15 +994,24 @@ export function Room(): JSX.Element {
 							<div className="h-full p-2 flex flex-col relative">
 								<div className="flex gap-2 absolute top-0 left-0 w-full z-10">
 									<div className="flex-1 flex flex-col justify-between bg-gray-50 rounded shadow-md">
-										{players && turnActions && user && gameState && room && (
-											<TurnSummary
-												players={players}
-												turnActions={turnActions}
-												user={user}
-												gameState={gameState}
-												room={room}
-											/>
-										)}
+										{players.length > 0 &&
+											turnActions &&
+											gameState?.current_player_id && (
+												<TurnSummary
+													players={players}
+													currentPlayer={
+														// gameState.current_player_id is the id of the player who is currently rolling the dice
+														// we need to find the player who is currently rolling the dice
+
+														players.find(
+															(player) =>
+																player.id === gameState.current_player_id
+														)
+													}
+													turnActions={turnActions}
+													gameState={gameState}
+												/>
+											)}
 										{gameState &&
 											user &&
 											players &&
@@ -1128,16 +1172,19 @@ function RoomHeader({
 
 function TurnSummary({
 	players,
+	currentPlayer,
 	turnActions,
-	user,
 	gameState,
-	room,
 }: {
+	currentPlayer: GamePlayer;
 	turnActions: TurnAction[];
-	user: User;
+	players: GamePlayer[];
 	gameState: GameState;
-	room: GameRoom;
 }) {
+	debugger;
+	const { data: userData, isLoading: userLoading } = useUser(
+		currentPlayer.user_id
+	);
 	// Calculate total score for the current turn
 	const currentTurnScore = turnActions.reduce(
 		(total, action) => total + action.score,
@@ -1148,15 +1195,16 @@ function TurnSummary({
 	const latestTurnAction = turnActions[turnActions.length - 1];
 	const isFarkle = latestTurnAction?.score === 0;
 
-	// Get current player from the game state
-	const isCurrentTurn = players.find(
-		(player) => player.id === gameState.current_player_id
-	);
-	const isCurrentUser = players.find((player) => player.user_id === user.id);
+	if (userLoading || !userData) {
+		return <div>Loading...</div>;
+	} else {
+		debugger;
+	}
 
 	return (
 		<div className="bg-gray-50 rounded-lg px-4 py-2">
-			<div className="flex items-baseline mb-2">
+			<div className="flex flex-col items-baseline mb-2">
+				<CurrentPlayerTurn currentPlayer={userData} />
 				<div className="flex items-baseline gap-2">
 					<h3 className="text-lg font-semibold">
 						Turn {gameState.current_turn_number}
@@ -1192,6 +1240,22 @@ function TurnSummary({
 					)}
 				</div>
 			</div>
+		</div>
+	);
+}
+
+function CurrentPlayerTurn({ currentPlayer }: { currentPlayer: GamePlayer }) {
+	// show the current player's name and the number of rolls they have made
+	// show the current player's avatar
+	debugger;
+	return (
+		<div className="flex items-center gap-2">
+			<img
+				alt="User avatar"
+				className="w-8 h-8 rounded-full"
+				src={`/avatars/${currentPlayer?.avatar_name || "default"}.svg`}
+			/>
+			<p className="text-sm font-medium">{currentPlayer?.username}</p>
 		</div>
 	);
 }

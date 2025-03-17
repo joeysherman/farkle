@@ -40,7 +40,6 @@ export const GameActions: React.FC<{
 	const isDisabled = isPending || !canContinue;
 
 	if (isDisabled) {
-		debugger;
 	}
 	return (
 		<div className="flex-none grid grid-cols-2 gap-6 py-2 px-4">
@@ -48,7 +47,6 @@ export const GameActions: React.FC<{
 				<button
 					className="col-span-2 w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
 					onClick={() => {
-						debugger;
 						if (latestAction?.kept_dice) {
 							void onTurnAction(latestAction.kept_dice, "bust");
 						}
