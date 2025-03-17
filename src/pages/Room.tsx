@@ -122,7 +122,7 @@ export function Room(): JSX.Element {
 
 	const [copied, setCopied] = useState(false);
 	const [showInviteModal, setShowInviteModal] = useState(false);
-	const [code, setCode] = useState("");
+
 	const [localUsername, setLocalUsername] = useState("");
 	// Function to start dice spin
 	const startSpin = (): void => {
@@ -617,6 +617,22 @@ export function Room(): JSX.Element {
 
 	// Invite Modal Component
 	const InviteModal = () => {
+		const codeInputRef = useRef<HTMLInputElement>(null);
+		const joinButtonRef = useRef<HTMLButtonElement>(null);
+		const [code, setCode] = useState("");
+		// focus the code input if the length is not equal to 6
+		useEffect(() => {
+			if (codeInputRef.current && code.length !== 6) {
+				codeInputRef.current.focus();
+			}
+			// if the code is 6 characters, trigger the join game button
+			// disable the join game button if the code is not 6 characters
+
+			if (code.length === 6) {
+				joinButtonRef.current?.click();
+			}
+		}, [code]);
+
 		return (
 			<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
 				<div className="bg-white rounded-lg p-6 max-w-md w-full">
@@ -683,15 +699,22 @@ export function Room(): JSX.Element {
 										Room Code
 									</label>
 									<input
+										ref={codeInputRef}
 										type="text"
+										inputMode="numeric"
+										pattern="[0-9]*"
 										value={code}
-										onChange={(e) => setCode(e.target.value)}
+										onChange={(event) =>
+											setCode(event.target.value.slice(0, 6).replace(/\D/g, ""))
+										}
 										maxLength={6}
 										placeholder="Enter 6-digit code"
 										className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
 									/>
 								</div>
 								<button
+									ref={joinButtonRef}
+									disabled={code.length !== 6}
 									onClick={() => handleJoinWithCode(code, localUsername)}
 									className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
 								>

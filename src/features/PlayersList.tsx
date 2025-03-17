@@ -83,7 +83,7 @@ export const PlayerListItem: React.FC<{
 				<div className="min-w-0 flex-1">
 					<div className="flex flex-wrap gap-2">
 						<p className="text-sm font-medium text-gray-900 truncate">
-							Player {player.player_order}
+							{isCurrentUser ? "You" : player.username}
 						</p>
 					</div>
 					<div className="mt-1 flex items-center justify-between">
