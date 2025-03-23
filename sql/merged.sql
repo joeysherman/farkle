@@ -709,7 +709,7 @@ CREATE OR REPLACE FUNCTION process_turn_action(
   p_game_id UUID,
   p_outcome turn_action_outcome,
   p_kept_dice INTEGER[]
-) RETURNS INTEGER[] AS $$
+) RETURNS JSONB AS $$
 DECLARE
   v_game_state game_states;
   v_player game_players;
@@ -724,6 +724,8 @@ DECLARE
   c_new_kept_dice INTEGER[];
   c_new_available_dice INTEGER;
   c_difference_kept_dice INTEGER[];
+  c_difference_kept_dice_length INTEGER;
+  c_new_score_result turn_score_result;
 BEGIN
   -- Get current game state
   SELECT gs.* INTO v_game_state
@@ -803,12 +805,29 @@ BEGIN
 
       c_difference_kept_dice := remove_first_occurrence(p_kept_dice, v_kept_dice);
 
-
+      -- get length of c_difference_kept_dice
+      c_difference_kept_dice_length := array_length(c_difference_kept_dice, 1);
     
-      -- set the new dice_values to the remaining dice
-      v_dice_values := v_dice_values;
-      
-      
+      -- if c_difference_kept_dice_length is 0, then we kept all bankable dice
+      -- if c_difference_kept_dice_length is not 0, then we kept some bankable dice to roll again
+      -- add the length of c_difference_kept_dice to v_remaining_dice
+      --v_remaining_dice := v_remaining_dice + c_difference_kept_dice_length;
+
+      -- calculate the new score_result using the new p_kept_dice
+      c_new_score_result := calculate_turn_score(p_kept_dice);
+
+      -- add the length of c_difference_kept_dice to v_remaining_dice
+      v_remaining_dice := v_remaining_dice + c_difference_kept_dice_length;
+
+
+      -- update the score of the previous turn_action
+      UPDATE turn_actions
+      SET score = c_new_score_result.score,
+          kept_dice = p_kept_dice,
+          available_dice = v_remaining_dice
+      WHERE id = v_latest_action.id;
+
+
       if v_remaining_dice = 0 then
         -- if v_remaining_dice is 0, check if we rolled all bankable dice
         -- if we did, set v_remaining_dice to 6
@@ -850,7 +869,24 @@ BEGIN
         v_remaining_dice - array_length(v_score_result.valid_dice, 1),
         now()
       );
-      RETURN c_difference_kept_dice;
+
+      -- return an object with the following properties:
+
+      -- dice_values: v_roll_results
+      -- kept_dice: v_score_result.valid_dice
+      -- score: v_score_result.score
+      -- available_dice: v_remaining_dice - array_length(v_score_result.valid_dice, 1)
+      -- c_new_score_result.score
+      -- c_new_score_result.valid_dice
+      -- c_difference_kept_dice
+      -- c_difference_kept_dice_length
+      -- v_remaining_dice
+
+      RETURN jsonb_build_object(
+        'new_score', c_new_score_result,
+        'difference_kept_dice', c_difference_kept_dice,
+        'remaining_dice', v_remaining_dice
+      );
   END CASE;
 
   -- Return NULL for non-continue outcomes
