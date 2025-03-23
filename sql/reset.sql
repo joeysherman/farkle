@@ -26,11 +26,12 @@ DROP FUNCTION IF EXISTS generate_invite_code();
 DROP FUNCTION IF EXISTS update_updated_at_column();
 DROP FUNCTION IF EXISTS test_calculate_turn_score();
 DROP FUNCTION IF EXISTS run_all_tests();
+DROP FUNCTION IF EXISTS remove_first_occurrence(INTEGER[], INTEGER[]);
 
 -- Drop types (after functions that depend on them)
-DROP TYPE IF EXISTS turn_score_result;
-DROP TYPE IF EXISTS turn_action_outcome;
-DROP TYPE IF EXISTS game_status;
+DROP TYPE IF EXISTS turn_score_result CASCADE;
+DROP TYPE IF EXISTS turn_action_outcome CASCADE;
+DROP TYPE IF EXISTS game_status CASCADE;
 
 -- Drop publication
 DROP PUBLICATION IF EXISTS supabase_realtime;

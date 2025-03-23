@@ -39,8 +39,6 @@ export const GameActions: React.FC<{
 
 	const isDisabled = isPending || !canContinue;
 
-	if (isDisabled) {
-	}
 	return (
 		<div className="flex-none grid grid-cols-2 gap-6 py-2 px-4">
 			{isFarkle && latestAction ? (
@@ -95,8 +93,9 @@ export const GameActions: React.FC<{
 									.map((index) => latestAction.dice_values[index])
 									.filter(Boolean);
 								const validScoringDice = latestAction.kept_dice;
-								const allKeptDice = [...validScoringDice, ...keptDice];
-								void onTurnAction(allKeptDice, "continue");
+								// const allKeptDice = [...validScoringDice, ...keptDice];
+								debugger;
+								void onTurnAction(keptDice, "continue");
 								setSelectedDiceIndices([]);
 							}
 						}}

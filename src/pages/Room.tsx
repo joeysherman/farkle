@@ -425,11 +425,13 @@ export function Room(): JSX.Element {
 					actionsData[actionsData.length - 1].dice_values,
 					actionsData[actionsData.length - 1].kept_dice
 				);
+				debugger;
 				// map over the scoringDice and set the key placement to the index + 1
 				const scoringDiceWithPlacement = scoringDice.map((dice, index) => ({
 					...dice,
 					placement: index + 1,
 				}));
+				debugger;
 				setDiceStates(scoringDiceWithPlacement);
 			}
 		};
@@ -749,14 +751,6 @@ export function Room(): JSX.Element {
 			}
 
 			console.log("Roll results:", rollResults);
-
-			// Update dice values for the scene
-
-			//setDiceValues(rollResults.map((value: number) => ({ number: value })));
-			// Trigger the roll animation for each die
-			// rollResults.forEach((value: number, index: number) => {
-			// 	sceneRef.current?.roll(index, value);
-			// });
 		} catch (error_) {
 			console.error("Roll error:", error_);
 			setError(
@@ -764,196 +758,6 @@ export function Room(): JSX.Element {
 			);
 		}
 	};
-
-	// useEffect(() => {
-	// 	const checkAuth = async () => {
-	// 		const {
-	// 			data: { user: authUser },
-	// 			error: authError,
-	// 		} = await supabase.auth.getUser();
-	// 		if (authError) {
-	// 			console.error("Auth error:", authError);
-	// 			return;
-	// 		}
-	// 		setUser(authUser);
-
-	// 		if (!roomId) {
-	// 			setLoading(false);
-	// 			return;
-	// 		}
-
-	// 		try {
-	// 			// Fetch room details
-	// 			const { data: roomData, error: roomError } = await supabase
-	// 				.from("game_rooms")
-	// 				.select("*")
-	// 				.eq("id", roomId)
-	// 				.single();
-
-	// 			if (roomError) throw roomError;
-	// 			if (!roomData) {
-	// 				setError("Room not found");
-	// 				return;
-	// 			}
-
-	// 			setRoom(roomData as GameRoom);
-
-	// 			// Always fetch players in the room
-	// 			const { data: playersData, error: playersError } = await supabase
-	// 				.from("game_players")
-	// 				.select("*")
-	// 				.eq("game_id", roomId)
-	// 				.order("player_order", { ascending: true });
-
-	// 			if (playersError) throw playersError;
-	// 			setPlayers((playersData as Array<GamePlayer>) || []);
-
-	// 			// Check if user is already a player in the room or is the creator
-	// 			const isCreator = authUser?.id === roomData.created_by;
-	// 			const isPlayer = playersData?.some(
-	// 				(player) => player.user_id === authUser?.id
-	// 			);
-
-	// 			// Only show invite modal if user is not a player and not the creator
-	// 			if (!isCreator && !isPlayer) {
-	// 				setShowInviteModal(true);
-	// 			}
-
-	// 			// Fetch game state if user is a player or creator
-	// 			if (isPlayer || isCreator) {
-	// 				const { data: gameStateData, error: gameStateError } = await supabase
-	// 					.from("game_states")
-	// 					.select("*")
-	// 					.eq("game_id", roomId)
-	// 					.single();
-
-	// 				if (gameStateError && gameStateError.code !== "PGRST116")
-	// 					throw gameStateError;
-	// 				setGameState((gameStateData as GameState) || null);
-
-	// 				// Fetch current turn and actions if game is in progress
-	// 				if (
-	// 					gameStateData &&
-	// 					(roomData as GameRoom).status === "in_progress"
-	// 				) {
-	// 					const { data: turnData, error: turnError } = await supabase
-	// 						.from("game_turns")
-	// 						.select("*")
-	// 						.eq("game_id", roomId)
-	// 						.eq("turn_number", gameStateData.current_turn_number)
-	// 						.single();
-
-	// 					if (!turnError) {
-	// 						setCurrentTurn(turnData as GameTurn);
-
-	// 						if (turnData) {
-	// 							const { data: actionsData } = await supabase
-	// 								.from("turn_actions")
-	// 								.select("*")
-	// 								.eq("turn_id", turnData.id)
-	// 								.order("action_number", { ascending: true });
-
-	// 							if (actionsData) {
-	// 								setTurnActions(actionsData as Array<TurnAction>);
-	// 								// Set the dice values to the newest action
-	// 								// if there are no actions, set the dice values to the initial state
-	// 								if (actionsData.length > 0) {
-	// 									setDiceValues(
-	// 										actionsData[actionsData.length - 1].dice_values.map(
-	// 											(value: number) => ({ number: value })
-	// 										)
-	// 									);
-	// 								} else {
-	// 									setDiceValues([
-	// 										{ number: 1 },
-	// 										{ number: 2 },
-	// 										{ number: 3 },
-	// 										{ number: 4 },
-	// 										{ number: 5 },
-	// 										{ number: 6 },
-	// 									]);
-	// 								}
-	// 							}
-	// 						}
-	// 					}
-	// 				}
-	// 			}
-	// 		} catch (error_) {
-	// 			setError(
-	// 				error_ instanceof Error ? error_.message : "An error occurred"
-	// 			);
-	// 		} finally {
-	// 			setLoading(false);
-	// 		}
-	// 	};
-
-	// 	void checkAuth();
-
-	// 	if (roomId) {
-	// 		// Set up real-time subscriptions
-	// 		const roomSubscription = supabase
-	// 			.channel("room_changes")
-	// 			.on(
-	// 				"postgres_changes",
-	// 				{
-	// 					event: "*",
-	// 					schema: "public",
-	// 					table: "game_rooms",
-	// 					filter: `id=eq.${roomId}`,
-	// 				},
-	// 				(payload) => {
-	// 					setRoom(payload.new as GameRoom);
-	// 				}
-	// 			)
-	// 			.subscribe();
-
-	// 		const playersSubscription = supabase
-	// 			.channel("player_changes")
-	// 			.on(
-	// 				"postgres_changes",
-	// 				{
-	// 					event: "*",
-	// 					schema: "public",
-	// 					table: "game_players",
-	// 					filter: `game_id=eq.${roomId}`,
-	// 				},
-	// 				() => {
-	// 					// Refresh players list when there are changes
-	// 					supabase
-	// 						.from("game_players")
-	// 						.select("*")
-	// 						.eq("game_id", roomId)
-	// 						.order("player_order", { ascending: true })
-	// 						.then(({ data }) => {
-	// 							if (data) setPlayers(data);
-	// 						});
-	// 				}
-	// 			)
-	// 			.subscribe();
-
-	// 		const gameStateSubscription = supabase
-	// 			.channel("game_state_changes")
-	// 			.on(
-	// 				"postgres_changes",
-	// 				{
-	// 					event: "*",
-	// 					schema: "public",
-	// 					table: "game_states",
-	// 					filter: `game_id=eq.${roomId}`,
-	// 				},
-	// 				(payload) => {
-	// 					setGameState(payload.new as GameState);
-	// 				}
-	// 			)
-	// 			.subscribe();
-
-	// 		return () => {
-	// 			roomSubscription.unsubscribe();
-	// 			playersSubscription.unsubscribe();
-	// 			gameStateSubscription.unsubscribe();
-	// 		};
-	// 	}
-	// }, [roomId, navigate]);
 
 	if (loading) {
 		return (
@@ -1046,7 +850,7 @@ export function Room(): JSX.Element {
 													players={players}
 													isPending={isPending || isSpinning}
 													turnActions={turnActions}
-													selectedDiceIndices={[]}
+													selectedDiceIndices={selectedDiceIndices}
 													onTurnAction={(keptDice, outcome) => {
 														const latestAction =
 															turnActions[turnActions.length - 1];
@@ -1062,10 +866,15 @@ export function Room(): JSX.Element {
 														} else {
 															setDiceStates([]);
 														}
+														console.log(selectedDiceIndices);
+														debugger;
 														handleTurnAction({
 															roomId: roomId,
 															outcome,
+															keptDice,
 														});
+														// reset the selectedDiceIndices
+														setSelectedDiceIndices([]);
 													}}
 													onRoll={() => {
 														setDiceStates([
@@ -1106,6 +915,8 @@ export function Room(): JSX.Element {
 															startSpin();
 														}
 														handleRoll();
+														// reset the selectedDiceIndices
+														setSelectedDiceIndices([]);
 													}}
 													setSelectedDiceIndices={() => {}}
 												/>
@@ -1138,11 +949,12 @@ export function Room(): JSX.Element {
 const useHandleTurnAction = () => {
 	return useMutation({
 		mutationFn: async (props) => {
-			const { roomId, outcome } = props;
-
+			const { roomId, outcome, keptDice } = props;
+			debugger;
 			const { error } = await supabase.rpc("process_turn_action", {
 				p_game_id: roomId,
 				p_outcome: outcome,
+				p_kept_dice: keptDice,
 			});
 			return data;
 		},
@@ -1221,7 +1033,7 @@ function TurnSummary({
 		return <div>Loading...</div>;
 	} else {
 	}
-	debugger;
+
 	return (
 		<div className="bg-gray-50 rounded-lg px-4 py-2">
 			<div className="flex flex-col items-baseline mb-2">
