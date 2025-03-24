@@ -131,7 +131,7 @@ export function Signup(): JSX.Element {
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
 			<BouncingDice />
-			{/* <div className="max-w-md w-full space-y-8 backdrop-blur-sm bg-white/70 p-8 rounded-xl shadow-xl">
+			<div className="max-w-md w-full space-y-8 backdrop-blur-sm bg-white/70 p-8 rounded-xl shadow-xl">
 				<div>
 					<h1 className="text-center text-4xl font-extrabold text-indigo-900 mb-2">
 						Farkle
@@ -227,7 +227,7 @@ export function Signup(): JSX.Element {
 						Already have an account? Sign in
 					</Link>
 				</div>
-			</div> */}
+			</div>
 		</div>
 	);
 }
