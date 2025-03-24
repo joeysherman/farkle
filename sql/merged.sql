@@ -171,6 +171,7 @@ CREATE TABLE IF NOT EXISTS public.turn_actions (
   action_number int not null,
   dice_values int[] not null,
   kept_dice int[] default array[]::int[] not null,
+  selected_dice int[] default array[]::int[] not null,
   score int default 0 not null,
   outcome turn_action_outcome,
   available_dice int,
