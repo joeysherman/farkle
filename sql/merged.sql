@@ -382,7 +382,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-
+-- Function to remove the first occurrence of a value in an array
 CREATE OR REPLACE FUNCTION remove_first_occurrence(p_kept_dice INTEGER[], v_kept_dice INTEGER[])
 RETURNS INTEGER[] AS $$
 DECLARE
@@ -390,6 +390,7 @@ DECLARE
     value INTEGER;
     index INTEGER;
 BEGIN
+
     -- Iterate over each value in p_kept_dice
     FOREACH value IN ARRAY p_kept_dice LOOP
         -- Find the index of the first occurrence of the value in result_dice
@@ -704,6 +705,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+
+-- Function to select dice 
+-- first argument is the turn_action_id
+-- second argument is the selected_dice
+-- find the turn_action with the given turn_action_id
+-- update the selected_dice with the given selected_dice
+CREATE OR REPLACE FUNCTION select_dice(turn_action_id UUID, dice INTEGER[])
+RETURNS void AS $$
+BEGIN
+  -- Find the turn_action with the given turn_action_id
+  UPDATE turn_actions
+  SET selected_dice = dice
+  WHERE id = turn_action_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
 -- Function to process turn action
 CREATE OR REPLACE FUNCTION process_turn_action(
   p_game_id UUID,
@@ -821,11 +839,11 @@ BEGIN
 
 
       -- update the score of the previous turn_action
-      UPDATE turn_actions
-      SET score = c_new_score_result.score,
-          kept_dice = p_kept_dice,
-          available_dice = v_remaining_dice
-      WHERE id = v_latest_action.id;
+      -- UPDATE turn_actions
+      -- SET score = c_new_score_result.score,
+      --     kept_dice = p_kept_dice,
+      --     available_dice = v_remaining_dice
+      -- WHERE id = v_latest_action.id;
 
 
       if v_remaining_dice = 0 then
@@ -848,27 +866,27 @@ BEGIN
 
       -- set outcome to continue on the previous turn_action
       -- v_latest_action should have the id to use.
-      UPDATE turn_actions
-      SET outcome = 'continue'
-      WHERE id = v_latest_action.id;
+      -- UPDATE turn_actions
+      -- SET outcome = 'continue'
+      -- WHERE id = v_latest_action.id;
 
-      INSERT INTO turn_actions (
-        turn_id,
-        action_number,
-        dice_values,
-        kept_dice,
-        score,
-        available_dice,
-        created_at
-      ) VALUES (
-        v_turn.id,
-        v_latest_action.action_number + 1,
-        v_roll_results,
-        v_score_result.valid_dice,
-        v_score_result.score,
-        v_remaining_dice - array_length(v_score_result.valid_dice, 1),
-        now()
-      );
+      -- INSERT INTO turn_actions (
+      --   turn_id,
+      --   action_number,
+      --   dice_values,
+      --   kept_dice,
+      --   score,
+      --   available_dice,
+      --   created_at
+      -- ) VALUES (
+      --   v_turn.id,
+      --   v_latest_action.action_number + 1,
+      --   v_roll_results,
+      --   v_score_result.valid_dice,
+      --   v_score_result.score,
+      --   v_remaining_dice - array_length(v_score_result.valid_dice, 1),
+      --   now()
+      -- );
 
       -- return an object with the following properties:
 

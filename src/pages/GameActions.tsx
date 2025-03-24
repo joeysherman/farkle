@@ -94,7 +94,7 @@ export const GameActions: React.FC<{
 									.filter(Boolean);
 								const validScoringDice = latestAction.kept_dice;
 								// const allKeptDice = [...validScoringDice, ...keptDice];
-								debugger;
+
 								void onTurnAction(keptDice, "continue");
 								setSelectedDiceIndices([]);
 							}

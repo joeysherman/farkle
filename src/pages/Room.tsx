@@ -104,6 +104,20 @@ function getScoringDice(
 	return diceStates;
 }
 
+const updateTurnActions = async (
+	data: number[],
+	currentTurnActionId: string
+) => {
+	debugger;
+	const { error } = await supabase.rpc("select_dice", {
+		turn_action_id: currentTurnActionId,
+		dice: data,
+	});
+	if (error) {
+		console.error("Error updating turn actions:", error);
+	}
+};
+
 export function Room(): JSX.Element {
 	const navigate = useNavigate();
 	const search = useSearch({ from: RoomRoute.id });
@@ -143,6 +157,10 @@ export function Room(): JSX.Element {
 	const [selectedDiceIndices, setSelectedDiceIndices] = useState<Array<number>>(
 		[]
 	);
+
+	// update the turn_actions.selected_dice with the indices in supabase
+
+	// update the turn_actions
 
 	// ref for the game room subscription
 	const gameRoomSubscriptionRef = useRef<RealtimeChannel | null>(null);
@@ -425,13 +443,13 @@ export function Room(): JSX.Element {
 					actionsData[actionsData.length - 1].dice_values,
 					actionsData[actionsData.length - 1].kept_dice
 				);
-				debugger;
+
 				// map over the scoringDice and set the key placement to the index + 1
 				const scoringDiceWithPlacement = scoringDice.map((dice, index) => ({
 					...dice,
 					placement: index + 1,
 				}));
-				debugger;
+
 				setDiceStates(scoringDiceWithPlacement);
 			}
 		};
@@ -494,6 +512,28 @@ export function Room(): JSX.Element {
 									return newDiceStates;
 								});
 							}, 1000);
+						}
+					)
+					// listen for the update event on the turn_actions table
+					// where the selected_dice changes
+					.on<TurnAction>(
+						"postgres_changes" as any,
+						{
+							event: "UPDATE",
+							schema: "public",
+							table: "turn_actions",
+							filter: `turn_id=eq.${currentTurn.id}`,
+						},
+						(payload) => {
+							debugger;
+							// set the selectedDiceIndices with the payload.new.selected_dice
+							// if it exists and is an array
+							if (
+								payload.new.selected_dice &&
+								Array.isArray(payload.new.selected_dice)
+							) {
+								setSelectedDiceIndices(payload.new.selected_dice);
+							}
 						}
 					)
 					.subscribe();
@@ -867,7 +907,7 @@ export function Room(): JSX.Element {
 															setDiceStates([]);
 														}
 														console.log(selectedDiceIndices);
-														debugger;
+
 														handleTurnAction({
 															roomId: roomId,
 															outcome,
@@ -934,7 +974,14 @@ export function Room(): JSX.Element {
 										diceStates={diceStates}
 										isSpinning={isSpinning}
 										selectedDiceIndices={selectedDiceIndices}
-										setSelectedDiceIndices={setSelectedDiceIndices}
+										setSelectedDiceIndices={(e) => {
+											//setSelectedDiceIndices(e);
+											debugger;
+											updateTurnActions(
+												e,
+												turnActions[turnActions.length - 1]?.id
+											);
+										}}
 									/>
 								</div>
 							</div>
@@ -950,7 +997,7 @@ const useHandleTurnAction = () => {
 	return useMutation({
 		mutationFn: async (props) => {
 			const { roomId, outcome, keptDice } = props;
-			debugger;
+
 			const { error } = await supabase.rpc("process_turn_action", {
 				p_game_id: roomId,
 				p_outcome: outcome,
