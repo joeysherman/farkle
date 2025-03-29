@@ -12,7 +12,6 @@ DROP FUNCTION IF EXISTS end_game(UUID);
 DROP FUNCTION IF EXISTS end_turn(UUID, INTEGER);
 DROP FUNCTION IF EXISTS check_farkle(INTEGER[]);
 DROP FUNCTION IF EXISTS validate_dice_selection(INTEGER[], INTEGER[]);
-DROP FUNCTION IF EXISTS process_turn_action(UUID, INTEGER[], turn_action_outcome) CASCADE;
 DROP FUNCTION IF EXISTS process_turn_action(UUID, turn_action_outcome) CASCADE;  -- Drop both overloads
 DROP FUNCTION IF EXISTS perform_roll(UUID, INTEGER) CASCADE;
 DROP FUNCTION IF EXISTS get_available_dice(UUID);

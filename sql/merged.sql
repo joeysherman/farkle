@@ -171,6 +171,7 @@ CREATE TABLE IF NOT EXISTS public.turn_actions (
   action_number int not null,
   dice_values int[] not null,
   kept_dice int[] default array[]::int[] not null,
+  scoring_dice int[] default array[]::int[] not null,
   selected_dice int[] default array[]::int[] not null,
   score int default 0 not null,
   outcome turn_action_outcome,
@@ -607,9 +608,9 @@ BEGIN
   -- Calculate remaining dice based on kept dice
   RETURN CASE
     -- If all dice were kept, give 6 new dice (hot dice)
-    WHEN array_length(v_latest_action.kept_dice, 1) = array_length(v_latest_action.dice_values, 1) THEN 6
+    WHEN array_length(v_latest_action.scoring_dice, 1) = array_length(v_latest_action.dice_values, 1) THEN 6
     -- Otherwise return remaining dice
-    ELSE array_length(v_latest_action.dice_values, 1) - array_length(v_latest_action.kept_dice, 1)
+    ELSE array_length(v_latest_action.dice_values, 1) - array_length(v_latest_action.scoring_dice, 1)
   END;
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
@@ -688,7 +689,7 @@ BEGIN
     turn_id,
     action_number,
     dice_values,
-    kept_dice,
+    scoring_dice,
     score,
     available_dice,
     created_at
@@ -713,12 +714,61 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- find the turn_action with the given turn_action_id
 -- update the selected_dice with the given selected_dice
 CREATE OR REPLACE FUNCTION select_dice(turn_action_id UUID, dice INTEGER[])
-RETURNS void AS $$
+RETURNS JSONB AS $$
+DECLARE
+  v_turn_action turn_actions;
+  v_dice_values INTEGER[];
+  c_selected_dice INTEGER[];
+  c_dice_length INTEGER;
+  c_index INTEGER;
+  c_value INTEGER;
+
+  c_new_score_result turn_score_result;
+  c_new_score INTEGER;
+  c_new_valid_dice INTEGER[];
 BEGIN
   -- Find the turn_action with the given turn_action_id
+  SELECT ta.* INTO v_turn_action
+  FROM turn_actions ta
+  WHERE ta.id = turn_action_id;
+
+  -- get the dice_values from the previous turn_action
+  v_dice_values := v_turn_action.dice_values;
+
+  -- get length of dice array
+  c_dice_length := array_length(dice, 1);
+
+  -- for each value in the dice array, get value from dice_values array at the index
+  -- and add the value to the c_selected_dice array
+  FOR i IN 1..c_dice_length LOOP
+    -- get the index to get
+    c_index := dice[i];
+    -- add 1 to the index because the dice_values array is 1-based
+    c_index := c_index + 1;
+    -- if the index is greater than the length of the dice_values array, raise an exception
+    IF c_index > array_length(v_dice_values, 1) THEN
+      RAISE EXCEPTION 'Invalid dice value';
+    END IF;
+    -- get the value from the dice_values array at the index
+    c_value := v_dice_values[c_index];
+    -- add the value to the c_selected_dice array
+    c_selected_dice := array_append(c_selected_dice, c_value);
+  END LOOP;
+
+  -- calculate the new score_result using the new c_selected_dice 
+  c_new_score_result := calculate_turn_score(c_selected_dice);
+
+  c_new_score := c_new_score_result.score;
+  c_new_valid_dice := c_new_score_result.valid_dice;
+
+  -- update the selected_dice with the new c_selected_dice
   UPDATE turn_actions
-  SET selected_dice = dice
+  SET selected_dice = c_selected_dice,
+      score = c_new_score
   WHERE id = turn_action_id;
+
+  -- Return debug information along with the result
+  RETURN c_selected_dice;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -726,8 +776,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Function to process turn action
 CREATE OR REPLACE FUNCTION process_turn_action(
   p_game_id UUID,
-  p_outcome turn_action_outcome,
-  p_kept_dice INTEGER[]
+  p_outcome turn_action_outcome
 ) RETURNS JSONB AS $$
 DECLARE
   v_game_state game_states;
@@ -811,7 +860,7 @@ BEGIN
       v_dice_values := v_latest_action.dice_values;
 
       -- get the kept_dice from the previous turn_action
-      v_kept_dice := v_latest_action.kept_dice;
+      v_kept_dice := v_latest_action.scoring_dice;
 
       -- get the available_dice from the previous turn_action
       v_remaining_dice := v_latest_action.available_dice;
@@ -854,7 +903,7 @@ BEGIN
         -- check if the length of the dice_values array is equal to the length of the kept_dice array
         -- if both are true, set v_remaining_dice to 6
         -- otherwise throw an exception
-        if v_latest_action.score > 0 and array_length(v_latest_action.dice_values, 1) = array_length(v_latest_action.kept_dice, 1) then
+        if v_latest_action.score > 0 and array_length(v_latest_action.dice_values, 1) = array_length(v_latest_action.scoring_dice, 1) then
           v_remaining_dice := 6;
         else
           RAISE EXCEPTION 'Cannot continue turn with 0 available dice';

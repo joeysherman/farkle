@@ -23,7 +23,7 @@ export function TurnActions({
 			<div className="space-y-1">
 				{turnActions.map((action, index, array) => {
 					const remainingDice = action.dice_values.filter(
-						(value) => !action.kept_dice.includes(value)
+						(value) => !action.scoring_dice.includes(value)
 					);
 
 					const isLatestAction = index === array.length - 1;
@@ -83,7 +83,7 @@ export function TurnActions({
 									))}
 
 									{/* Scoring/kept dice */}
-									{action.kept_dice.map((value, index) => (
+									{action.scoring_dice.map((value, index) => (
 										<div
 											key={index}
 											className="w-6 h-6 flex items-center justify-center text-xs rounded bg-green-100 border border-green-300 text-green-700"
@@ -94,7 +94,7 @@ export function TurnActions({
 
 									{/* Show Farkle or empty state */}
 									{remainingDice.length === 0 &&
-										action.kept_dice.length === 0 && (
+										action.scoring_dice.length === 0 && (
 											<span className="text-red-500 text-xs font-medium">
 												Farkle!
 											</span>

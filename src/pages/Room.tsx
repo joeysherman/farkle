@@ -58,7 +58,7 @@ export interface TurnAction {
 	turn_id: string;
 	action_number: number;
 	dice_values: Array<number>;
-	kept_dice: Array<number>;
+	scoring_dice: Array<number>;
 	score: number;
 	turn_action_outcome: "bust" | "bank" | "continue" | null;
 	available_dice: number;
@@ -67,15 +67,15 @@ export interface TurnAction {
 
 function getScoringDice(
 	dice_values: number[],
-	kept_dice: number[]
+	scoring_dice: number[]
 ): { number: number; isScoringNumber: boolean }[] {
-	// kept_dice is the dice that were kept from the dice_values array
+	// scoring_dice is the dice that were kept from the dice_values array
 	// walk the dice_values array and output the dice states with number and isScoringNumber
-	// then walk the kept_dice array and set the isScoringNumber to true for the first
+	// then walk the scoring_dice array and set the isScoringNumber to true for the first
 	// occurrence of the dice value in the dice_values array where isScoringNumber is false
 	// example:
 	// dice_values = [4, 2, 6, 2, 6, 5]
-	// kept_dice = [5]
+	// scoring_dice = [5]
 	// output should be [
 	// 	{ number: 4, isScoringNumber: false },
 	// 	{ number: 2, isScoringNumber: false },
@@ -91,8 +91,8 @@ function getScoringDice(
 		isScoringNumber: false,
 	}));
 
-	// Iterate over kept_dice and update the first occurrence in diceStates
-	kept_dice.forEach((kept) => {
+	// Iterate over scoring_dice and update the first occurrence in diceStates
+	scoring_dice.forEach((kept) => {
 		for (let dice of diceStates) {
 			if (dice.number === kept && !dice.isScoringNumber) {
 				dice.isScoringNumber = true;
@@ -435,13 +435,23 @@ export function Room(): JSX.Element {
 				setError("Turn actions not found");
 				return;
 			}
+			debugger;
 			setTurnActions(actionsData as Array<TurnAction>);
+			// get the latest action
+			const latestAction = actionsData[actionsData.length - 1];
+			// get the selected_dice from the latest action
+			const selectedDice = latestAction?.selected_dice;
+
+			// if there are selected dice, set the selectedDiceIndices to the selected_dice
+			if (selectedDice) {
+				setSelectedDiceIndices(selectedDice);
+			}
 
 			// if there are actions, set the dice states to the dice values of the last action
 			if (actionsData?.length > 0) {
 				const scoringDice = getScoringDice(
 					actionsData[actionsData.length - 1].dice_values,
-					actionsData[actionsData.length - 1].kept_dice
+					actionsData[actionsData.length - 1].scoring_dice
 				);
 
 				// map over the scoringDice and set the key placement to the index + 1
@@ -492,11 +502,11 @@ export function Room(): JSX.Element {
 								setTurnActions((previous) => [...previous, newAction]);
 								// update the dice states
 								// newAction.dice_values is an array of the rolled dice
-								// newAction.kept_dice is an array of the dice that were kept from the previous action
+								// newAction.scoring_dice is an array of the dice that were kept from the previous action
 
 								const scoringDice = getScoringDice(
 									newAction.dice_values,
-									newAction.kept_dice
+									newAction.scoring_dice
 								);
 
 								setDiceStates((previous) => {
@@ -1001,7 +1011,7 @@ const useHandleTurnAction = () => {
 			const { error } = await supabase.rpc("process_turn_action", {
 				p_game_id: roomId,
 				p_outcome: outcome,
-				p_kept_dice: keptDice,
+				p_scoring_dice: keptDice,
 			});
 			return data;
 		},

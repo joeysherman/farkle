@@ -45,8 +45,8 @@ export const GameActions: React.FC<{
 				<button
 					className="col-span-2 w-full h-12 inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
 					onClick={() => {
-						if (latestAction?.kept_dice) {
-							void onTurnAction(latestAction.kept_dice, "bust");
+						if (latestAction?.scoring_dice) {
+							void onTurnAction(latestAction.scoring_dice, "bust");
 						}
 					}}
 				>
@@ -75,7 +75,7 @@ export const GameActions: React.FC<{
 							e.stopPropagation();
 							e.target.blur();
 							if (canContinue) {
-								void onTurnAction(latestAction.kept_dice, "bank");
+								void onTurnAction(latestAction.scoring_dice, "bank");
 							}
 						}}
 					>
@@ -92,7 +92,7 @@ export const GameActions: React.FC<{
 								const keptDice = selectedDiceIndices
 									.map((index) => latestAction.dice_values[index])
 									.filter(Boolean);
-								const validScoringDice = latestAction.kept_dice;
+								const validScoringDice = latestAction.scoring_dice;
 								// const allKeptDice = [...validScoringDice, ...keptDice];
 
 								void onTurnAction(keptDice, "continue");
