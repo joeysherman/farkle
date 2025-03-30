@@ -718,6 +718,8 @@ RETURNS JSONB AS $$
 DECLARE
   v_turn_action turn_actions;
   v_dice_values INTEGER[];
+  v_scoring_dice INTEGER[];
+  
   c_selected_dice INTEGER[];
   c_dice_length INTEGER;
   c_index INTEGER;
@@ -742,6 +744,12 @@ BEGIN
 
   -- for each value in the dice array, get value from dice_values array at the index
   -- and add the value to the c_selected_dice array
+
+  v_scoring_dice := v_turn_action.scoring_dice;
+
+
+  -- if the length of the dice array is greater than 0
+  if c_dice_length > 0 then
   FOR i IN 1..c_dice_length LOOP
     -- get the index to get
     c_index := dice[i];
@@ -790,6 +798,38 @@ BEGIN
     'c_new_score_result', c_new_score_result,
     'c_new_available_dice', c_new_available_dice
   );
+  end if;
+
+  -- if dice length is 0
+  -- calculate the new_turn_score using the scoring_dice
+  -- calculate the new avalable_dice using the scoring_dice length
+
+  c_new_score_result := calculate_turn_score(v_scoring_dice);
+  c_new_available_dice := array_length(v_dice_values, 1) - array_length(v_scoring_dice, 1);
+
+  c_new_score := c_new_score_result.score;
+  -- if c_new_available_dice is less than 0, raise an exception
+  IF c_new_available_dice < 0 THEN
+    RAISE EXCEPTION 'Cannot have negative available dice';
+  END IF;
+
+  -- update the current turn_action with the 
+  -- score, available_dice, and selected_dice
+  UPDATE turn_actions
+  SET score = c_new_score,
+      available_dice = c_new_available_dice,
+      selected_dice = dice
+  WHERE id = turn_action_id;
+  
+  RETURN jsonb_build_object(
+    'new_score', c_new_score,
+    'new_valid_dice', c_new_valid_dice,
+    'c_selected_dice', c_selected_dice,
+    'c_new_score_result', c_new_score_result,
+    'c_new_available_dice', c_new_available_dice
+  );
+  
+
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

@@ -108,7 +108,6 @@ const updateTurnActions = async (
 	data: number[],
 	currentTurnActionId: string
 ) => {
-	debugger;
 	const { error } = await supabase.rpc("select_dice", {
 		turn_action_id: currentTurnActionId,
 		dice: data,
@@ -435,7 +434,7 @@ export function Room(): JSX.Element {
 				setError("Turn actions not found");
 				return;
 			}
-			debugger;
+
 			setTurnActions(actionsData as Array<TurnAction>);
 			// get the latest action
 			const latestAction = actionsData[actionsData.length - 1];
@@ -535,7 +534,16 @@ export function Room(): JSX.Element {
 							filter: `turn_id=eq.${currentTurn.id}`,
 						},
 						(payload) => {
+							const updatedAction = payload.new as TurnAction;
 							debugger;
+
+							// replace the turn action where the id is the same as the payload.new.id
+							setTurnActions((previous) =>
+								previous.map((action) =>
+									action.id === updatedAction.id ? updatedAction : action
+								)
+							);
+
 							// set the selectedDiceIndices with the payload.new.selected_dice
 							// if it exists and is an array
 							if (
@@ -986,7 +994,7 @@ export function Room(): JSX.Element {
 										selectedDiceIndices={selectedDiceIndices}
 										setSelectedDiceIndices={(e) => {
 											//setSelectedDiceIndices(e);
-											debugger;
+
 											updateTurnActions(
 												e,
 												turnActions[turnActions.length - 1]?.id
