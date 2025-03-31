@@ -82,7 +82,15 @@ export function TurnActions({
 										</button>
 									))} */}
 									{action?.dice_values.map((value, index) => {
-										let isScoringDice = action.scoring_dice.includes(value);
+										let keptDice = action.kept_dice;
+										let isScoringDice = false;
+										// if keptDice is not empty, then it is a past turn action
+										if (keptDice.length > 0) {
+											// if the index is in the keptDice array, then it is a scoring dice
+											isScoringDice = keptDice.includes(index);
+										} else {
+											isScoringDice = action.scoring_dice.includes(value);
+										}
 										if (isScoringDice) {
 											return (
 												<div
