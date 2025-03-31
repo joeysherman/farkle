@@ -40,7 +40,7 @@ export function TurnActions({
 								{/* Combined dice display */}
 								<div className="flex gap-1 flex-1">
 									{/* Remaining dice */}
-									{remainingDice.map((value, index) => (
+									{/* {remainingDice.map((value, index) => (
 										<button
 											key={index}
 											disabled={
@@ -80,17 +80,38 @@ export function TurnActions({
 										>
 											{value}
 										</button>
-									))}
-
+									))} */}
+									{action?.dice_values.map((value, index) => {
+										let isScoringDice = action.scoring_dice.includes(value);
+										if (isScoringDice) {
+											return (
+												<div
+													key={index}
+													className="w-6 h-6 flex items-center justify-center text-xs rounded bg-green-100 border border-green-300 text-green-700"
+												>
+													{value}
+												</div>
+											);
+										} else {
+											return (
+												<div
+													key={index}
+													className="w-6 h-6 flex items-center justify-center text-xs rounded bg-white border border-gray-300 text-gray-700"
+												>
+													{value}
+												</div>
+											);
+										}
+									})}
 									{/* Scoring/kept dice */}
-									{action.scoring_dice.map((value, index) => (
+									{/* {action.scoring_dice.map((value, index) => (
 										<div
 											key={index}
 											className="w-6 h-6 flex items-center justify-center text-xs rounded bg-green-100 border border-green-300 text-green-700"
 										>
 											{value}
 										</div>
-									))}
+									))} */}
 
 									{/* Show Farkle or empty state */}
 									{remainingDice.length === 0 &&

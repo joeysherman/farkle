@@ -835,6 +835,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- Function to process turn action
+
 CREATE OR REPLACE FUNCTION process_turn_action(
   p_game_id UUID,
   p_outcome turn_action_outcome
@@ -849,7 +850,13 @@ DECLARE
   v_kept_dice INTEGER[];
   v_roll_results INTEGER[];
   v_dice_values INTEGER[];
+  v_selected_dice INTEGER[];
 
+  v_roll_score INTEGER;
+
+  p_kept_dice INTEGER[];
+
+  c_value INTEGER[];
   c_new_kept_dice INTEGER[];
   c_new_available_dice INTEGER;
   c_difference_kept_dice INTEGER[];
@@ -883,140 +890,80 @@ BEGIN
   ORDER BY ta.action_number DESC
   LIMIT 1;
 
+  -- Use CASE as an expression
+  IF p_outcome = 'bust' THEN
+    -- bust: set outcome to bust
+    UPDATE turn_actions
+    SET outcome = 'bust'
+    WHERE id = v_latest_action.id;
 
-  -- CASE p_outcome
-  CASE p_outcome
-    WHEN 'bust' THEN
-      -- bust: set outcome to bust
-      -- set outcome to bust on the previous turn_action
-      UPDATE turn_actions
-      SET outcome = 'bust'
-      WHERE id = v_latest_action.id;
+    PERFORM end_turn(p_game_id, 0);
 
-      PERFORM end_turn(p_game_id, 0);
+  ELSIF p_outcome = 'bank' THEN
+    -- bank: set outcome to bank
+    UPDATE turn_actions
+    SET outcome = 'bank'
+    WHERE id = v_latest_action.id;
 
-    WHEN 'bank' THEN
-        -- bank: set outcome to bank
-      -- set outcome to bank on the previous turn_action
-      UPDATE turn_actions
-      SET outcome = 'bank'
-      WHERE id = v_latest_action.id;
+    -- if the score of the latest turn_action is 0, we cannot bank
+    IF v_latest_action.score = 0 THEN
+      RAISE EXCEPTION 'Cannot bank with 0 score from previous turn';
+    END IF;
 
-      -- if the score of the latest turn_action is 0, we cannot bank
-      if v_latest_action.score = 0 then
-        RAISE EXCEPTION 'Cannot bank with 0 score from previous turn';
-      end if;
+    -- Sum up all scores from this turn's actions
+    SELECT COALESCE(SUM(score), 0)
+    INTO v_score_result.score
+    FROM turn_actions
+    WHERE turn_id = v_turn.id;
 
-        -- Sum up all scores from this turn's actions
-      SELECT COALESCE(SUM(score), 0)
-      INTO v_score_result.score
-      FROM turn_actions
-      WHERE turn_id = v_turn.id;
-      
-      PERFORM end_turn(p_game_id, v_score_result.score);
+    PERFORM end_turn(p_game_id, v_score_result.score);
 
-    WHEN 'continue' THEN
+  ELSIF p_outcome = 'continue' THEN
+    -- get the available dice from the latest turn_action
+    v_remaining_dice := v_latest_action.available_dice;
+    v_roll_score := v_latest_action.score;
 
-      -- get the dice_values from the previous turn_action
-      v_dice_values := v_latest_action.dice_values;
+    -- if the remaining dice is 0, and the v_roll_score is 0, raise an exception
+    IF v_remaining_dice = 0 AND v_roll_score = 0 THEN
+      RAISE EXCEPTION 'Cannot continue with 0 available dice and 0 score';
+    END IF;
 
-      -- get the kept_dice from the previous turn_action
-      v_kept_dice := v_latest_action.scoring_dice;
-
-      -- get the available_dice from the previous turn_action
-      v_remaining_dice := v_latest_action.available_dice;
-
-      -- if p_kept_dice is not empty, for each value in the p_kept_dice array
-      -- remove the only first occurrence of the value from the v_kept_dice array
-      -- if the value is not found, raise an exception
-      -- for example, if p_kept_dice is [5] and v_kept_dice is [1, 1, 5, 5]
-      -- then v_kept_dice should be [1, 1, 5]
-
-      c_difference_kept_dice := remove_first_occurrence(p_kept_dice, v_kept_dice);
-
-      -- get length of c_difference_kept_dice
-      c_difference_kept_dice_length := array_length(c_difference_kept_dice, 1);
-    
-      -- if c_difference_kept_dice_length is 0, then we kept all bankable dice
-      -- if c_difference_kept_dice_length is not 0, then we kept some bankable dice to roll again
-      -- add the length of c_difference_kept_dice to v_remaining_dice
-      --v_remaining_dice := v_remaining_dice + c_difference_kept_dice_length;
-
-      -- calculate the new score_result using the new p_kept_dice
-      c_new_score_result := calculate_turn_score(p_kept_dice);
-
-      -- add the length of c_difference_kept_dice to v_remaining_dice
-      v_remaining_dice := v_remaining_dice + c_difference_kept_dice_length;
-
-
-      -- update the score of the previous turn_action
-      -- UPDATE turn_actions
-      -- SET score = c_new_score_result.score,
-      --     kept_dice = p_kept_dice,
-      --     available_dice = v_remaining_dice
-      -- WHERE id = v_latest_action.id;
-
-
-      if v_remaining_dice = 0 then
-        -- if v_remaining_dice is 0, check if we rolled all bankable dice
-        -- if we did, set v_remaining_dice to 6
-        -- check if the score is greater than 0
-        -- check if the length of the dice_values array is equal to the length of the kept_dice array
-        -- if both are true, set v_remaining_dice to 6
-        -- otherwise throw an exception
-        if v_latest_action.score > 0 and array_length(v_latest_action.dice_values, 1) = array_length(v_latest_action.scoring_dice, 1) then
-          v_remaining_dice := 6;
-        else
-          RAISE EXCEPTION 'Cannot continue turn with 0 available dice';
-        end if;
-      end if;
-
-      v_roll_results := roll_dice(v_remaining_dice);
-
+    -- if the remaining dice is 0, and the v_roll_score is not 0, raise an exception
+    -- then roll all 6 dice
+    IF v_remaining_dice = 0 AND v_roll_score > 0 THEN
+      v_roll_results := roll_dice(6);
       v_score_result := calculate_turn_score(v_roll_results);
+    ELSIF v_remaining_dice > 0 AND v_roll_score > 0 THEN
+      v_roll_results := roll_dice(v_remaining_dice);
+      v_score_result := calculate_turn_score(v_roll_results);
+    END IF;
 
-      -- set outcome to continue on the previous turn_action
-      -- v_latest_action should have the id to use.
-      -- UPDATE turn_actions
-      -- SET outcome = 'continue'
-      -- WHERE id = v_latest_action.id;
+    -- set outcome to continue on the previous turn_action
+    UPDATE turn_actions
+    SET outcome = 'continue',
+        kept_dice = v_latest_action.selected_dice
+    WHERE id = v_latest_action.id;
 
-      -- INSERT INTO turn_actions (
-      --   turn_id,
-      --   action_number,
-      --   dice_values,
-      --   kept_dice,
-      --   score,
-      --   available_dice,
-      --   created_at
-      -- ) VALUES (
-      --   v_turn.id,
-      --   v_latest_action.action_number + 1,
-      --   v_roll_results,
-      --   v_score_result.valid_dice,
-      --   v_score_result.score,
-      --   v_remaining_dice - array_length(v_score_result.valid_dice, 1),
-      --   now()
-      -- );
+    INSERT INTO turn_actions (
+      turn_id,
+      action_number,
+      dice_values,
+      scoring_dice,
+      score,
+      available_dice,
+      created_at
+    ) VALUES (
+      v_turn.id,
+      v_latest_action.action_number + 1,
+      v_roll_results,
+      v_score_result.valid_dice,
+      v_score_result.score,
+      v_remaining_dice - array_length(v_score_result.valid_dice, 1),
+      now()
+    );
 
-      -- return an object with the following properties:
-
-      -- dice_values: v_roll_results
-      -- kept_dice: v_score_result.valid_dice
-      -- score: v_score_result.score
-      -- available_dice: v_remaining_dice - array_length(v_score_result.valid_dice, 1)
-      -- c_new_score_result.score
-      -- c_new_score_result.valid_dice
-      -- c_difference_kept_dice
-      -- c_difference_kept_dice_length
-      -- v_remaining_dice
-
-      RETURN jsonb_build_object(
-        'new_score', c_new_score_result,
-        'difference_kept_dice', c_difference_kept_dice,
-        'remaining_dice', v_remaining_dice
-      );
-  END CASE;
+    RETURN to_json(c_new_score_result);
+  END IF;
 
   -- Return NULL for non-continue outcomes
   RETURN NULL;

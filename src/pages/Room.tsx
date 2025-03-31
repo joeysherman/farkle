@@ -1014,12 +1014,11 @@ export function Room(): JSX.Element {
 const useHandleTurnAction = () => {
 	return useMutation({
 		mutationFn: async (props) => {
-			const { roomId, outcome, keptDice } = props;
+			const { roomId, outcome } = props;
 
 			const { error } = await supabase.rpc("process_turn_action", {
 				p_game_id: roomId,
 				p_outcome: outcome,
-				p_scoring_dice: keptDice,
 			});
 			return data;
 		},
