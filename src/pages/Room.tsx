@@ -434,7 +434,7 @@ export function Room(): JSX.Element {
 				setError("Turn actions not found");
 				return;
 			}
-
+			debugger;
 			setTurnActions(actionsData as Array<TurnAction>);
 			// get the latest action
 			const latestAction = actionsData[actionsData.length - 1];
@@ -494,11 +494,15 @@ export function Room(): JSX.Element {
 							const newAction = actionPayload.new as TurnAction;
 							if (!newAction) return;
 
+							debugger;
 							// wait 1 second, then stop the spin, then update the turn actions and dice states
 							setTimeout(() => {
 								setIsSpinning(false);
 								// add the new action to the turn actions
-								setTurnActions((previous) => [...previous, newAction]);
+								setTurnActions((previous) => {
+									debugger;
+									return [...previous, newAction];
+								});
 								// update the dice states
 								// newAction.dice_values is an array of the rolled dice
 								// newAction.scoring_dice is an array of the dice that were kept from the previous action
@@ -507,15 +511,17 @@ export function Room(): JSX.Element {
 									newAction.dice_values,
 									newAction.scoring_dice
 								);
-
+								debugger;
 								setDiceStates((previous) => {
+									debugger;
 									// for each previous diceState, map the placement over to the scoringDiceWithPlacement.placement at the same index
 									const newDiceStates = scoringDice.map((dice, index) => {
+										debugger;
 										// set the dice.placement to the previous[index].placement
 
 										return {
 											...dice,
-											placement: previous[index]?.placement || index + 1,
+											placement: index + 1,
 										};
 									});
 									return newDiceStates;
@@ -535,7 +541,12 @@ export function Room(): JSX.Element {
 						},
 						(payload) => {
 							const updatedAction = payload.new as TurnAction;
-							debugger;
+
+							// if updatedAction.outcome is continue, then we don't do anything
+							if (updatedAction.outcome === "continue") {
+								debugger;
+								return;
+							}
 
 							// replace the turn action where the id is the same as the payload.new.id
 							setTurnActions((previous) =>
@@ -564,7 +575,7 @@ export function Room(): JSX.Element {
 				actionSubscriptionRef.current = null;
 			}
 		};
-	}, [currentTurn]);
+	}, [currentTurn, turnActions, diceStates, selectedDiceIndices]);
 
 	// game turn
 
