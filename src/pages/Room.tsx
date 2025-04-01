@@ -140,6 +140,8 @@ export function Room(): JSX.Element {
 	const [showInviteModal, setShowInviteModal] = useState(false);
 
 	const [localUsername, setLocalUsername] = useState("");
+	const [countdown, setCountdown] = useState(5);
+
 	// Function to start dice spin
 	const startSpin = (): void => {
 		if (!isSpinning) {
@@ -700,16 +702,55 @@ export function Room(): JSX.Element {
 		const codeInputRef = useRef<HTMLInputElement>(null);
 		const joinButtonRef = useRef<HTMLButtonElement>(null);
 		const [code, setCode] = useState("");
-		// focus the code input if the length is not equal to 6
-		useEffect(() => {
-			if (codeInputRef.current && code.length !== 6) {
-				codeInputRef.current.focus();
-			}
-			// if the code is 6 characters, trigger the join game button
-			// disable the join game button if the code is not 6 characters
+		const [isValid, setIsValid] = useState(false);
 
+		// Add effect to handle auto-redirect when game is in progress
+		useEffect(() => {
+			if (room?.status === "in_progress") {
+				const timer = setInterval(() => {
+					setCountdown((prev) => {
+						if (prev <= 1) {
+							navigate({ to: "/" });
+							return 0;
+						}
+						return prev - 1;
+					});
+				}, 1000);
+				return () => clearInterval(timer);
+			}
+		}, [room?.status, navigate]);
+
+		// Handle code paste
+		const handleCodePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+			console.log("Paste event triggered");
+			event.preventDefault();
+			const pastedText = event.clipboardData.getData("text");
+			console.log("Pasted text:", pastedText);
+			// Only allow digits and limit to 6 characters
+			const digitsOnly = pastedText.replace(/\D/g, "").slice(0, 6);
+			console.log("Digits only:", digitsOnly);
+			setCode(digitsOnly);
+			setIsValid(digitsOnly.length === 6);
+		};
+
+		// Handle code changes
+		const handleCodeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+			console.log("Change event triggered");
+			const value = event.target.value;
+			console.log("Input value:", value);
+			// Only allow digits and limit to 6 characters
+			const digitsOnly = value.replace(/\D/g, "").slice(0, 6);
+			console.log("Digits only:", digitsOnly);
+			setCode(digitsOnly);
+			setIsValid(digitsOnly.length === 6);
+		};
+
+		// Auto-join when code is 6 digits
+		useEffect(() => {
+			console.log("Code changed:", code);
 			if (code.length === 6) {
-				joinButtonRef.current?.click();
+				console.log("Attempting to join with code:", code);
+				void handleJoinWithCode(code, localUsername);
 			}
 		}, [code]);
 
@@ -727,8 +768,8 @@ export function Room(): JSX.Element {
 										Room Code
 									</label>
 									<input
-										type="text"
 										readOnly
+										type="text"
 										value={room?.invite_code}
 										className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
 									/>
@@ -739,20 +780,38 @@ export function Room(): JSX.Element {
 									</label>
 									<div className="mt-1 flex rounded-md shadow-sm">
 										<input
-											type="text"
 											readOnly
+											type="text"
 											value={`${window.location.origin}/room?roomId=${roomId}`}
 											className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
 										/>
 										<button
-											onClick={copyInviteLink}
 											className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+											onClick={copyInviteLink}
 										>
 											{copied ? "Copied!" : "Copy"}
 										</button>
 									</div>
 								</div>
 							</div>
+						</>
+					) : room?.status === "in_progress" ? (
+						<>
+							<h3 className="text-lg font-medium mb-4 text-red-600">
+								Game Already Started
+							</h3>
+							<p className="text-gray-600 mb-4">
+								You cannot join at this time.
+							</p>
+							<p className="text-2xl font-bold text-indigo-600 text-center mb-4">
+								Redirecting in {countdown}
+							</p>
+							<button
+								className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+								onClick={() => navigate({ to: "/" })}
+							>
+								Go Back
+							</button>
 						</>
 					) : (
 						<>
@@ -766,11 +825,11 @@ export function Room(): JSX.Element {
 											Username
 										</label>
 										<input
+											className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
+											onChange={(event) => setLocalUsername(event.target.value)}
+											placeholder="Enter your username"
 											type="text"
 											value={localUsername}
-											onChange={(e) => setLocalUsername(e.target.value)}
-											placeholder="Enter your username"
-											className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
 										/>
 									</div>
 								)}
@@ -779,36 +838,29 @@ export function Room(): JSX.Element {
 										Room Code
 									</label>
 									<input
+										className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
+										inputMode="numeric"
+										maxLength={6}
+										onChange={handleCodeChange}
+										onPaste={handleCodePaste}
+										pattern="[0-9]*"
+										placeholder="Enter 6-digit code"
 										ref={codeInputRef}
 										type="text"
-										inputMode="numeric"
-										pattern="[0-9]*"
 										value={code}
-										onChange={(event) =>
-											setCode(event.target.value.slice(0, 6).replace(/\D/g, ""))
-										}
-										maxLength={6}
-										placeholder="Enter 6-digit code"
-										className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
 									/>
 								</div>
 								<button
+									className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+									disabled={!isValid}
+									onClick={() => void handleJoinWithCode(code, localUsername)}
 									ref={joinButtonRef}
-									disabled={code.length !== 6}
-									onClick={() => handleJoinWithCode(code, localUsername)}
-									className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
 								>
 									Join Game
 								</button>
 							</div>
 						</>
 					)}
-					<button
-						onClick={() => setShowInviteModal(false)}
-						className="mt-4 w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-					>
-						Close
-					</button>
 				</div>
 			</div>
 		);
