@@ -14,6 +14,7 @@ interface DiceSceneProps {
  * Main scene component that displays all dice
  */
 export function DiceScene({
+	isCurrentPlayerTurn,
 	diceStates,
 	isSpinning,
 	selectedDiceIndices,
@@ -32,12 +33,14 @@ export function DiceScene({
 						isSpinning={isSpinning}
 						isScoringNumber={isScoringNumber || false}
 						onDiceClick={() => {
-							if (selectedDiceIndices.includes(index)) {
-								setSelectedDiceIndices(
-									selectedDiceIndices.filter((i) => i !== index)
-								);
-							} else {
-								setSelectedDiceIndices([...selectedDiceIndices, index]);
+							if (isCurrentPlayerTurn) {
+								if (selectedDiceIndices.includes(index)) {
+									setSelectedDiceIndices(
+										selectedDiceIndices.filter((i) => i !== index)
+									);
+								} else {
+									setSelectedDiceIndices([...selectedDiceIndices, index]);
+								}
 							}
 						}}
 						selected={selectedDiceIndices.includes(index)}

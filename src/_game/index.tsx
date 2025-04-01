@@ -51,9 +51,11 @@ export const GameScene = ({
 	isSpinning,
 	selectedDiceIndices,
 	setSelectedDiceIndices,
+	isCurrentPlayerTurn,
 }: GameSceneProps) => {
 	const cameraControlsRef = useRef();
 	const orbitControlsRef = useRef();
+	debugger;
 	return (
 		<div className="relative w-full h-full" style={{ minHeight: "300px" }}>
 			<Canvas
@@ -108,6 +110,7 @@ export const GameScene = ({
 						/> */}
 					</EffectComposer>
 					<DiceScene
+						isCurrentPlayerTurn={isCurrentPlayerTurn}
 						diceStates={diceStates}
 						isSpinning={isSpinning}
 						selectedDiceIndices={selectedDiceIndices}

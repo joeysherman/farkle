@@ -128,6 +128,9 @@ export function Room(): JSX.Element {
 	const [players, setPlayers] = useState<Array<GamePlayer>>([]);
 	const [gameState, setGameState] = useState<GameState | null>(null);
 	const [currentTurn, setCurrentTurn] = useState<GameTurn | null>(null);
+
+	const [isCurrentPlayerTurn, setIsCurrentPlayerTurn] = useState(false);
+
 	const [turnActions, setTurnActions] = useState<Array<TurnAction>>([]);
 	const [isSpinning, setIsSpinning] = useState(false);
 
@@ -310,6 +313,17 @@ export function Room(): JSX.Element {
 			);
 		}
 	};
+
+	// find the player in the players array that has the same user_id as the user.id
+	// then if the gameState.current_player_id is the same as the player.id, set the isCurrentPlayerTurn to true
+	useEffect(() => {
+		const player = players.find((player) => player.user_id === user?.id);
+		if (player && gameState?.current_player_id === player.id) {
+			setIsCurrentPlayerTurn(true);
+		} else {
+			setIsCurrentPlayerTurn(false);
+		}
+	}, [players, gameState, user]);
 
 	// user
 	useEffect(() => {
@@ -995,12 +1009,11 @@ export function Room(): JSX.Element {
 									style={{ flex: "1.5 1 0%" }}
 								>
 									<GameScene
+										isCurrentPlayerTurn={isCurrentPlayerTurn}
 										diceStates={diceStates}
 										isSpinning={isSpinning}
 										selectedDiceIndices={selectedDiceIndices}
 										setSelectedDiceIndices={(e) => {
-											//setSelectedDiceIndices(e);
-
 											updateTurnActions(
 												e,
 												turnActions[turnActions.length - 1]?.id
