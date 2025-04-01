@@ -1012,6 +1012,7 @@ export function Room(): JSX.Element {
 											turnActions &&
 											gameState?.current_player_id && (
 												<TurnSummary
+													isCurrentPlayerTurn={isCurrentPlayerTurn}
 													players={players}
 													currentPlayer={players.find(
 														(player) =>
@@ -1180,7 +1181,11 @@ export function Room(): JSX.Element {
 											)}
 									</div>
 									<div className="flex-1 bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-2">
-										<TurnActions turnActions={turnActions} room={room} />
+										<TurnActions
+											isCurrentPlayerTurn={isCurrentPlayerTurn}
+											turnActions={turnActions}
+											room={room}
+										/>
 									</div>
 								</div>
 							</div>
@@ -1271,11 +1276,13 @@ function TurnSummary({
 	currentPlayer,
 	turnActions,
 	gameState,
+	isCurrentPlayerTurn,
 }: {
 	currentPlayer: GamePlayer;
 	turnActions: TurnAction[];
 	players: GamePlayer[];
 	gameState: GameState;
+	isCurrentPlayerTurn: boolean;
 }) {
 	const { data: userData, isLoading: userLoading } = useUser(
 		currentPlayer.user_id
@@ -1295,39 +1302,48 @@ function TurnSummary({
 	}
 
 	return (
-		<div className="bg-gray-50 rounded-lg px-4 py-2">
-			<div className="flex items-center justify-between mb-2">
-				<div className="flex items-center gap-2">
-					<img
-						alt="User avatar"
-						className="w-8 h-8 rounded-full"
-						src={`/avatars/${userData?.avatar_name || "default"}.svg`}
-					/>
-					<p className="text-sm font-medium">{userData?.username}</p>
+		<div className="bg-gray-50 rounded-lg px-4 py-3 shadow-sm">
+			<div className="flex items-center justify-between mb-3">
+				<div className="flex items-center gap-3">
+					<div className="relative">
+						<img
+							alt="User avatar"
+							className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
+							src={`/avatars/${userData?.avatar_name || "default"}.svg`}
+						/>
+						{isCurrentPlayerTurn && (
+							<div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
+						)}
+					</div>
+					<div>
+						<p className="text-base font-semibold text-gray-900">
+							{userData?.username}
+						</p>
+						<div className="flex items-center gap-2">
+							<span className="text-sm font-medium text-gray-600">
+								Turn {gameState.current_turn_number}
+							</span>
+							{turnActions.length > 0 && (
+								<span className="text-xs text-gray-500">
+									• Roll {turnActions.length}
+								</span>
+							)}
+						</div>
+					</div>
 				</div>
 				{turnActions.length > 0 && (
-					<div className="flex items-baseline gap-2">
-						<p className="text-sm text-gray-500 italic">Roll Score:</p>
+					<div className="flex flex-col items-end">
+						<p className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">
+							Roll Score
+						</p>
 						{isFarkle ? (
-							<p className="text-xl font-bold text-red-600">Farkle</p>
+							<p className="text-lg font-bold text-red-600">Farkle!</p>
 						) : (
-							<p className="text-xl font-bold text-green-600">
+							<p className="text-lg font-bold text-green-600">
 								+{currentTurnScore}
 							</p>
 						)}
 					</div>
-				)}
-			</div>
-			<div className="flex items-baseline gap-2">
-				<h3 className="text-lg font-semibold">
-					Turn {gameState.current_turn_number}
-				</h3>
-				{turnActions.length > 0 ? (
-					<p className="text-sm text-gray-500 italic">
-						Roll {turnActions.length}
-					</p>
-				) : (
-					<p className="text-sm text-gray-500 italic opacity-0">tkkofd</p>
 				)}
 			</div>
 		</div>

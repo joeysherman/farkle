@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { TurnAction } from "./Room";
 
 export function TurnActions({
+	isCurrentPlayerTurn,
 	turnActions,
 	room,
 }: {
+	isCurrentPlayerTurn: boolean;
 	turnActions: TurnAction[];
 	room: GameRoom;
 }) {
@@ -18,10 +20,13 @@ export function TurnActions({
 		}
 	}, [turnActions]);
 
+	// Get only the last 2 turn actions
+	const lastTwoTurnActions = turnActions.slice(-2);
+
 	return (
-		<div ref={turnActionsRef} className="max-h-[150px] overflow-y-auto">
+		<div ref={turnActionsRef} className="h-[84px] overflow-y-auto">
 			<div className="space-y-1">
-				{turnActions.map((action, index, array) => {
+				{lastTwoTurnActions.map((action, index, array) => {
 					const remainingDice = action.dice_values.filter(
 						(value) => !action.scoring_dice.includes(value)
 					);
@@ -39,48 +44,6 @@ export function TurnActions({
 
 								{/* Combined dice display */}
 								<div className="flex gap-1 flex-1">
-									{/* Remaining dice */}
-									{/* {remainingDice.map((value, index) => (
-										<button
-											key={index}
-											disabled={
-												action !== turnActions[turnActions.length - 1] ||
-												Boolean(action.turn_action_outcome)
-											}
-											className={`w-6 h-6 flex items-center justify-center text-xs rounded ${
-												selectedDiceIndices.includes(
-													action.dice_values.indexOf(value)
-												)
-													? "bg-indigo-500 text-white"
-													: "bg-white border border-gray-300"
-											} ${
-												action === turnActions[turnActions.length - 1] &&
-												!action.turn_action_outcome
-													? "hover:bg-indigo-100 cursor-pointer"
-													: "cursor-default"
-											}`}
-											onClick={() => {
-												if (
-													action === turnActions[turnActions.length - 1] &&
-													!action.turn_action_outcome
-												) {
-													const originalIndex =
-														action.dice_values.indexOf(value);
-													setSelectedDiceIndices((previous) => {
-														if (previous.includes(originalIndex)) {
-															return previous.filter(
-																(index_) => index_ !== originalIndex
-															);
-														} else {
-															return [...previous, originalIndex];
-														}
-													});
-												}
-											}}
-										>
-											{value}
-										</button>
-									))} */}
 									{action?.dice_values.map((value, index) => {
 										let keptDice = action.kept_dice;
 										let isScoringDice = false;
@@ -111,15 +74,6 @@ export function TurnActions({
 											);
 										}
 									})}
-									{/* Scoring/kept dice */}
-									{/* {action.scoring_dice.map((value, index) => (
-										<div
-											key={index}
-											className="w-6 h-6 flex items-center justify-center text-xs rounded bg-green-100 border border-green-300 text-green-700"
-										>
-											{value}
-										</div>
-									))} */}
 
 									{/* Show Farkle or empty state */}
 									{remainingDice.length === 0 &&
@@ -144,12 +98,18 @@ export function TurnActions({
 				})}
 
 				{turnActions.length === 0 && room?.status === "in_progress" && (
-					<div className="flex justify-center items-center h-full pt-4">
-						<p className="text-sm text-gray-500 italic">Start rolling!</p>
+					<div className="flex justify-center items-center h-[84px]">
+						{isCurrentPlayerTurn ? (
+							<p className="text-sm text-gray-500 italic">Start rolling!</p>
+						) : (
+							<p className="text-sm text-gray-500 italic">
+								Waiting for player to roll.
+							</p>
+						)}
 					</div>
 				)}
 				{turnActions.length === 0 && room?.status === "waiting" && (
-					<div className="flex justify-center items-center h-full pt-4">
+					<div className="flex justify-center items-center h-[84px]">
 						<p className="text-sm text-gray-500 italic">
 							Waiting for game to start.
 						</p>
