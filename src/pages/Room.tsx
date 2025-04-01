@@ -175,6 +175,8 @@ export function Room(): JSX.Element {
 	// ref for the players subscription
 	const playerSubscriptionRef = useRef<RealtimeChannel | null>(null);
 
+	const [showSidebar, setShowSidebar] = useState(false);
+
 	const handleStartGame = async () => {
 		try {
 			const { error } = await supabase.rpc("start_game", {
@@ -912,13 +914,47 @@ export function Room(): JSX.Element {
 
 	return (
 		<div className="min-h-screen bg-gray-50">
-			<Navbar />
-			<main className="max-w-[1600px] mx-auto h-[calc(100vh-64px)]">
-				<div className="flex flex-col md:flex-row md:space-x-4 h-full p-2 sm:p-4">
-					{/* Left Column - Room Details */}
-					<div className="w-full h-[calc(50vh-64px)] md:h-full md:w-1/4 mb-4 md:mb-0 overflow-y-auto">
-						<div className="bg-white shadow rounded-lg h-full flex flex-col">
-							{/* Room Header */}
+			<Navbar
+				gameInfo={
+					room
+						? {
+								name: room.name,
+								currentPlayers: room.current_players,
+								maxPlayers: room.max_players,
+							}
+						: undefined
+				}
+			/>
+			<main className="max-w-[1600px] mx-auto h-[calc(100vh-48px)] sm:h-[calc(100vh-64px)]">
+				<div className="flex flex-col md:flex-row md:space-x-4 h-full">
+					{/* Left Column - Room Details (Hidden on mobile unless toggled) */}
+					<div
+						className={`${showSidebar ? "fixed inset-0 z-40 bg-white" : "hidden"} md:relative md:block md:w-1/4 md:h-full`}
+					>
+						<div className="h-full flex flex-col bg-white shadow-lg md:shadow-none">
+							{showSidebar && (
+								<div className="md:hidden flex items-center justify-between p-4 border-b">
+									<h2 className="text-lg font-semibold">Game Details</h2>
+									<button
+										onClick={() => setShowSidebar(false)}
+										className="p-1 rounded-md hover:bg-gray-100"
+									>
+										<svg
+											className="w-6 h-6 text-gray-600"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M6 18L18 6M6 6l12 12"
+											/>
+										</svg>
+									</button>
+								</div>
+							)}
 							{room && user && (
 								<RoomHeader room={room} user={user}>
 									<RoomControls
@@ -930,8 +966,6 @@ export function Room(): JSX.Element {
 									/>
 								</RoomHeader>
 							)}
-
-							{/* Players List */}
 							<div className="flex-1 overflow-y-auto p-4">
 								{players && gameState && user && room && (
 									<PlayersList
@@ -946,29 +980,119 @@ export function Room(): JSX.Element {
 					</div>
 
 					{/* Right Column - Game Canvas */}
-					<div className="w-full h-[calc(50vh-64px)] md:h-full md:w-3/4">
-						<div className="bg-white shadow rounded-lg h-full flex flex-col">
-							<div className="h-full p-2 flex flex-col relative">
-								<div className="flex gap-2 absolute top-0 left-0 w-full z-10">
-									<div className="flex-1 flex flex-col justify-between bg-gray-50 rounded shadow-md">
-										{players.length > 0 &&
-											turnActions &&
-											gameState?.current_player_id && (
-												<TurnSummary
-													players={players}
-													currentPlayer={
-														// gameState.current_player_id is the id of the player who is currently rolling the dice
-														// we need to find the player who is currently rolling the dice
-
-														players.find(
+					<div className="flex-1 flex flex-col h-[calc(100vh-84px)] md:h-full md:w-3/4">
+						<div className="flex-1 relative">
+							{/* Game Controls Overlay */}
+							<div className="absolute top-0 left-0 right-0 z-10 p-2">
+								<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-2">
+									<div className="flex justify-between flex-col md:flex-row">
+										{/* Turn Summary Section */}
+										<div className="flex-1">
+											{players.length > 0 &&
+												turnActions &&
+												gameState?.current_player_id && (
+													<TurnSummary
+														isCurrentPlayerTurn={isCurrentPlayerTurn}
+														players={players}
+														currentPlayer={players.find(
 															(player) =>
 																player.id === gameState.current_player_id
-														)
-													}
-													turnActions={turnActions}
-													gameState={gameState}
-												/>
-											)}
+														)}
+														turnActions={turnActions}
+														gameState={gameState}
+													/>
+												)}
+											{/* Desktop Game Actions - Now in top section */}
+											<div className="flex items-center justify-center gap-4 flex-1">
+												{gameState &&
+													user &&
+													players &&
+													turnActions &&
+													room?.status === "in_progress" && (
+														<GameActions
+															gameState={gameState}
+															user={user}
+															players={players}
+															isPending={isPending || isSpinning}
+															turnActions={turnActions}
+															selectedDiceIndices={selectedDiceIndices}
+															onTurnAction={(keptDice, outcome) => {
+																const latestAction =
+																	turnActions[turnActions.length - 1];
+																if (!latestAction) return;
+																const leftOverDice = diceStates.filter(
+																	(dice) => !dice.isScoringNumber
+																);
+																if (outcome === "continue") {
+																	setDiceStates(leftOverDice);
+																	startSpin();
+																} else {
+																	setDiceStates([]);
+																}
+																handleTurnAction({
+																	roomId: roomId,
+																	outcome,
+																	keptDice,
+																});
+																setSelectedDiceIndices([]);
+															}}
+															onRoll={() => {
+																setDiceStates([
+																	{
+																		number: 6,
+																		placement: 1,
+																		isScoringNumber: true,
+																	},
+																	{
+																		number: 2,
+																		placement: 2,
+																		isScoringNumber: false,
+																	},
+																	{
+																		number: 3,
+																		placement: 3,
+																		isScoringNumber: false,
+																	},
+																	{
+																		number: 4,
+																		placement: 4,
+																		isScoringNumber: false,
+																	},
+																	{
+																		number: 5,
+																		placement: 5,
+																		isScoringNumber: false,
+																	},
+																	{
+																		number: 6,
+																		placement: 6,
+																		isScoringNumber: true,
+																	},
+																]);
+																if (!isSpinning) {
+																	startSpin();
+																}
+																handleRoll();
+																setSelectedDiceIndices([]);
+															}}
+															setSelectedDiceIndices={() => {}}
+														/>
+													)}
+											</div>
+										</div>
+
+										{/* Turn Actions History - Now in top section */}
+										<div className="md:block flex-1">
+											<TurnActions
+												isCurrentPlayerTurn={isCurrentPlayerTurn}
+												turnActions={turnActions}
+												room={room}
+											/>
+										</div>
+									</div>
+
+									{/* Mobile Game Actions - Keep this for mobile view */}
+									{/* <div className="md:hidden mt-2">
 										{gameState &&
 											user &&
 											players &&
@@ -985,25 +1109,20 @@ export function Room(): JSX.Element {
 														const latestAction =
 															turnActions[turnActions.length - 1];
 														if (!latestAction) return;
-														// filter out the diceStates where isScoringNumber is true
 														const leftOverDice = diceStates.filter(
 															(dice) => !dice.isScoringNumber
 														);
-														// set the diceStates to the leftOverDice
 														if (outcome === "continue") {
 															setDiceStates(leftOverDice);
 															startSpin();
 														} else {
 															setDiceStates([]);
 														}
-														console.log(selectedDiceIndices);
-
 														handleTurnAction({
 															roomId: roomId,
 															outcome,
 															keptDice,
 														});
-														// reset the selectedDiceIndices
 														setSelectedDiceIndices([]);
 													}}
 													onRoll={() => {
@@ -1039,40 +1158,33 @@ export function Room(): JSX.Element {
 																isScoringNumber: true,
 															},
 														]);
-
 														if (!isSpinning) {
-															console.log("starting spin 2");
 															startSpin();
 														}
 														handleRoll();
-														// reset the selectedDiceIndices
 														setSelectedDiceIndices([]);
 													}}
 													setSelectedDiceIndices={() => {}}
 												/>
 											)}
-									</div>
-									<div className="flex-1 bg-gray-50 rounded shadow-md">
-										<TurnActions turnActions={turnActions} room={room} />
-									</div>
+									</div> */}
 								</div>
-								<div
-									className="min-h-0 bg-gray-50 rounded-lg overflow-hidden"
-									style={{ flex: "1.5 1 0%" }}
-								>
-									<GameScene
-										isCurrentPlayerTurn={isCurrentPlayerTurn}
-										diceStates={diceStates}
-										isSpinning={isSpinning}
-										selectedDiceIndices={selectedDiceIndices}
-										setSelectedDiceIndices={(e) => {
-											updateTurnActions(
-												e,
-												turnActions[turnActions.length - 1]?.id
-											);
-										}}
-									/>
-								</div>
+							</div>
+
+							{/* Game Scene */}
+							<div className="h-full">
+								<GameScene
+									isCurrentPlayerTurn={isCurrentPlayerTurn}
+									diceStates={diceStates}
+									isSpinning={isSpinning}
+									selectedDiceIndices={selectedDiceIndices}
+									setSelectedDiceIndices={(e) => {
+										updateTurnActions(
+											e,
+											turnActions[turnActions.length - 1]?.id
+										);
+									}}
+								/>
 							</div>
 						</div>
 					</div>
@@ -1145,11 +1257,13 @@ function TurnSummary({
 	currentPlayer,
 	turnActions,
 	gameState,
+	isCurrentPlayerTurn,
 }: {
 	currentPlayer: GamePlayer;
 	turnActions: TurnAction[];
 	players: GamePlayer[];
 	gameState: GameState;
+	isCurrentPlayerTurn: boolean;
 }) {
 	const { data: userData, isLoading: userLoading } = useUser(
 		currentPlayer.user_id
@@ -1166,47 +1280,59 @@ function TurnSummary({
 
 	if (userLoading || !userData) {
 		return <div>Loading...</div>;
-	} else {
 	}
 
 	return (
-		<div className="bg-gray-50 rounded-lg px-4 py-2">
-			<div className="flex flex-col items-baseline mb-2">
-				<CurrentPlayerTurn currentPlayer={userData} />
-				<div className="flex items-baseline gap-2">
-					<h3 className="text-lg font-semibold">
-						Turn {gameState.current_turn_number}
-					</h3>
-
-					{turnActions.length > 0 ? (
-						<p className="text-sm text-gray-500 italic">
-							Roll {turnActions.length}
-						</p>
-					) : (
-						<p className="text-sm text-gray-500 italic opacity-0">tkkofd</p>
-					)}
-				</div>
-				<div className="ml-auto flex items-baseline gap-2">
-					{turnActions.length > 0 ? (
-						<>
-							<p className="text-sm text-gray-500 italic">Roll Score:</p>
-							{isFarkle ? (
-								<p className="text-xl font-bold text-red-600">Farkle</p>
-							) : (
-								<p className="text-xl font-bold text-green-600">
-									{currentTurnScore}
-								</p>
-							)}
-						</>
-					) : (
-						<>
-							<p className="text-sm text-gray-500 italic opacity-0">
-								Roll Score:
+		<div className="bg-gray-50/90 backdrop-blur-sm rounded-lg px-2 py-2 sm:px-4 sm:py-3 shadow-sm">
+			<div className="flex items-center justify-between">
+				<div className="flex items-center gap-2 sm:gap-3">
+					<div className="relative">
+						<img
+							alt="User avatar"
+							className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white shadow-sm"
+							src={`/avatars/${userData?.avatar_name || "default"}.svg`}
+						/>
+						{isCurrentPlayerTurn && (
+							<div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white" />
+						)}
+					</div>
+					<div>
+						<div className="flex items-center gap-1 sm:gap-2">
+							<p className="text-sm sm:text-base font-semibold text-gray-900">
+								{userData?.username}
 							</p>
-							<p className="text-xl font-bold text-green-600 opacity-0">+</p>
-						</>
-					)}
+							<span className="text-xs sm:text-sm font-medium text-gray-600">
+								• Score: {currentPlayer.score}
+							</span>
+						</div>
+						<div className="flex items-center gap-1 sm:gap-2">
+							<span className="text-xs sm:text-sm font-medium text-gray-600">
+								Turn {gameState.current_turn_number}
+							</span>
+							{turnActions.length > 0 && (
+								<span className="text-xs text-gray-500">
+									• Roll {turnActions.length}
+								</span>
+							)}
+						</div>
+					</div>
 				</div>
+				{turnActions.length > 0 && (
+					<div className="flex flex-col items-end">
+						<p className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">
+							Roll Score
+						</p>
+						{isFarkle ? (
+							<p className="text-base sm:text-lg font-bold text-red-600">
+								Farkle!
+							</p>
+						) : (
+							<p className="text-base sm:text-lg font-bold text-green-600">
+								+{currentTurnScore}
+							</p>
+						)}
+					</div>
+				)}
 			</div>
 		</div>
 	);

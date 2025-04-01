@@ -17,6 +17,12 @@ interface Profile {
 	avatar_name: string;
 }
 
+interface GameInfo {
+	name: string;
+	currentPlayers: number;
+	maxPlayers: number;
+}
+
 const useUserData = () => {
 	return useQuery({
 		queryKey: ["currentUser"],
@@ -46,7 +52,7 @@ const useProfileData = (userId: string) => {
 	});
 };
 
-export function Navbar(): JSX.Element {
+export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	const navigate = useNavigate();
 	const [user, setUser] = useState<User | null>(null);
 	const [profile, setProfile] = useState<Profile | null>(null);
@@ -152,26 +158,42 @@ export function Navbar(): JSX.Element {
 
 	return (
 		<nav className="bg-white shadow">
-			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-				<div className="flex justify-between h-16">
-					<div className="flex">
+			<div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+				<div className="flex justify-between h-12 sm:h-16">
+					<div className="flex items-center">
 						<div className="flex-shrink-0 flex items-center">
-							<Link to="/" className="text-xl font-bold text-indigo-600">
+							<Link
+								to="/"
+								className="text-base sm:text-xl font-bold text-indigo-600"
+							>
 								Farkle Online
 							</Link>
 						</div>
+						{/* Game Info - Only show on mobile */}
+						{gameInfo && (
+							<div className="ml-4 md:hidden flex items-center space-x-2">
+								<span className="text-sm font-medium text-gray-900">
+									{gameInfo.name}
+								</span>
+								<span className="text-sm text-gray-500">
+									{gameInfo.currentPlayers}/{gameInfo.maxPlayers}
+								</span>
+							</div>
+						)}
 					</div>
 
 					<div className="flex items-center">
 						{loading ? (
-							<div className="text-gray-500">Loading...</div>
+							<div className="text-gray-500 text-sm sm:text-base">
+								Loading...
+							</div>
 						) : user ? (
 							<div className="flex items-center">
 								<Menu as="div" className="relative inline-block text-left">
-									<MenuButton className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+									<MenuButton className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
 										<img
 											alt="User avatar"
-											className="w-8 h-8 rounded-full"
+											className="w-6 h-6 sm:w-8 sm:h-8 rounded-full"
 											src={`/avatars/${profileData?.avatar_name || "default"}.svg`}
 										/>
 									</MenuButton>
@@ -222,7 +244,7 @@ export function Navbar(): JSX.Element {
 						) : (
 							<div className="flex items-center space-x-4">
 								<Link
-									className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded text-indigo-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+									className="inline-flex items-center px-2 py-1 sm:px-3 sm:py-1.5 border border-transparent text-sm font-medium rounded text-indigo-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
 									to="/signup"
 								>
 									Sign in

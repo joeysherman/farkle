@@ -1,15 +1,17 @@
-import { useEffect, useRef, useState } from "react";
-import { TurnAction } from "./Room";
+import { useEffect, useRef } from "react";
+import type { TurnAction } from "./Room";
+import { Disclosure } from "@headlessui/react";
 
 export function TurnActions({
+	isCurrentPlayerTurn,
 	turnActions,
 	room,
 }: {
-	turnActions: TurnAction[];
+	isCurrentPlayerTurn: boolean;
+	turnActions: Array<TurnAction>;
 	room: GameRoom;
 }) {
 	const turnActionsRef = useRef<HTMLDivElement>(null);
-	const [selectedDiceIndices, setSelectedDiceIndices] = useState<number[]>([]);
 
 	// Add effect to scroll to bottom when turnActions changes
 	useEffect(() => {
@@ -18,143 +20,235 @@ export function TurnActions({
 		}
 	}, [turnActions]);
 
+	// Get the latest turn action
+	const latestAction = turnActions[turnActions.length - 1];
+	// Get previous turn actions
+	const previousActions = turnActions.slice(0, -1);
+
+	const RollDisplay = ({
+		action,
+		isLatest,
+	}: {
+		action: TurnAction;
+		isLatest: boolean;
+	}) => {
+		const remainingDice = action.dice_values.filter(
+			(value) => !action.scoring_dice.includes(value)
+		);
+
+		return (
+			<div className="bg-gray-50 rounded p-1.5 text-sm">
+				<div className="flex items-center gap-2">
+					<span className="text-gray-500 min-w-[60px]">
+						{isLatest ? "Latest Roll:" : "Roll " + action.action_number + ":"}
+					</span>
+
+					{/* Combined dice display */}
+					<div className="flex gap-1 flex-1">
+						{action?.dice_values.map((value, index) => {
+							let keptDice = action.kept_dice;
+							let isScoringDice = false;
+							// if keptDice is not empty, then it is a past turn action
+							if (keptDice.length > 0) {
+								// if the index is in the keptDice array, then it is a scoring dice
+								isScoringDice = keptDice.includes(index);
+							} else {
+								isScoringDice = action.scoring_dice.includes(value);
+							}
+							if (isScoringDice) {
+								return (
+									<div
+										key={index}
+										className="w-6 h-6 flex items-center justify-center text-xs rounded bg-green-100 border border-green-300 text-green-700"
+									>
+										{value}
+									</div>
+								);
+							} else {
+								return (
+									<div
+										key={index}
+										className="w-6 h-6 flex items-center justify-center text-xs rounded bg-white border border-gray-300 text-gray-700"
+									>
+										{value}
+									</div>
+								);
+							}
+						})}
+
+						{/* Show Farkle or empty state */}
+						{remainingDice.length === 0 && action.scoring_dice.length === 0 && (
+							<span className="text-red-500 text-xs font-medium">Farkle!</span>
+						)}
+					</div>
+
+					{/* Score indicator */}
+					<div
+						className={`min-w-[50px] text-right font-medium ${
+							action.score > 0 ? "text-green-600" : "text-red-500"
+						}`}
+					>
+						{action.score > 0 ? `+${action.score}` : "+0"}
+					</div>
+				</div>
+			</div>
+		);
+	};
+
+	if (turnActions.length === 0) {
+		if (isCurrentPlayerTurn) {
+			return null;
+		} else {
+			return (
+				<div ref={turnActionsRef} className="h-[42px] overflow-y-auto">
+					<div className="flex justify-center items-center h-[42px]">
+						{room?.status === "in_progress" ? (
+							isCurrentPlayerTurn ? (
+								<p className="text-sm text-gray-500 italic">Start rolling!</p>
+							) : (
+								<p className="text-sm text-gray-500 italic">
+									Waiting for player to roll.
+								</p>
+							)
+						) : (
+							<p className="text-sm text-gray-500 italic">
+								Waiting for game to start.
+							</p>
+						)}
+					</div>
+				</div>
+			);
+		}
+	}
+
 	return (
-		<div ref={turnActionsRef} className="max-h-[150px] overflow-y-auto">
-			<div className="space-y-1">
-				{turnActions.map((action, index, array) => {
-					const remainingDice = action.dice_values.filter(
-						(value) => !action.scoring_dice.includes(value)
-					);
-
-					const isLatestAction = index === array.length - 1;
-
-					return (
-						<div key={action.id} className="bg-gray-50 rounded p-1.5 text-sm">
-							<div className="flex items-center gap-2">
-								<span className="text-gray-500 min-w-[60px]">
-									{isLatestAction
-										? "Latest Roll:"
-										: "Roll " + action.action_number + ":"}
-								</span>
-
-								{/* Combined dice display */}
-								<div className="flex gap-1 flex-1">
-									{/* Remaining dice */}
-									{/* {remainingDice.map((value, index) => (
-										<button
-											key={index}
-											disabled={
-												action !== turnActions[turnActions.length - 1] ||
-												Boolean(action.turn_action_outcome)
-											}
-											className={`w-6 h-6 flex items-center justify-center text-xs rounded ${
-												selectedDiceIndices.includes(
-													action.dice_values.indexOf(value)
-												)
-													? "bg-indigo-500 text-white"
-													: "bg-white border border-gray-300"
-											} ${
-												action === turnActions[turnActions.length - 1] &&
-												!action.turn_action_outcome
-													? "hover:bg-indigo-100 cursor-pointer"
-													: "cursor-default"
-											}`}
-											onClick={() => {
-												if (
-													action === turnActions[turnActions.length - 1] &&
-													!action.turn_action_outcome
-												) {
-													const originalIndex =
-														action.dice_values.indexOf(value);
-													setSelectedDiceIndices((previous) => {
-														if (previous.includes(originalIndex)) {
-															return previous.filter(
-																(index_) => index_ !== originalIndex
-															);
-														} else {
-															return [...previous, originalIndex];
-														}
-													});
-												}
-											}}
-										>
-											{value}
-										</button>
-									))} */}
-									{action?.dice_values.map((value, index) => {
-										let keptDice = action.kept_dice;
-										let isScoringDice = false;
-										// if keptDice is not empty, then it is a past turn action
-										if (keptDice.length > 0) {
-											// if the index is in the keptDice array, then it is a scoring dice
-											isScoringDice = keptDice.includes(index);
-										} else {
-											isScoringDice = action.scoring_dice.includes(value);
-										}
-										if (isScoringDice) {
-											return (
-												<div
-													key={index}
-													className="w-6 h-6 flex items-center justify-center text-xs rounded bg-green-100 border border-green-300 text-green-700"
-												>
-													{value}
-												</div>
-											);
-										} else {
-											return (
-												<div
-													key={index}
-													className="w-6 h-6 flex items-center justify-center text-xs rounded bg-white border border-gray-300 text-gray-700"
-												>
-													{value}
-												</div>
-											);
-										}
-									})}
-									{/* Scoring/kept dice */}
-									{/* {action.scoring_dice.map((value, index) => (
-										<div
-											key={index}
-											className="w-6 h-6 flex items-center justify-center text-xs rounded bg-green-100 border border-green-300 text-green-700"
-										>
-											{value}
-										</div>
-									))} */}
-
-									{/* Show Farkle or empty state */}
-									{remainingDice.length === 0 &&
-										action.scoring_dice.length === 0 && (
-											<span className="text-red-500 text-xs font-medium">
-												Farkle!
+		<div ref={turnActionsRef} className="h-auto min-h-[42px] overflow-hidden">
+			{/* Mobile view */}
+			<div className="md:hidden">
+				{latestAction && (
+					<Disclosure>
+						{({ open }) => (
+							<div className="flex flex-col">
+								<Disclosure.Button className="w-full">
+									<div className="bg-gray-50 rounded p-1.5 text-sm">
+										<div className="flex items-center gap-2">
+											<span className="text-gray-500 min-w-[60px]">
+												Latest Roll:
 											</span>
+
+											{/* Combined dice display */}
+											<div className="flex gap-1 flex-1">
+												{latestAction?.dice_values.map((value, index) => {
+													let keptDice = latestAction.kept_dice;
+													let isScoringDice = false;
+													if (keptDice.length > 0) {
+														isScoringDice = keptDice.includes(index);
+													} else {
+														isScoringDice =
+															latestAction.scoring_dice.includes(value);
+													}
+													if (isScoringDice) {
+														return (
+															<div
+																key={index}
+																className="w-6 h-6 flex items-center justify-center text-xs rounded bg-green-100 border border-green-300 text-green-700"
+															>
+																{value}
+															</div>
+														);
+													} else {
+														return (
+															<div
+																key={index}
+																className="w-6 h-6 flex items-center justify-center text-xs rounded bg-white border border-gray-300 text-gray-700"
+															>
+																{value}
+															</div>
+														);
+													}
+												})}
+
+												{/* Show Farkle or empty state */}
+												{latestAction.dice_values.filter(
+													(value) => !latestAction.scoring_dice.includes(value)
+												).length === 0 &&
+													latestAction.scoring_dice.length === 0 && (
+														<span className="text-red-500 text-xs font-medium">
+															Farkle!
+														</span>
+													)}
+											</div>
+
+											{/* Score indicator */}
+											<div
+												className={`min-w-[50px] text-right font-medium ${
+													latestAction.score > 0
+														? "text-green-600"
+														: "text-red-500"
+												}`}
+											>
+												{latestAction.score > 0
+													? `+${latestAction.score}`
+													: "+0"}
+											</div>
+
+											{/* Dropdown icon */}
+											{previousActions.length > 0 && (
+												<div className="flex items-center ml-1">
+													<svg
+														className={`w-4 h-4 transform ${open ? "rotate-180" : ""} transition-transform duration-200 text-gray-500`}
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+													>
+														<path
+															strokeLinecap="round"
+															strokeLinejoin="round"
+															strokeWidth={2}
+															d="M19 9l-7 7-7-7"
+														/>
+													</svg>
+												</div>
+											)}
+										</div>
+									</div>
+								</Disclosure.Button>
+
+								{previousActions.length > 0 && (
+									<Disclosure.Panel static>
+										{({ open }) => (
+											<div
+												className={`space-y-1 overflow-hidden transition-all duration-200 ease-in-out ${
+													open ? "opacity-100" : "opacity-0 h-0"
+												}`}
+											>
+												{previousActions.map((action) => (
+													<RollDisplay
+														key={action.id}
+														action={action}
+														isLatest={false}
+													/>
+												))}
+											</div>
 										)}
-								</div>
-
-								{/* Score indicator */}
-								<div
-									className={`min-w-[50px] text-right font-medium ${
-										action.score > 0 ? "text-green-600" : "text-red-500"
-									}`}
-								>
-									{action.score > 0 ? `+${action.score}` : "+0"}
-								</div>
+									</Disclosure.Panel>
+								)}
 							</div>
-						</div>
-					);
-				})}
+						)}
+					</Disclosure>
+				)}
+			</div>
 
-				{turnActions.length === 0 && room?.status === "in_progress" && (
-					<div className="flex justify-center items-center h-full pt-4">
-						<p className="text-sm text-gray-500 italic">Start rolling!</p>
+			{/* Desktop view */}
+			<div className="hidden md:flex md:flex-col md:justify-end md:min-h-full">
+				{previousActions.length > 0 && (
+					<div className="space-y-1 mb-1">
+						{previousActions.map((action) => (
+							<RollDisplay key={action.id} action={action} isLatest={false} />
+						))}
 					</div>
 				)}
-				{turnActions.length === 0 && room?.status === "waiting" && (
-					<div className="flex justify-center items-center h-full pt-4">
-						<p className="text-sm text-gray-500 italic">
-							Waiting for game to start.
-						</p>
-					</div>
-				)}
+				{latestAction && <RollDisplay action={latestAction} isLatest={true} />}
 			</div>
 		</div>
 	);
