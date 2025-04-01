@@ -96,25 +96,29 @@ export function TurnActions({
 	};
 
 	if (turnActions.length === 0) {
-		return (
-			<div ref={turnActionsRef} className="h-[84px] overflow-y-auto">
-				<div className="flex justify-center items-center h-[84px]">
-					{room?.status === "in_progress" ? (
-						isCurrentPlayerTurn ? (
-							<p className="text-sm text-gray-500 italic">Start rolling!</p>
+		if (isCurrentPlayerTurn) {
+			return null;
+		} else {
+			return (
+				<div ref={turnActionsRef} className="h-[42px] overflow-y-auto">
+					<div className="flex justify-center items-center h-[42px]">
+						{room?.status === "in_progress" ? (
+							isCurrentPlayerTurn ? (
+								<p className="text-sm text-gray-500 italic">Start rolling!</p>
+							) : (
+								<p className="text-sm text-gray-500 italic">
+									Waiting for player to roll.
+								</p>
+							)
 						) : (
 							<p className="text-sm text-gray-500 italic">
-								Waiting for player to roll.
+								Waiting for game to start.
 							</p>
-						)
-					) : (
-						<p className="text-sm text-gray-500 italic">
-							Waiting for game to start.
-						</p>
-					)}
+						)}
+					</div>
 				</div>
-			</div>
-		);
+			);
+		}
 	}
 
 	return (

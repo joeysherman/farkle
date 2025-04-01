@@ -985,7 +985,7 @@ export function Room(): JSX.Element {
 							{/* Game Controls Overlay */}
 							<div className="absolute top-0 left-0 right-0 z-10 p-2">
 								<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-2">
-									<div className="flex justify-between gap-4 flex-col md:flex-row">
+									<div className="flex justify-between flex-col md:flex-row">
 										{/* Turn Summary Section */}
 										<div className="flex-1">
 											{players.length > 0 &&
