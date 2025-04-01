@@ -125,10 +125,10 @@ export const GameScene = ({
 					dampingFactor={0.05}
 					rotateSpeed={0.5}
 					enablePan={false}
-					enableZoom={false}
-					minDistance={10}
-					maxDistance={ARENA_SIZE * 3}
-					zoomSpeed={0.5}
+					enableZoom={true}
+					minDistance={ARENA_SIZE * 0.75}
+					maxDistance={ARENA_SIZE * 4}
+					zoomSpeed={0.75}
 				/>
 			</Canvas>
 		</div>
