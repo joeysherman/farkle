@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { TurnAction } from "./Room";
+import { useEffect, useRef } from "react";
+import type { TurnAction } from "./Room";
+import { Disclosure } from "@headlessui/react";
 
 export function TurnActions({
 	isCurrentPlayerTurn,
@@ -7,11 +8,10 @@ export function TurnActions({
 	room,
 }: {
 	isCurrentPlayerTurn: boolean;
-	turnActions: TurnAction[];
+	turnActions: Array<TurnAction>;
 	room: GameRoom;
 }) {
 	const turnActionsRef = useRef<HTMLDivElement>(null);
-	const [selectedDiceIndices, setSelectedDiceIndices] = useState<number[]>([]);
 
 	// Add effect to scroll to bottom when turnActions changes
 	useEffect(() => {
@@ -20,101 +20,230 @@ export function TurnActions({
 		}
 	}, [turnActions]);
 
-	// Get only the last 2 turn actions
-	const lastTwoTurnActions = turnActions.slice(-2);
+	// Get the latest turn action
+	const latestAction = turnActions[turnActions.length - 1];
+	// Get previous turn actions
+	const previousActions = turnActions.slice(0, -1);
 
-	return (
-		<div ref={turnActionsRef} className="h-[84px] overflow-y-auto">
-			<div className="space-y-1">
-				{lastTwoTurnActions.map((action, index, array) => {
-					const remainingDice = action.dice_values.filter(
-						(value) => !action.scoring_dice.includes(value)
-					);
+	const RollDisplay = ({
+		action,
+		isLatest,
+	}: {
+		action: TurnAction;
+		isLatest: boolean;
+	}) => {
+		const remainingDice = action.dice_values.filter(
+			(value) => !action.scoring_dice.includes(value)
+		);
 
-					const isLatestAction = index === array.length - 1;
+		return (
+			<div className="bg-gray-50 rounded p-1.5 text-sm">
+				<div className="flex items-center gap-2">
+					<span className="text-gray-500 min-w-[60px]">
+						{isLatest ? "Latest Roll:" : "Roll " + action.action_number + ":"}
+					</span>
 
-					return (
-						<div key={action.id} className="bg-gray-50 rounded p-1.5 text-sm">
-							<div className="flex items-center gap-2">
-								<span className="text-gray-500 min-w-[60px]">
-									{isLatestAction
-										? "Latest Roll:"
-										: "Roll " + action.action_number + ":"}
-								</span>
+					{/* Combined dice display */}
+					<div className="flex gap-1 flex-1">
+						{action?.dice_values.map((value, index) => {
+							let keptDice = action.kept_dice;
+							let isScoringDice = false;
+							// if keptDice is not empty, then it is a past turn action
+							if (keptDice.length > 0) {
+								// if the index is in the keptDice array, then it is a scoring dice
+								isScoringDice = keptDice.includes(index);
+							} else {
+								isScoringDice = action.scoring_dice.includes(value);
+							}
+							if (isScoringDice) {
+								return (
+									<div
+										key={index}
+										className="w-6 h-6 flex items-center justify-center text-xs rounded bg-green-100 border border-green-300 text-green-700"
+									>
+										{value}
+									</div>
+								);
+							} else {
+								return (
+									<div
+										key={index}
+										className="w-6 h-6 flex items-center justify-center text-xs rounded bg-white border border-gray-300 text-gray-700"
+									>
+										{value}
+									</div>
+								);
+							}
+						})}
 
-								{/* Combined dice display */}
-								<div className="flex gap-1 flex-1">
-									{action?.dice_values.map((value, index) => {
-										let keptDice = action.kept_dice;
-										let isScoringDice = false;
-										// if keptDice is not empty, then it is a past turn action
-										if (keptDice.length > 0) {
-											// if the index is in the keptDice array, then it is a scoring dice
-											isScoringDice = keptDice.includes(index);
-										} else {
-											isScoringDice = action.scoring_dice.includes(value);
-										}
-										if (isScoringDice) {
-											return (
-												<div
-													key={index}
-													className="w-6 h-6 flex items-center justify-center text-xs rounded bg-green-100 border border-green-300 text-green-700"
-												>
-													{value}
-												</div>
-											);
-										} else {
-											return (
-												<div
-													key={index}
-													className="w-6 h-6 flex items-center justify-center text-xs rounded bg-white border border-gray-300 text-gray-700"
-												>
-													{value}
-												</div>
-											);
-										}
-									})}
+						{/* Show Farkle or empty state */}
+						{remainingDice.length === 0 && action.scoring_dice.length === 0 && (
+							<span className="text-red-500 text-xs font-medium">Farkle!</span>
+						)}
+					</div>
 
-									{/* Show Farkle or empty state */}
-									{remainingDice.length === 0 &&
-										action.scoring_dice.length === 0 && (
-											<span className="text-red-500 text-xs font-medium">
-												Farkle!
-											</span>
-										)}
-								</div>
+					{/* Score indicator */}
+					<div
+						className={`min-w-[50px] text-right font-medium ${
+							action.score > 0 ? "text-green-600" : "text-red-500"
+						}`}
+					>
+						{action.score > 0 ? `+${action.score}` : "+0"}
+					</div>
+				</div>
+			</div>
+		);
+	};
 
-								{/* Score indicator */}
-								<div
-									className={`min-w-[50px] text-right font-medium ${
-										action.score > 0 ? "text-green-600" : "text-red-500"
-									}`}
-								>
-									{action.score > 0 ? `+${action.score}` : "+0"}
-								</div>
-							</div>
-						</div>
-					);
-				})}
-
-				{turnActions.length === 0 && room?.status === "in_progress" && (
-					<div className="flex justify-center items-center h-[84px]">
-						{isCurrentPlayerTurn ? (
+	if (turnActions.length === 0) {
+		return (
+			<div ref={turnActionsRef} className="h-[84px] overflow-y-auto">
+				<div className="flex justify-center items-center h-[84px]">
+					{room?.status === "in_progress" ? (
+						isCurrentPlayerTurn ? (
 							<p className="text-sm text-gray-500 italic">Start rolling!</p>
 						) : (
 							<p className="text-sm text-gray-500 italic">
 								Waiting for player to roll.
 							</p>
-						)}
-					</div>
-				)}
-				{turnActions.length === 0 && room?.status === "waiting" && (
-					<div className="flex justify-center items-center h-[84px]">
+						)
+					) : (
 						<p className="text-sm text-gray-500 italic">
 							Waiting for game to start.
 						</p>
+					)}
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div ref={turnActionsRef} className="h-[84px] overflow-y-auto">
+			{/* Mobile view */}
+			<div className="md:hidden">
+				{latestAction && (
+					<Disclosure>
+						{({ open }) => (
+							<>
+								<Disclosure.Button className="w-full">
+									<div className="flex flex-col gap-1">
+										<div className="bg-gray-50 rounded p-1.5 text-sm">
+											<div className="flex items-center gap-2">
+												<span className="text-gray-500 min-w-[60px]">
+													Latest Roll:
+												</span>
+
+												{/* Combined dice display */}
+												<div className="flex gap-1 flex-1">
+													{latestAction?.dice_values.map((value, index) => {
+														let keptDice = latestAction.kept_dice;
+														let isScoringDice = false;
+														// if keptDice is not empty, then it is a past turn action
+														if (keptDice.length > 0) {
+															// if the index is in the keptDice array, then it is a scoring dice
+															isScoringDice = keptDice.includes(index);
+														} else {
+															isScoringDice =
+																latestAction.scoring_dice.includes(value);
+														}
+														if (isScoringDice) {
+															return (
+																<div
+																	key={index}
+																	className="w-6 h-6 flex items-center justify-center text-xs rounded bg-green-100 border border-green-300 text-green-700"
+																>
+																	{value}
+																</div>
+															);
+														} else {
+															return (
+																<div
+																	key={index}
+																	className="w-6 h-6 flex items-center justify-center text-xs rounded bg-white border border-gray-300 text-gray-700"
+																>
+																	{value}
+																</div>
+															);
+														}
+													})}
+
+													{/* Show Farkle or empty state */}
+													{latestAction.dice_values.filter(
+														(value) =>
+															!latestAction.scoring_dice.includes(value)
+													).length === 0 &&
+														latestAction.scoring_dice.length === 0 && (
+															<span className="text-red-500 text-xs font-medium">
+																Farkle!
+															</span>
+														)}
+												</div>
+
+												{/* Score indicator */}
+												<div
+													className={`min-w-[50px] text-right font-medium ${
+														latestAction.score > 0
+															? "text-green-600"
+															: "text-red-500"
+													}`}
+												>
+													{latestAction.score > 0
+														? `+${latestAction.score}`
+														: "+0"}
+												</div>
+
+												{/* Dropdown icon */}
+												{previousActions.length > 0 && (
+													<div className="flex items-center ml-1">
+														<svg
+															className={`w-4 h-4 transform ${open ? "rotate-180" : ""} transition-transform duration-200 text-gray-500`}
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke="currentColor"
+														>
+															<path
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																strokeWidth={2}
+																d="M19 9l-7 7-7-7"
+															/>
+														</svg>
+													</div>
+												)}
+											</div>
+										</div>
+									</div>
+								</Disclosure.Button>
+
+								{previousActions.length > 0 && (
+									<Disclosure.Panel>
+										<div className="space-y-1 mt-1">
+											{previousActions.map((action) => (
+												<RollDisplay
+													key={action.id}
+													action={action}
+													isLatest={false}
+												/>
+											))}
+										</div>
+									</Disclosure.Panel>
+								)}
+							</>
+						)}
+					</Disclosure>
+				)}
+			</div>
+
+			{/* Desktop view */}
+			<div className="hidden md:flex md:flex-col md:justify-end md:min-h-full">
+				{previousActions.length > 0 && (
+					<div className="space-y-1 mb-1">
+						{previousActions.map((action) => (
+							<RollDisplay key={action.id} action={action} isLatest={false} />
+						))}
 					</div>
 				)}
+				{latestAction && <RollDisplay action={latestAction} isLatest={true} />}
 			</div>
 		</div>
 	);

@@ -40,10 +40,10 @@ export const GameActions: React.FC<{
 	const isDisabled = isPending || !canContinue;
 
 	return (
-		<div className="flex-none grid grid-cols-2 gap-3 py-3 px-4">
+		<div className="flex-none grid grid-cols-2 gap-2 py-2 px-3 sm:gap-3 sm:py-3 sm:px-4">
 			{isFarkle && latestAction ? (
 				<button
-					className="col-span-2 w-full h-14 inline-flex justify-center items-center px-6 py-3 border border-transparent text-lg font-semibold rounded-xl shadow-sm text-white bg-red-500 hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 active:bg-red-600 transition-colors duration-200"
+					className="col-span-2 w-full h-10 sm:h-14 inline-flex justify-center items-center px-4 sm:px-6 py-2 sm:py-3 border border-transparent text-base sm:text-lg font-semibold rounded-lg sm:rounded-xl shadow-sm text-white bg-red-500 hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 active:bg-red-600 transition-colors duration-200"
 					onClick={() => {
 						if (latestAction?.scoring_dice) {
 							void onTurnAction(latestAction.scoring_dice, "bust");
@@ -55,7 +55,7 @@ export const GameActions: React.FC<{
 			) : turnActions.length === 0 || latestAction?.turn_action_outcome ? (
 				<button
 					disabled={isPending}
-					className="col-span-2 w-full h-14 inline-flex justify-center items-center px-6 py-3 border border-transparent text-lg font-semibold rounded-xl shadow-sm text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 active:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+					className="col-span-2 w-full h-10 sm:h-14 inline-flex justify-center items-center px-4 sm:px-6 py-2 sm:py-3 border border-transparent text-base sm:text-lg font-semibold rounded-lg sm:rounded-xl shadow-sm text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 active:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
 					onClick={(e) => {
 						e.preventDefault();
 						e.stopPropagation();
@@ -64,8 +64,11 @@ export const GameActions: React.FC<{
 					}}
 				>
 					{isPending ? (
-						<span className="flex items-center gap-2">
-							<svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+						<span className="flex items-center justify-center gap-2">
+							<svg
+								className="animate-spin h-4 w-4 sm:h-5 sm:w-5"
+								viewBox="0 0 24 24"
+							>
 								<circle
 									className="opacity-25"
 									cx="12"
@@ -90,7 +93,7 @@ export const GameActions: React.FC<{
 			) : (
 				<>
 					<button
-						className="w-full h-14 inline-flex flex-col justify-center items-center px-6 py-2 border border-transparent text-base font-semibold rounded-xl shadow-sm text-white bg-green-600 hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 active:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+						className="w-full h-10 sm:h-14 inline-flex flex-col justify-center items-center px-4 sm:px-6 py-1 sm:py-2 border border-transparent text-sm sm:text-base font-semibold rounded-lg sm:rounded-xl shadow-sm text-white bg-green-600 hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 active:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
 						disabled={!canContinue || isPending}
 						onClick={(e) => {
 							e.preventDefault();
@@ -102,13 +105,13 @@ export const GameActions: React.FC<{
 						}}
 					>
 						<span>Bank Score</span>
-						<span className="text-sm font-normal opacity-90">
+						<span className="text-xs sm:text-sm font-normal opacity-90">
 							{turnActions.reduce((acc, action) => acc + action.score, 0)}{" "}
 							points
 						</span>
 					</button>
 					<button
-						className="w-full h-14 inline-flex flex-col justify-center items-center px-6 py-2 border border-transparent text-base font-semibold rounded-xl shadow-sm text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 active:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+						className="w-full h-10 sm:h-14 inline-flex flex-col justify-center items-center px-4 sm:px-6 py-1 sm:py-2 border border-transparent text-sm sm:text-base font-semibold rounded-lg sm:rounded-xl shadow-sm text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 active:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
 						disabled={isDisabled}
 						onClick={(e) => {
 							e.preventDefault();
@@ -124,7 +127,7 @@ export const GameActions: React.FC<{
 						}}
 					>
 						<span>Continue</span>
-						<span className="text-sm font-normal opacity-90">
+						<span className="text-xs sm:text-sm font-normal opacity-90">
 							{latestAction.available_dice === 0 && latestAction.score > 0
 								? "Roll 6 dice"
 								: latestAction.available_dice > 0 && latestAction.score > 0

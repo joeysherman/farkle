@@ -914,41 +914,19 @@ export function Room(): JSX.Element {
 
 	return (
 		<div className="min-h-screen bg-gray-50">
-			<Navbar />
+			<Navbar
+				gameInfo={
+					room
+						? {
+								name: room.name,
+								currentPlayers: room.current_players,
+								maxPlayers: room.max_players,
+							}
+						: undefined
+				}
+			/>
 			<main className="max-w-[1600px] mx-auto h-[calc(100vh-48px)] sm:h-[calc(100vh-64px)]">
 				<div className="flex flex-col md:flex-row md:space-x-4 h-full">
-					{/* Mobile Game Info Bar */}
-					<div className="md:hidden flex items-center justify-between px-2 py-1 bg-white shadow-sm">
-						<div className="flex items-center space-x-2">
-							<button
-								onClick={() => setShowSidebar(!showSidebar)}
-								className="p-1 rounded-md hover:bg-gray-100"
-							>
-								<svg
-									className="w-6 h-6 text-gray-600"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M4 6h16M4 12h16M4 18h16"
-									/>
-								</svg>
-							</button>
-							<span className="font-medium text-sm text-gray-900">
-								{room?.name}
-							</span>
-						</div>
-						<div className="flex items-center">
-							<span className="text-sm text-gray-600">
-								{room?.current_players}/{room?.max_players}
-							</span>
-						</div>
-					</div>
-
 					{/* Left Column - Room Details (Hidden on mobile unless toggled) */}
 					<div
 						className={`${showSidebar ? "fixed inset-0 z-40 bg-white" : "hidden"} md:relative md:block md:w-1/4 md:h-full`}
@@ -1025,7 +1003,7 @@ export function Room(): JSX.Element {
 													/>
 												)}
 											{/* Desktop Game Actions - Now in top section */}
-											<div className="flex items-center gap-4 flex-1">
+											<div className="flex items-center justify-center gap-4 flex-1">
 												{gameState &&
 													user &&
 													players &&
@@ -1305,25 +1283,30 @@ function TurnSummary({
 	}
 
 	return (
-		<div className="bg-gray-50 rounded-lg px-4 py-3 shadow-sm">
-			<div className="flex items-center justify-between mb-3">
-				<div className="flex items-center gap-3">
+		<div className="bg-gray-50/90 backdrop-blur-sm rounded-lg px-2 py-2 sm:px-4 sm:py-3 shadow-sm">
+			<div className="flex items-center justify-between">
+				<div className="flex items-center gap-2 sm:gap-3">
 					<div className="relative">
 						<img
 							alt="User avatar"
-							className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
+							className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white shadow-sm"
 							src={`/avatars/${userData?.avatar_name || "default"}.svg`}
 						/>
 						{isCurrentPlayerTurn && (
-							<div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
+							<div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white" />
 						)}
 					</div>
 					<div>
-						<p className="text-base font-semibold text-gray-900">
-							{userData?.username}
-						</p>
-						<div className="flex items-center gap-2">
-							<span className="text-sm font-medium text-gray-600">
+						<div className="flex items-center gap-1 sm:gap-2">
+							<p className="text-sm sm:text-base font-semibold text-gray-900">
+								{userData?.username}
+							</p>
+							<span className="text-xs sm:text-sm font-medium text-gray-600">
+								• Score: {currentPlayer.score}
+							</span>
+						</div>
+						<div className="flex items-center gap-1 sm:gap-2">
+							<span className="text-xs sm:text-sm font-medium text-gray-600">
 								Turn {gameState.current_turn_number}
 							</span>
 							{turnActions.length > 0 && (
@@ -1340,9 +1323,11 @@ function TurnSummary({
 							Roll Score
 						</p>
 						{isFarkle ? (
-							<p className="text-lg font-bold text-red-600">Farkle!</p>
+							<p className="text-base sm:text-lg font-bold text-red-600">
+								Farkle!
+							</p>
 						) : (
-							<p className="text-lg font-bold text-green-600">
+							<p className="text-base sm:text-lg font-bold text-green-600">
 								+{currentTurnScore}
 							</p>
 						)}
