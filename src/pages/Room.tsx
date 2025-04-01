@@ -434,7 +434,7 @@ export function Room(): JSX.Element {
 				setError("Turn actions not found");
 				return;
 			}
-			debugger;
+
 			setTurnActions(actionsData as Array<TurnAction>);
 			// get the latest action
 			const latestAction = actionsData[actionsData.length - 1];
@@ -494,13 +494,11 @@ export function Room(): JSX.Element {
 							const newAction = actionPayload.new as TurnAction;
 							if (!newAction) return;
 
-							debugger;
 							// wait 1 second, then stop the spin, then update the turn actions and dice states
 							setTimeout(() => {
 								setIsSpinning(false);
 								// add the new action to the turn actions
 								setTurnActions((previous) => {
-									debugger;
 									return [...previous, newAction];
 								});
 								// update the dice states
@@ -511,12 +509,10 @@ export function Room(): JSX.Element {
 									newAction.dice_values,
 									newAction.scoring_dice
 								);
-								debugger;
+
 								setDiceStates((previous) => {
-									debugger;
 									// for each previous diceState, map the placement over to the scoringDiceWithPlacement.placement at the same index
 									const newDiceStates = scoringDice.map((dice, index) => {
-										debugger;
 										// set the dice.placement to the previous[index].placement
 
 										return {
@@ -544,7 +540,6 @@ export function Room(): JSX.Element {
 
 							// if updatedAction.outcome is continue, then we don't do anything
 							if (updatedAction.outcome === "continue") {
-								debugger;
 								return;
 							}
 

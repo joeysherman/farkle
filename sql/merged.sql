@@ -931,6 +931,7 @@ BEGIN
     -- if the remaining dice is 0, and the v_roll_score is not 0, raise an exception
     -- then roll all 6 dice
     IF v_remaining_dice = 0 AND v_roll_score > 0 THEN
+      v_remaining_dice := 6;
       v_roll_results := roll_dice(6);
       v_score_result := calculate_turn_score(v_roll_results);
     ELSIF v_remaining_dice > 0 AND v_roll_score > 0 THEN

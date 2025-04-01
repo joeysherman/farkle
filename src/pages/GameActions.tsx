@@ -38,7 +38,7 @@ export const GameActions: React.FC<{
 	const canContinue = latestAction && !latestAction.turn_action_outcome;
 
 	const isDisabled = isPending || !canContinue;
-
+	debugger;
 	return (
 		<div className="flex-none grid grid-cols-2 gap-6 py-2 px-4">
 			{isFarkle && latestAction ? (
@@ -102,7 +102,7 @@ export const GameActions: React.FC<{
 					>
 						{latestAction.available_dice === 0 &&
 							latestAction.score > 0 &&
-							"Hot Dice! Roll 6 dice"}
+							"Roll 6 dice"}
 						{latestAction.available_dice > 0 &&
 							latestAction.score > 0 &&
 							`Roll ${latestAction.available_dice} dice`}
