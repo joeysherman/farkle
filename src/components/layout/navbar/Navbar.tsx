@@ -64,15 +64,12 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	);
 
 	useEffect(() => {
-		let isMounted = true;
-
 		// Get initial session and profile
 		const fetchUserAndProfile = async (): Promise<void> => {
 			try {
 				const {
 					data: { session },
 				} = await supabase.auth.getSession();
-				if (!isMounted) return;
 
 				setUser(session?.user ?? null);
 
@@ -82,52 +79,19 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 						.select("id, username, avatar_name")
 						.eq("id", session.user.id)
 						.single();
-					if (!isMounted) return;
+
 					setProfile(profileData);
 				}
-				if (isMounted) {
-					setLoading(false);
-				}
+
+				setLoading(false);
 			} catch (error) {
 				console.error("Error fetching user and profile:", error);
-				if (isMounted) {
-					setLoading(false);
-				}
+
+				setLoading(false);
 			}
 		};
 
 		void fetchUserAndProfile();
-
-		// Listen for auth changes
-		const {
-			data: { subscription },
-		} = supabase.auth.onAuthStateChange(
-			async (_event, session): Promise<void> => {
-				try {
-					if (!isMounted) return;
-					setUser(session?.user ?? null);
-
-					if (session?.user) {
-						const { data: profileData } = await supabase
-							.from("profiles")
-							.select("id, username, avatar_name")
-							.eq("id", session.user.id)
-							.single();
-						if (!isMounted) return;
-						setProfile(profileData);
-					} else {
-						setProfile(null);
-					}
-				} catch (error) {
-					console.error("Error handling auth change:", error);
-				}
-			}
-		);
-
-		return () => {
-			isMounted = false;
-			subscription.unsubscribe();
-		};
 	}, []);
 
 	const handleSignOut = async (): Promise<void> => {
