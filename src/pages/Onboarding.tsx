@@ -6,6 +6,7 @@ import { AvatarSelector, type AvatarName } from "../components/AvatarSelector";
 import { Toaster } from "react-hot-toast";
 import type { User } from "@supabase/supabase-js";
 import type { FunctionComponent } from "../common/types";
+import { motion, AnimatePresence } from "framer-motion";
 
 type OnboardingStep = "personalInfo" | "accountInfo" | "confirmation";
 
@@ -53,6 +54,29 @@ export const Onboarding = (): FunctionComponent => {
 		username: "",
 		avatarName: "default",
 	});
+
+	const slideVariants = {
+		enter: (direction: number) => ({
+			x: direction > 0 ? 300 : -300,
+			opacity: 0,
+		}),
+		center: {
+			zIndex: 1,
+			x: 0,
+			opacity: 1,
+		},
+		exit: (direction: number) => ({
+			zIndex: 0,
+			x: direction < 0 ? 300 : -300,
+			opacity: 0,
+		}),
+	};
+
+	const [[page, direction], setPage] = useState([0, 0]);
+
+	const paginate = (newDirection: number) => {
+		setPage([page + newDirection, newDirection]);
+	};
 
 	const getStepStatus = (
 		step: (typeof STEPS)[number],
@@ -105,6 +129,10 @@ export const Onboarding = (): FunctionComponent => {
 
 		void checkAuth();
 	}, [navigate]);
+
+	useEffect(() => {
+		setPage([STEPS.findIndex((step) => step.id === currentStep), 0]);
+	}, [currentStep]);
 
 	const updateProfile = async (
 		updates: Partial<{
@@ -165,6 +193,32 @@ export const Onboarding = (): FunctionComponent => {
 		}
 	};
 
+	const handleBack = async (): Promise<void> => {
+		try {
+			setError("");
+			if (currentStep === "accountInfo") {
+				await updateProfile({
+					onboarding_step: "personalInfo",
+				});
+				setCurrentStep("personalInfo");
+			} else if (currentStep === "confirmation") {
+				await updateProfile({
+					onboarding_step: "accountInfo",
+				});
+				setCurrentStep("accountInfo");
+			}
+		} catch (error) {
+			console.error("Error:", error);
+			setError(error instanceof Error ? error.message : "An error occurred");
+		}
+	};
+
+	const handleKeyPress = (event: React.KeyboardEvent): void => {
+		if (event.key === "Enter" && !error) {
+			void handleNext();
+		}
+	};
+
 	if (loading) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -175,12 +229,12 @@ export const Onboarding = (): FunctionComponent => {
 			</div>
 		);
 	}
-
+	debugger;
 	return (
 		<div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
 			<Toaster position="bottom-center" />
 			<div className="max-w-3xl mx-auto">
-				<div className="bg-white shadow sm:rounded-lg">
+				<div className="bg-white shadow sm:rounded-lg overflow-hidden">
 					<div className="px-4 py-5 sm:p-6">
 						{/* Progress Steps */}
 						<div className="mb-8">
@@ -191,70 +245,116 @@ export const Onboarding = (): FunctionComponent => {
 						</div>
 
 						{/* Step Content */}
-						<div>
-							{currentStep === "personalInfo" && (
-								<div>
-									<h3 className="text-lg font-medium text-gray-900 mb-4">
-										Enter your personal information
-									</h3>
-									<input
-										className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-										placeholder="Enter username"
-										type="text"
-										value={state.username}
-										onChange={(event) => {
-											setState((previous) => ({
-												...previous,
-												username: event.target.value,
-											}));
-										}}
-									/>
-								</div>
-							)}
+						<div className="relative min-h-[400px] overflow-hidden">
+							<AnimatePresence initial={false} mode="wait" custom={direction}>
+								<motion.div
+									key={currentStep}
+									custom={direction}
+									variants={slideVariants}
+									initial="enter"
+									animate="center"
+									exit="exit"
+									transition={{
+										x: { type: "spring", stiffness: 300, damping: 30 },
+										opacity: { duration: 0.2 },
+									}}
+									className="w-full absolute inset-0 px-4"
+								>
+									{currentStep === "personalInfo" && (
+										<div className="space-y-4">
+											<h3 className="text-2xl font-semibold text-gray-900">
+												Enter your personal information
+											</h3>
+											<input
+												className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+												placeholder="Enter username"
+												type="text"
+												value={state.username}
+												onChange={(event) => {
+													setState((previous) => ({
+														...previous,
+														username: event.target.value,
+													}));
+												}}
+												onKeyDown={(event) => {
+													if (event.key === "Enter" && !error) {
+														event.preventDefault();
+														void handleNext();
+													}
+												}}
+											/>
+										</div>
+									)}
 
-							{currentStep === "accountInfo" && (
-								<div>
-									<h3 className="text-lg font-medium text-gray-900 mb-4">
-										Choose your avatar
-									</h3>
-									<AvatarSelector
-										currentAvatar={state.avatarName}
-										showCloseButton={false}
-										onSelect={(avatarName) => {
-											setState((previous) => ({
-												...previous,
-												avatarName,
-											}));
-										}}
-									/>
-								</div>
-							)}
+									{currentStep === "accountInfo" && (
+										<div className="space-y-4">
+											<h3 className="text-2xl font-semibold text-gray-900">
+												Choose your avatar
+											</h3>
+											<div
+												tabIndex={0}
+												onKeyDown={(event) => {
+													if (event.key === "Enter" && !error) {
+														event.preventDefault();
+														void handleNext();
+													}
+												}}
+											>
+												<AvatarSelector
+													currentAvatar={state.avatarName}
+													showCloseButton={false}
+													onSelect={(avatarName) => {
+														setState((previous) => ({
+															...previous,
+															avatarName,
+														}));
+													}}
+												/>
+											</div>
+										</div>
+									)}
 
-							{currentStep === "confirmation" && (
-								<div>
-									<h3 className="text-lg font-medium text-gray-900 mb-4">
-										Almost done!
-									</h3>
-									<p className="text-gray-600">
-										Your profile has been set up. Click finish to start playing!
-									</p>
-								</div>
-							)}
+									{currentStep === "confirmation" && (
+										<div className="space-y-4">
+											<h3 className="text-2xl font-semibold text-gray-900">
+												Almost done!
+											</h3>
+											<p className="text-lg text-gray-600">
+												Your profile has been set up. Click finish to start
+												playing!
+											</p>
+										</div>
+									)}
+								</motion.div>
+							</AnimatePresence>
 
 							{error && (
 								<div className="mt-4 text-sm text-red-600">{error}</div>
 							)}
-
-							<div className="mt-6 flex justify-end">
+						</div>
+						<div className="bottom-0 left-0 right-0 mt-6 flex justify-between px-4">
+							{currentStep !== "personalInfo" && (
 								<button
-									className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+									className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
 									onClick={() => {
-										void handleNext();
+										paginate(-1);
+										void handleBack();
 									}}
 								>
-									{currentStep === "confirmation" ? "Finish" : "Next"}
+									Back
 								</button>
-							</div>
+							)}
+							<button
+								className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+									currentStep === "personalInfo" ? "ml-auto" : ""
+								}`}
+								onClick={() => {
+									paginate(1);
+									void handleNext();
+								}}
+							>
+								{currentStep === "confirmation" ? "Finish" : "Next"}
+							</button>
 						</div>
 					</div>
 				</div>
