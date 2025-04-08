@@ -994,11 +994,20 @@ export function Room(): JSX.Element {
 								<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-2">
 									<div className="flex justify-between flex-col md:flex-row">
 										{/* Turn Summary Section */}
+
 										<div className="flex-1">
+											{room?.status === "rebuttal" &&
+												room?.winner_id &&
+												players?.length > 0 && (
+													<div className="flex-1">
+														<ShowWinner room={room} players={players} />
+													</div>
+												)}
 											{players.length > 0 &&
 												turnActions &&
 												gameState?.current_player_id && (
 													<TurnSummary
+														room={room}
 														isCurrentPlayerTurn={isCurrentPlayerTurn}
 														players={players}
 														currentPlayer={players.find(
@@ -1015,7 +1024,8 @@ export function Room(): JSX.Element {
 													user &&
 													players &&
 													turnActions &&
-													room?.status === "in_progress" && (
+													(room?.status === "in_progress" ||
+														room?.status === "rebuttal") && (
 														<GameActions
 															gameState={gameState}
 															user={user}
@@ -1224,6 +1234,17 @@ function RoomHeader({
 	user: User;
 	children: React.ReactNode;
 }) {
+	let status = "";
+	if (room.status === "waiting") {
+		status = "Waiting";
+	} else if (room.status === "in_progress") {
+		status = "In Progress";
+	} else if (room.status === "completed") {
+		status = "Completed";
+	} else if (room.status === "rebuttal") {
+		status = "Rebuttal";
+	}
+
 	return (
 		<div className="p-4 border-b border-gray-200">
 			<div className="flex flex-col justify-between gap-4">
@@ -1242,11 +1263,7 @@ function RoomHeader({
 									: "bg-gray-100 text-gray-800"
 						}`}
 					>
-						{room.status === "waiting"
-							? "Waiting"
-							: room.status === "in_progress"
-								? "In Progress"
-								: "Completed"}
+						{status}
 					</span>
 					<span className="font-medium ml-1">
 						Players: {room.current_players}/{room.max_players}
@@ -1260,12 +1277,14 @@ function RoomHeader({
 }
 
 function TurnSummary({
+	room,
 	players,
 	currentPlayer,
 	turnActions,
 	gameState,
 	isCurrentPlayerTurn,
 }: {
+	room: GameRoom;
 	currentPlayer: GamePlayer;
 	turnActions: TurnAction[];
 	players: GamePlayer[];
@@ -1314,7 +1333,9 @@ function TurnSummary({
 						</div>
 						<div className="flex items-center gap-1 sm:gap-2">
 							<span className="text-xs sm:text-sm font-medium text-gray-600">
-								Turn {gameState.current_turn_number}
+								{room.status === "rebuttal"
+									? "Rebuttal"
+									: `Turn ${gameState.current_turn_number}`}
 							</span>
 							{turnActions.length > 0 && (
 								<span className="text-xs text-gray-500">
@@ -1357,6 +1378,53 @@ function CurrentPlayerTurn({ currentPlayer }: { currentPlayer: GamePlayer }) {
 				src={`/avatars/${currentPlayer?.avatar_name || "default"}.svg`}
 			/>
 			<p className="text-sm font-medium">{currentPlayer?.username}</p>
+		</div>
+	);
+}
+
+function ShowWinner({
+	room,
+	players,
+}: {
+	room: GameRoom;
+	players: Array<GamePlayer>;
+}) {
+	const winner = players.find((player) => player.user_id === room.winner_id);
+	const { data: userData, isLoading: userLoading } = useUser(winner?.user_id);
+
+	if (!winner || userLoading) {
+		return null;
+	}
+
+	return (
+		<div className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg p-3 shadow-sm border border-amber-200">
+			<div className="flex items-center gap-3">
+				<div className="relative flex-shrink-0">
+					<div className="absolute inset-0 bg-amber-500 rounded-full animate-ping opacity-20"></div>
+					<img
+						alt={`${userData?.username}'s avatar`}
+						className="w-10 h-10 rounded-full border-2 border-amber-500 shadow relative z-10"
+						src={`/avatars/${userData?.avatar_name || "default"}.svg`}
+					/>
+				</div>
+				<div className="flex-1 min-w-0">
+					<div className="flex items-center gap-2">
+						<h3 className="text-base font-semibold text-gray-900 truncate">
+							{userData?.username}
+						</h3>
+						<svg
+							className="w-4 h-4 text-amber-500 flex-shrink-0"
+							fill="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279-7.416-3.967-7.417 3.967 1.481-8.279-6.064-5.828 8.332-1.151z" />
+						</svg>
+					</div>
+					<p className="text-sm font-medium text-amber-600">
+						Score: {winner.score}
+					</p>
+				</div>
+			</div>
 		</div>
 	);
 }

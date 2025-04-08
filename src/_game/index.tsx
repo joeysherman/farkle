@@ -55,7 +55,7 @@ export const GameScene = ({
 }: GameSceneProps) => {
 	const cameraControlsRef = useRef();
 	const orbitControlsRef = useRef();
-	debugger;
+
 	return (
 		<div className="relative w-full h-full" style={{ minHeight: "300px" }}>
 			<Canvas

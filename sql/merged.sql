@@ -2,7 +2,7 @@
 DO $$ 
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'game_status') THEN
-    CREATE TYPE game_status AS ENUM ('waiting', 'in_progress', 'completed');
+    CREATE TYPE game_status AS ENUM ('waiting', 'in_progress', 'rebuttal', 'completed');
   END IF;
 END $$;
 
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   total_games int default 0,
   games_won int default 0,
   highest_score int default 0,
-  onboarding_step text default 'username',
+  onboarding_step text default 'personalInfo',
   onboarding_completed boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -842,10 +842,13 @@ CREATE OR REPLACE FUNCTION process_turn_action(
 ) RETURNS JSONB AS $$
 DECLARE
   v_game_state game_states;
+  v_game_room game_rooms;
   v_player game_players;
   v_turn game_turns;
   v_latest_action turn_actions;
+
   v_score_result turn_score_result;
+
   v_remaining_dice INTEGER;
   v_kept_dice INTEGER[];
   v_roll_results INTEGER[];
@@ -854,13 +857,6 @@ DECLARE
 
   v_roll_score INTEGER;
 
-  p_kept_dice INTEGER[];
-
-  c_value INTEGER[];
-  c_new_kept_dice INTEGER[];
-  c_new_available_dice INTEGER;
-  c_difference_kept_dice INTEGER[];
-  c_difference_kept_dice_length INTEGER;
   c_new_score_result turn_score_result;
 BEGIN
   -- Get current game state
@@ -868,8 +864,18 @@ BEGIN
   FROM game_states gs
   WHERE gs.game_id = p_game_id;
 
+  -- if the v_game_state is not found, raise an exception
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Game state not found';
+  END IF;
+
+  SELECT gr.* INTO v_game_room
+  FROM game_rooms gr
+  WHERE gr.id = p_game_id;
+
+  -- if the v_game_room is not found, raise an exception
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Game room not found';
   END IF;
 
   -- Get current player
@@ -877,11 +883,21 @@ BEGIN
   FROM game_players gp
   WHERE gp.id = v_game_state.current_player_id;
 
+  -- if the v_player is not found, raise an exception
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Player not found';
+  END IF;
+
   -- Get current turn
   SELECT gt.* INTO v_turn
   FROM game_turns gt
   WHERE gt.game_id = p_game_id
   AND gt.turn_number = v_game_state.current_turn_number;
+
+  -- if the v_turn is not found, raise an exception
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Turn not found';
+  END IF;
 
   -- Get latest action
   SELECT ta.* INTO v_latest_action
@@ -890,6 +906,12 @@ BEGIN
   ORDER BY ta.action_number DESC
   LIMIT 1;
 
+  -- if the v_latest_action is not found, raise an exception
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Latest action not found';
+  END IF;
+
+  -- perform the turn action depending on the outcome
   -- Use CASE as an expression
   IF p_outcome = 'bust' THEN
     -- bust: set outcome to bust
@@ -1031,6 +1053,9 @@ DECLARE
   v_next_player_id UUID;
   v_pending_actions INTEGER;
   v_new_turn_id UUID;
+  v_current_score INTEGER;
+  v_winner_id UUID;
+  v_winner_user_id UUID;
 BEGIN
   -- Check if all actions have outcomes before ending turn
   SELECT COUNT(*)
@@ -1052,14 +1077,61 @@ BEGIN
   WHERE gt.game_id = p_game_id
   AND gt.ended_at IS NULL
   RETURNING * INTO v_turn;
-
-  -- If banking (not farkle), update player's score
   
-    UPDATE game_players
-    SET score = score + p_final_score
-    WHERE id = v_turn.player_id;
-  
+  -- get the current score of the player
+  SELECT score INTO v_current_score
+  FROM game_players
+  WHERE id = v_turn.player_id;
 
+  -- if the v_current_score + p_final_score is over 10000
+  -- set the status of the game to rebuttal
+  -- and update the game room with the winner
+  IF v_current_score + p_final_score >= 10000 THEN
+    UPDATE game_rooms
+    SET status = 'rebuttal'
+    WHERE id = p_game_id;
+
+    -- update the game room as the winner
+      SELECT id, user_id INTO v_winner_id, v_winner_user_id
+    FROM game_players
+    WHERE game_id = p_game_id
+    ORDER BY score DESC
+    LIMIT 1;
+
+    UPDATE game_rooms
+    SET winner_id = v_winner_user_id
+    WHERE id = p_game_id;
+    
+  END IF;
+
+  -- get the game_room
+  SELECT gr.* INTO v_game_room
+  FROM game_rooms gr
+  WHERE gr.id = p_game_id;
+
+  -- if the v_game_room is not found, raise an exception
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Game room not found';
+  END IF;
+
+  -- if the v_game_room.status is rebuttal
+  -- then if the next player is the same as the winner, end the game
+  IF v_game_room.status = 'rebuttal' THEN
+     SELECT id, user_id INTO v_winner_id, v_winner_user_id
+    FROM game_players
+    WHERE game_id = p_game_id
+    ORDER BY score DESC
+    LIMIT 1;
+    IF v_next_player_id = v_winner_id THEN
+      PERFORM end_game(p_game_id);
+    END IF;
+  END IF;
+
+  -- update the score of the player
+  UPDATE game_players
+  SET score = v_current_score + p_final_score
+  WHERE id = v_turn.player_id;
+  
   -- Get next player in turn order (using player_order instead of turn_order)
   SELECT gp.id INTO v_next_player_id
   FROM game_players gp
@@ -1071,6 +1143,9 @@ BEGIN
   )
   ORDER BY gp.player_order
   LIMIT 1;
+
+  -- if the v_next_player_id is not found, raise an exception
+  IF NOT FOUND THEN
 
   -- If no next player, wrap around to first player
   IF v_next_player_id IS NULL THEN
