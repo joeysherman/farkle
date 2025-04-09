@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS public.game_states CASCADE;
 DROP TABLE IF EXISTS public.game_players CASCADE;
 DROP TABLE IF EXISTS public.game_rooms CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
+DROP TABLE IF EXISTS public.notifications CASCADE;
 
 -- Drop all functions
 DROP FUNCTION IF EXISTS end_game(UUID);

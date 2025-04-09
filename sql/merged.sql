@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   onboarding_step text default 'personalInfo',
   onboarding_completed boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  fcm_token text;
 );
 
 -- Set up RLS for profiles
@@ -1413,6 +1414,11 @@ BEGIN
   RETURN QUERY SELECT * FROM test_calculate_turn_score();
 END;
 
-
+create table public.notifications (
+  id uuid not null default gen_random_uuid(),
+  user_id uuid references auth.users(id) not null,
+  created_at timestamp with time zone not null default now(),
+  body text not null
+);
 
 $$ LANGUAGE plpgsql; 
