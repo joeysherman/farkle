@@ -4,8 +4,7 @@ import { supabase } from "../lib/supabaseClient";
 
 export const PushNotificationButton: FC = () => {
 	const notificationState = useNotifications();
-	const { subscription, error, subscribe, unsubscribe } =
-		notificationState ?? {};
+	const { subscription, error, subscribe, unsubscribe } = notificationState;
 
 	const handleTestNotification = async (): Promise<void> => {
 		try {
@@ -36,9 +35,9 @@ export const PushNotificationButton: FC = () => {
 				} text-white transition-colors`}
 				onClick={(): void => {
 					if (subscription) {
-						void unsubscribe?.();
+						void unsubscribe();
 					} else {
-						void subscribe?.();
+						void subscribe();
 					}
 				}}
 			>
