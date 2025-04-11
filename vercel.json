@@ -14,20 +14,38 @@
     {
       "src": "/sw.js",
       "headers": {
-        "Cache-Control": "public, max-age=0, must-revalidate"
+        "Cache-Control": "public, max-age=0, must-revalidate",
+        "Content-Type": "application/javascript; charset=utf-8"
       }
     },
     {
       "src": "/workbox-.*\\.js",
       "headers": {
-        "Cache-Control": "public, max-age=0, must-revalidate"
+        "Cache-Control": "public, max-age=0, must-revalidate",
+        "Content-Type": "application/javascript; charset=utf-8"
       }
     },
     {
       "src": "/manifest.webmanifest",
       "headers": {
-        "Cache-Control": "public, max-age=0, must-revalidate"
+        "Cache-Control": "public, max-age=0, must-revalidate",
+        "Content-Type": "application/manifest+json; charset=utf-8"
       }
+    },
+    {
+      "src": "^/assets/.*\\.js$",
+      "headers": {
+        "Content-Type": "application/javascript; charset=utf-8"
+      }
+    },
+    {
+      "src": "^/assets/.*\\.(png|jpg|jpeg|gif|ico|svg)$",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
