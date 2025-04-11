@@ -300,6 +300,27 @@ importers:
       vitest:
         specifier: 2.0.5
         version: 2.0.5(@types/node@22.5.1)(jsdom@25.0.0)(less@4.2.0)(terser@5.31.6)
+      workbox-background-sync:
+        specifier: ^7.3.0
+        version: 7.3.0
+      workbox-core:
+        specifier: ^7.3.0
+        version: 7.3.0
+      workbox-expiration:
+        specifier: ^7.3.0
+        version: 7.3.0
+      workbox-precaching:
+        specifier: ^7.3.0
+        version: 7.3.0
+      workbox-routing:
+        specifier: ^7.3.0
+        version: 7.3.0
+      workbox-strategies:
+        specifier: ^7.3.0
+        version: 7.3.0
+      workbox-window:
+        specifier: ^7.3.0
+        version: 7.3.0
 
 packages:
 

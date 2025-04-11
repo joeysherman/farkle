@@ -25,6 +25,37 @@ export default defineConfig({
 				enabled: true,
 				type: 'module',
 			},
+			manifest: {
+				name: 'Vite React Boilerplate',
+				short_name: 'Vite React',
+				description: 'A production ready, batteries included starter template for Vite + React projects',
+				theme_color: '#ffffff',
+				icons: [
+					{
+						src: 'icons/icon-192x192.png',
+						sizes: '192x192',
+						type: 'image/png',
+					},
+					{
+						src: 'icons/icon-512x512.png',
+						sizes: '512x512',
+						type: 'image/png',
+					},
+					{
+						src: 'icons/icon-512x512.png',
+						sizes: '512x512',
+						type: 'image/png',
+						purpose: 'any maskable',
+					},
+				],
+			},
+			workbox: {
+				globPatterns: ['**/*.{js,css,html,ico,png,svg,json,vue,txt,woff2}'],
+				cleanupOutdatedCaches: true,
+				skipWaiting: true,
+				clientsClaim: true,
+			},
+			includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
 		})
 	],
 	server: {
