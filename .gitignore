@@ -33,3 +33,4 @@ storybook-static
 # tests
 /coverage/
 src/routeTree.gen.ts
+supabase/functions/service-account.json

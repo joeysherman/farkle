@@ -5,6 +5,7 @@ import App from "./App.tsx";
 import { routeTree } from "./routeTree.gen.ts";
 import "./styles/tailwind.css";
 import "./common/i18n";
+import "./registerSW";
 
 const router = createRouter({ routeTree });
 
