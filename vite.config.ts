@@ -16,6 +16,10 @@ export default defineConfig({
 				{
 					src: normalizePath(path.resolve('./src/assets/locales')),
 					dest: normalizePath(path.resolve('./dist'))
+				},
+				{
+					src: normalizePath(path.resolve('./public/firebase-messaging-sw.js')),
+					dest: normalizePath(path.resolve('./dist'))
 				}
 			]
 		}),
@@ -54,6 +58,24 @@ export default defineConfig({
 				cleanupOutdatedCaches: true,
 				skipWaiting: true,
 				clientsClaim: true,
+				navigateFallback: '/index.html',
+				navigateFallbackAllowlist: [/^(?!\/__).*/],
+				runtimeCaching: [
+					{
+						urlPattern: /^https:\/\/www\.gstatic\.com\/.*/i,
+						handler: 'CacheFirst',
+						options: {
+							cacheName: 'gstatic-cache',
+							expiration: {
+								maxEntries: 10,
+								maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+							},
+							cacheableResponse: {
+								statuses: [0, 200]
+							}
+						}
+					}
+				]
 			},
 			includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
 		})

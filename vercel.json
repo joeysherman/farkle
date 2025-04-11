@@ -12,6 +12,14 @@
   ],
   "routes": [
     {
+      "src": "/firebase-messaging-sw.js",
+      "headers": {
+        "Cache-Control": "no-cache",
+        "Content-Type": "application/javascript; charset=utf-8"
+      },
+      "dest": "/firebase-messaging-sw.js"
+    },
+    {
       "src": "/sw.js",
       "headers": {
         "Cache-Control": "public, max-age=0, must-revalidate",
