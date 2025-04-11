@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "../lib/supabaseClient";
 import { BouncingDice } from "../components/BouncingDice";
-import { PushNotificationButton } from "../components/PushTest";
 
 export function Signin(): JSX.Element {
 	const navigate = useNavigate();
@@ -60,23 +59,22 @@ export function Signin(): JSX.Element {
 		}
 	};
 
-	if (isAuthenticated === true) {
+	if (isAuthenticated) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-				<div className="max-w-md w-full space-y-8">
+			<div className="min-h-screen flex items-center justify-center bg-gray-50">
+				<div className="max-w-md w-full">
 					<div className="rounded-md bg-yellow-50 p-4">
 						<div className="flex">
 							<div className="flex-shrink-0">
 								<svg
 									className="h-5 w-5 text-yellow-400"
-									fill="currentColor"
 									viewBox="0 0 20 20"
-									xmlns="http://www.w3.org/2000/svg"
+									fill="currentColor"
 								>
 									<path
-										clipRule="evenodd"
-										d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
 										fillRule="evenodd"
+										d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+										clipRule="evenodd"
 									/>
 								</svg>
 							</div>
@@ -156,93 +154,86 @@ export function Signin(): JSX.Element {
 				)}
 
 				<form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-					<div>
-						<label
-							className="block text-sm font-medium text-gray-700"
-							htmlFor="email"
-						>
-							Email address
-						</label>
-						<div className="mt-1">
+					<div className="rounded-md shadow-sm -space-y-px">
+						<div>
+							<label htmlFor="email-address" className="sr-only">
+								Email address
+							</label>
 							<input
-								autoComplete="username email"
-								className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white/50 backdrop-blur-sm"
-								disabled={loading}
-								id="email"
+								id="email-address"
 								name="email"
-								placeholder="Enter your email"
-								required
 								type="email"
+								autoComplete="email"
+								required
+								className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+								placeholder="Email address"
 								value={email}
-								onChange={(event): void => {
-									setEmail(event.target.value);
-								}}
+								onChange={(e) => setEmail(e.target.value)}
 							/>
 						</div>
-					</div>
-
-					<div>
-						<label
-							className="block text-sm font-medium text-gray-700"
-							htmlFor="password"
-						>
-							Password
-						</label>
-						<div className="mt-1">
+						<div>
+							<label htmlFor="password" className="sr-only">
+								Password
+							</label>
 							<input
-								autoComplete="current-password"
-								className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white/50 backdrop-blur-sm"
-								disabled={loading}
 								id="password"
 								name="password"
-								placeholder="Enter your password"
-								required
 								type="password"
+								autoComplete="current-password"
+								required
+								className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+								placeholder="Password"
 								value={password}
-								onChange={(event): void => {
-									setPassword(event.target.value);
-								}}
+								onChange={(e) => setPassword(e.target.value)}
 							/>
 						</div>
 					</div>
 
 					<div>
 						<button
-							className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-							disabled={loading}
 							type="submit"
+							disabled={loading}
+							className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
 						>
-							{loading ? "Signing in..." : "Sign in"}
+							{loading ? (
+								<>
+									<svg
+										className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+										xmlns="http://www.w3.org/2000/svg"
+										fill="none"
+										viewBox="0 0 24 24"
+									>
+										<circle
+											className="opacity-25"
+											cx="12"
+											cy="12"
+											r="10"
+											stroke="currentColor"
+											strokeWidth="4"
+										></circle>
+										<path
+											className="opacity-75"
+											fill="currentColor"
+											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+										></path>
+									</svg>
+									Signing in...
+								</>
+							) : (
+								"Sign in"
+							)}
 						</button>
 					</div>
 
-					<div className="flex items-center justify-between">
-						<div className="text-sm">
-							<Link
-								className="font-medium text-indigo-600 hover:text-indigo-500"
-								to="/signup"
-							>
-								Don't have an account? Sign up
-							</Link>
-						</div>
+					<div className="text-center">
+						<Link
+							to="/signup"
+							className="font-medium text-indigo-600 hover:text-indigo-500"
+						>
+							Don't have an account? Sign up
+						</Link>
 					</div>
 				</form>
-
-				<div className="mt-6">
-					<div className="relative">
-						<div className="absolute inset-0 flex items-center">
-							<div className="w-full border-t border-gray-300"></div>
-						</div>
-						<div className="relative flex justify-center text-sm">
-							<span className="px-2 bg-white/70 text-gray-500">
-								Push Notifications
-							</span>
-						</div>
-					</div>
-					<div className="mt-6">
-						<PushNotificationButton />
-					</div>
-				</div>
 			</div>
 		</div>
 	);
