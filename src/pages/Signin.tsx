@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "../lib/supabaseClient";
 import { BouncingDice } from "../components/BouncingDice";
+import { PushNotificationButton } from "../components/PushTest";
 
 export function Signin(): JSX.Element {
 	const navigate = useNavigate();
@@ -207,22 +208,40 @@ export function Signin(): JSX.Element {
 
 					<div>
 						<button
-							className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+							className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
 							disabled={loading}
 							type="submit"
 						>
 							{loading ? "Signing in..." : "Sign in"}
 						</button>
 					</div>
+
+					<div className="flex items-center justify-between">
+						<div className="text-sm">
+							<Link
+								className="font-medium text-indigo-600 hover:text-indigo-500"
+								to="/signup"
+							>
+								Don't have an account? Sign up
+							</Link>
+						</div>
+					</div>
 				</form>
 
-				<div className="text-center">
-					<Link
-						className="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
-						to="/signup"
-					>
-						Don't have an account? Sign up
-					</Link>
+				<div className="mt-6">
+					<div className="relative">
+						<div className="absolute inset-0 flex items-center">
+							<div className="w-full border-t border-gray-300"></div>
+						</div>
+						<div className="relative flex justify-center text-sm">
+							<span className="px-2 bg-white/70 text-gray-500">
+								Push Notifications
+							</span>
+						</div>
+					</div>
+					<div className="mt-6">
+						<PushNotificationButton />
+					</div>
 				</div>
 			</div>
 		</div>
