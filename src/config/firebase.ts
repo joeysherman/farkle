@@ -22,6 +22,7 @@ export const requestNotificationPermission = async () => {
       const token = await getToken(messaging, {
         vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
       });
+      debugger;
       return token;
     }
     throw new Error('Notification permission denied');
