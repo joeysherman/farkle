@@ -48,53 +48,6 @@ function calculateBoundaries(width: number, height: number) {
 	} as const;
 }
 
-// Boundary lines component to visualize the limits
-function BoundaryLines(): JSX.Element {
-	const [width, height] = useWindowSize();
-	const BOUNDARY = useMemo(
-		() => calculateBoundaries(width, height),
-		[width, height]
-	);
-
-	// Memoize points arrays to prevent recreating every frame
-	const points = useMemo(() => {
-		const verticalLines: [Vector3, Vector3][] = [
-			[
-				[BOUNDARY.LEFT, BOUNDARY.BOTTOM, 0],
-				[BOUNDARY.LEFT, BOUNDARY.TOP, 0],
-			],
-			[
-				[BOUNDARY.RIGHT, BOUNDARY.BOTTOM, 0],
-				[BOUNDARY.RIGHT, BOUNDARY.TOP, 0],
-			],
-		];
-
-		const horizontalLines: [Vector3, Vector3][] = [
-			[
-				[BOUNDARY.LEFT, BOUNDARY.TOP, 0],
-				[BOUNDARY.RIGHT, BOUNDARY.TOP, 0],
-			],
-			[
-				[BOUNDARY.LEFT, BOUNDARY.BOTTOM, 0],
-				[BOUNDARY.RIGHT, BOUNDARY.BOTTOM, 0],
-			],
-		];
-
-		return { vertical: verticalLines, horizontal: horizontalLines };
-	}, [BOUNDARY]);
-
-	return (
-		<>
-			{points.vertical.map((line, index) => (
-				<Line key={`v${index}`} color="red" lineWidth={2} points={line} />
-			))}
-			{points.horizontal.map((line, index) => (
-				<Line key={`h${index}`} color="red" lineWidth={2} points={line} />
-			))}
-		</>
-	);
-}
-
 function AnimatedDice(): JSX.Element {
 	const diceRef = useRef<Group>(null);
 	const [width, height] = useWindowSize();
@@ -190,7 +143,6 @@ export function BouncingDice(): JSX.Element {
 			>
 				<ambientLight intensity={0.7} />
 				<directionalLight intensity={0.5} position={[5, 5, 5]} />
-				<BoundaryLines />
 				<AnimatedDice />
 				<OrbitControls
 					enablePan={false}
