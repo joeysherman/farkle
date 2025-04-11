@@ -3,7 +3,7 @@ import {
 	onMessageListener,
 	requestNotificationPermission,
 } from "../config/firebase";
-import toast from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { supabase } from "../lib/supabaseClient";
 
 interface NotificationState {
@@ -42,8 +42,6 @@ export const useNotifications = (): NotificationState => {
 			}
 
 			setSubscription(true);
-
-			// Show success toast
 			toast.success("Notifications enabled successfully!");
 		} catch (err) {
 			setError(
