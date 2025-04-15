@@ -816,6 +816,7 @@ export function Room(): JSX.Element {
 						handleJoinWithCode={handleJoinWithCode}
 						copyInviteLink={copyInviteLink}
 						copied={copied}
+						onClose={() => setShowInviteModal(false)}
 					/>
 				</div>
 			</div>
