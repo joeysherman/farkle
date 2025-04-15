@@ -16,7 +16,6 @@ interface NotificationState {
 export const useNotifications = (): NotificationState => {
 	const [subscription, setSubscription] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
-
 	useEffect(() => {
 		// Check if notifications are already enabled
 		if ("Notification" in window) {
@@ -32,10 +31,14 @@ export const useNotifications = (): NotificationState => {
 				throw new Error("Failed to get notification token");
 			}
 
-			// Store the token in Supabase
+			debugger;
+			// Store the in the profiles table
+			// where the id matches the current user
+			const { data: userData, error: userError } =
+				await supabase.auth.getUser();
 			const { error: updateError } = await supabase
-				.from("user_notification_tokens")
-				.upsert({ token });
+				.from("profiles")
+				.upsert({ id: userData?.user?.id, fcm_token: token });
 
 			if (updateError) {
 				throw updateError;
