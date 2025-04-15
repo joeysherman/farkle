@@ -96,7 +96,7 @@ export const PlayersList: React.FC<{
 				debugger;
 				return (
 					<PlayerListItem
-						key={player.id + isOnline}
+						key={player.id}
 						player={player}
 						isCurrentTurn={isCurrentTurn}
 						isCurrentUser={isCurrentUser}

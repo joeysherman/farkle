@@ -18,6 +18,8 @@ import { RoomControls } from "../features/RoomControls";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { GameActions } from "./GameActions";
 import { useUser } from "../services/user";
+import { InviteModal } from "../features/InviteModal";
+
 export interface GameRoom {
 	id: string;
 	name: string;
@@ -758,191 +760,17 @@ export function Room(): JSX.Element {
 		};
 	}, [user, roomId]);
 
-	const copyInviteLink = async () => {
+	const copyInviteLink = async (): Promise<void> => {
 		const url = `${window.location.origin}/room?roomId=${roomId}`;
 		await navigator.clipboard.writeText(url);
 		setCopied(true);
-		setTimeout(() => setCopied(false), 2000);
-	};
-
-	// Invite Modal Component
-	const InviteModal = () => {
-		const codeInputRef = useRef<HTMLInputElement>(null);
-		const joinButtonRef = useRef<HTMLButtonElement>(null);
-		const [code, setCode] = useState("");
-		const [isValid, setIsValid] = useState(false);
-
-		// Add effect to handle auto-redirect when game is in progress
-		useEffect(() => {
-			if (room?.status === "in_progress") {
-				const timer = setInterval(() => {
-					setCountdown((prev) => {
-						if (prev <= 1) {
-							navigate({ to: "/" });
-							return 0;
-						}
-						return prev - 1;
-					});
-				}, 1000);
-				return () => clearInterval(timer);
-			}
-		}, [room?.status, navigate]);
-
-		// Handle code paste
-		const handleCodePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
-			console.log("Paste event triggered");
-			event.preventDefault();
-			const pastedText = event.clipboardData.getData("text");
-			console.log("Pasted text:", pastedText);
-			// Only allow digits and limit to 6 characters
-			const digitsOnly = pastedText.replace(/\D/g, "").slice(0, 6);
-			console.log("Digits only:", digitsOnly);
-			setCode(digitsOnly);
-			setIsValid(digitsOnly.length === 6);
-		};
-
-		// Handle code changes
-		const handleCodeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-			console.log("Change event triggered");
-			const value = event.target.value;
-			console.log("Input value:", value);
-			// Only allow digits and limit to 6 characters
-			const digitsOnly = value.replace(/\D/g, "").slice(0, 6);
-			console.log("Digits only:", digitsOnly);
-			setCode(digitsOnly);
-			setIsValid(digitsOnly.length === 6);
-		};
-
-		// Auto-join when code is 6 digits
-		useEffect(() => {
-			console.log("Code changed:", code);
-			if (code.length === 6) {
-				console.log("Attempting to join with code:", code);
-				void handleJoinWithCode(code, localUsername);
-			}
-		}, [code]);
-
-		return (
-			<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-				<div className="bg-white rounded-lg p-6 max-w-md w-full">
-					{user && room?.created_by === user.id ? (
-						<>
-							<h3 className="text-lg font-medium mb-4">
-								Invite Players to {room?.name}
-							</h3>
-							<div className="space-y-4">
-								<div>
-									<label className="block text-sm font-medium text-gray-700">
-										Room Code
-									</label>
-									<input
-										readOnly
-										type="text"
-										value={room?.invite_code}
-										className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
-									/>
-								</div>
-								<div>
-									<label className="block text-sm font-medium text-gray-700">
-										Room URL
-									</label>
-									<div className="mt-1 flex rounded-md shadow-sm">
-										<input
-											readOnly
-											type="text"
-											value={`${window.location.origin}/room?roomId=${roomId}`}
-											className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 bg-gray-50"
-										/>
-										<button
-											className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-											onClick={copyInviteLink}
-										>
-											{copied ? "Copied!" : "Copy"}
-										</button>
-									</div>
-								</div>
-							</div>
-						</>
-					) : room?.status === "in_progress" ? (
-						<>
-							<h3 className="text-lg font-medium mb-4 text-red-600">
-								Game Already Started
-							</h3>
-							<p className="text-gray-600 mb-4">
-								You cannot join at this time.
-							</p>
-							<p className="text-2xl font-bold text-indigo-600 text-center mb-4">
-								Redirecting in {countdown}
-							</p>
-							<button
-								className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-								onClick={() => navigate({ to: "/" })}
-							>
-								Go Back
-							</button>
-						</>
-					) : (
-						<>
-							<h3 className="text-lg font-medium mb-4">
-								Join {room?.name || "Game"}
-							</h3>
-							<div className="space-y-4">
-								{!user && (
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Username
-										</label>
-										<input
-											className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
-											onChange={(event) => setLocalUsername(event.target.value)}
-											placeholder="Enter your username"
-											type="text"
-											value={localUsername}
-										/>
-									</div>
-								)}
-								<div>
-									<label className="block text-sm font-medium text-gray-700">
-										Room Code
-									</label>
-									<input
-										className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300"
-										inputMode="numeric"
-										maxLength={6}
-										onChange={handleCodeChange}
-										onPaste={handleCodePaste}
-										pattern="[0-9]*"
-										placeholder="Enter 6-digit code"
-										ref={codeInputRef}
-										type="text"
-										value={code}
-									/>
-								</div>
-								<button
-									className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-									disabled={!isValid}
-									onClick={() => void handleJoinWithCode(code, localUsername)}
-									ref={joinButtonRef}
-								>
-									Join Game
-								</button>
-								{/* go back home */}
-								<button
-									className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-									onClick={() => navigate({ to: "/" })}
-								>
-									Go Back
-								</button>
-							</div>
-						</>
-					)}
-				</div>
-			</div>
-		);
+		setTimeout(() => {
+			setCopied(false);
+		}, 2000);
 	};
 
 	// Add roll handler
-	const handleRoll = async (numberDice: number = 6) => {
+	const handleRoll = async (numberDice: number = 6): Promise<void> => {
 		try {
 			const { data: rollResults, error } = await supabase.rpc("perform_roll", {
 				p_game_id: roomId,
@@ -979,7 +807,16 @@ export function Room(): JSX.Element {
 		return (
 			<div className="min-h-screen bg-gray-50">
 				<div className="flex items-center justify-center h-[calc(100vh-64px)]">
-					<InviteModal />
+					<InviteModal
+						room={room}
+						user={user}
+						roomId={roomId}
+						localUsername={localUsername}
+						setLocalUsername={setLocalUsername}
+						handleJoinWithCode={handleJoinWithCode}
+						copyInviteLink={copyInviteLink}
+						copied={copied}
+					/>
 				</div>
 			</div>
 		);
