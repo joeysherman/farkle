@@ -1140,13 +1140,13 @@ function RoomHeader({
 	children: React.ReactNode;
 }) {
 	let status = "";
-	if (room.status === "waiting") {
+	if (room?.status === "waiting") {
 		status = "Waiting";
-	} else if (room.status === "in_progress") {
+	} else if (room?.status === "in_progress") {
 		status = "In Progress";
-	} else if (room.status === "completed") {
+	} else if (room?.status === "completed") {
 		status = "Completed";
-	} else if (room.status === "rebuttal") {
+	} else if (room?.status === "rebuttal") {
 		status = "Rebuttal";
 	}
 
@@ -1161,9 +1161,9 @@ function RoomHeader({
 				<div className="flex items-center justify-between text-sm text-gray-500 gap-2">
 					<span
 						className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-							room.status === "waiting"
+							room?.status === "waiting"
 								? "bg-yellow-100 text-yellow-800"
-								: room.status === "in_progress"
+								: room?.status === "in_progress"
 									? "bg-green-100 text-green-800"
 									: "bg-gray-100 text-gray-800"
 						}`}
@@ -1238,7 +1238,7 @@ function TurnSummary({
 						</div>
 						<div className="flex items-center gap-1 sm:gap-2">
 							<span className="text-xs sm:text-sm font-medium text-gray-600">
-								{room.status === "rebuttal"
+								{room?.status === "rebuttal"
 									? "Rebuttal"
 									: `Turn ${gameState.current_turn_number}`}
 							</span>

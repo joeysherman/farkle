@@ -242,12 +242,12 @@ export const Home = (): FunctionComponent => {
 											</h3>
 											<span
 												className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-													room.status === "waiting"
+													room?.status === "waiting"
 														? "bg-yellow-100 text-yellow-800"
 														: "bg-green-100 text-green-800"
 												}`}
 											>
-												{room.status === "waiting" ? "Waiting" : "In Progress"}
+												{room?.status === "waiting" ? "Waiting" : "In Progress"}
 											</span>
 										</div>
 										<p className="mt-1 text-sm text-gray-500">
@@ -259,16 +259,16 @@ export const Home = (): FunctionComponent => {
 													navigate({ to: "/room", search: { roomId: room.id } })
 												}
 												className={`flex-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
-													room.status === "waiting"
+													room?.status === "waiting"
 														? "bg-indigo-600 hover:bg-indigo-700"
 														: "bg-green-600 hover:bg-green-700"
 												} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
 											>
-												{room.status === "waiting" ? "Join Game" : "View Game"}
+												{room?.status === "waiting" ? "Join Game" : "View Game"}
 											</button>
 											{user &&
 												room.created_by === user.id &&
-												room.status === "in_progress" && (
+												room?.status === "in_progress" && (
 													<button
 														onClick={() => handleEndGame(room.id)}
 														className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
