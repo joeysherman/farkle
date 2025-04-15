@@ -34,9 +34,11 @@ const PlayerListItem: React.FC<PlayerListItemProps> = ({
 						className="w-10 h-10 rounded-full"
 						src={`/avatars/${userData.avatar_name || "default"}.svg`}
 					/>
-					{isOnline && (
-						<div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
-					)}
+					<div
+						className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
+							isOnline ? "bg-green-500" : "bg-gray-300"
+						}`}
+					/>
 				</div>
 				<div className="flex-1 min-w-0">
 					<div className="flex items-center gap-2">
@@ -84,16 +86,17 @@ export const PlayersList: React.FC<{
 	room: GameRoom;
 	onlineUsers: Record<string, any>;
 }> = ({ players, gameState, user, room, onlineUsers }) => {
+	console.log("PlayersList", { players, gameState, user, room, onlineUsers });
 	return (
 		<div className="space-y-3">
 			{players.map((player) => {
 				const isCurrentTurn = gameState?.current_player_id === player.id;
 				const isCurrentUser = player.user_id === user?.id;
 				const isOnline = Boolean(onlineUsers[player.user_id]);
-
+				debugger;
 				return (
 					<PlayerListItem
-						key={player.id}
+						key={player.id + isOnline}
 						player={player}
 						isCurrentTurn={isCurrentTurn}
 						isCurrentUser={isCurrentUser}
@@ -102,7 +105,8 @@ export const PlayersList: React.FC<{
 				);
 			})}
 
-			{room?.status === "waiting" &&
+			{room &&
+				room?.status === "waiting" &&
 				Array.from({ length: room.max_players - players.length }).map(
 					(_, index) => (
 						<EmptyPlayerSlot

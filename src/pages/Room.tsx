@@ -699,47 +699,60 @@ export function Room(): JSX.Element {
 
 	// Setup presence subscription
 	useEffect(() => {
-		if (!user || !roomId) return;
-
-		// Create a presence subscription for this room
-		const presenceChannel = supabase.channel(`room:${roomId}`, {
-			config: {
-				presence: {
-					key: user.id,
+		if (user && roomId && !presenceSubscriptionRef.current) {
+			// Create a presence subscription for this room
+			// Create a presence subscription for this room
+			const presenceChannel = supabase.channel(`room:${roomId}`, {
+				config: {
+					presence: {
+						key: user.id,
+					},
 				},
-			},
-		});
-
-		// Handle presence state changes
-		presenceChannel
-			.on("presence", { event: "sync" }, () => {
-				const state = presenceChannel.presenceState();
-				setOnlineUsers(state);
-			})
-			.on("presence", { event: "join" }, ({ key, newPresences }) => {
-				console.log("User joined:", key, newPresences);
-			})
-			.on("presence", { event: "leave" }, ({ key, leftPresences }) => {
-				console.log("User left:", key, leftPresences);
 			});
 
-		// Subscribe to the channel and track presence
-		presenceChannel.subscribe(async (status) => {
-			if (status === "SUBSCRIBED") {
-				const status = await presenceChannel.track({
-					user_id: user.id,
-					online_at: new Date().toISOString(),
+			// Handle presence state changes
+			presenceChannel
+				.on("presence", { event: "sync" }, () => {
+					const state = presenceChannel.presenceState();
+					console.log("Presence state:", state);
+					// always make sure it's a new object
+					setOnlineUsers(Object.assign({}, state));
+				})
+				.on("presence", { event: "join" }, ({ key, newPresences }) => {
+					console.log("User joined:", key, newPresences);
+
+					// setOnlineUsers((prev) => ({
+					// 	...prev,
+					// 	[key]: newPresences[0],
+					// }));
+				})
+				.on("presence", { event: "leave" }, ({ key }) => {
+					console.log("User left:", key);
+					// setOnlineUsers((prev) => {
+					// 	const newState = { ...prev };
+					// 	delete newState[key];
+					// 	return newState;
+					// });
 				});
-				console.log("Presence tracking status:", status);
-			}
-		});
 
-		presenceSubscriptionRef.current = presenceChannel;
+			// Subscribe to the channel and track presence
+			presenceChannel.subscribe(async (status) => {
+				if (status === "SUBSCRIBED") {
+					console.log("tracking presence");
+					await presenceChannel.track({
+						user_id: user.id,
+						online_at: new Date().toISOString(),
+					});
+				}
+			});
 
+			presenceSubscriptionRef.current = presenceChannel;
+		}
 		// Cleanup function
 		return () => {
 			if (presenceSubscriptionRef.current) {
-				presenceSubscriptionRef.current.unsubscribe();
+				console.log("unsubscribing from presence");
+				void presenceSubscriptionRef.current.unsubscribe();
 				presenceSubscriptionRef.current = null;
 			}
 		};
@@ -1027,7 +1040,7 @@ export function Room(): JSX.Element {
 								</RoomHeader>
 							)}
 							<div className="flex-1 overflow-y-auto p-4">
-								{players && gameState && user && room && (
+								{players && gameState && user && room && onlineUsers && (
 									<PlayersList
 										players={players}
 										gameState={gameState}
