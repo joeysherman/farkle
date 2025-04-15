@@ -97,7 +97,17 @@ export function TurnActions({
 
 	if (turnActions.length === 0) {
 		if (isCurrentPlayerTurn) {
-			return null;
+			return (
+				<div ref={turnActionsRef} className="h-[42px] overflow-y-auto">
+					<div className="flex justify-center items-center h-[42px]">
+						{room?.status === "in_progress" ? (
+							<p className="text-sm text-gray-500 italic">Start rolling!</p>
+						) : (
+							<p className="text-sm text-gray-500 italic">Start the game.</p>
+						)}
+					</div>
+				</div>
+			);
 		} else {
 			return (
 				<div ref={turnActionsRef} className="h-[42px] overflow-y-auto">
