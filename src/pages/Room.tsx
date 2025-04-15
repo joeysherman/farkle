@@ -10,6 +10,7 @@ import type {
 	RealtimePostgresChangesPayload,
 	RealtimeChannel,
 	User,
+	RealtimePresenceState,
 } from "@supabase/supabase-js";
 import { TurnActions } from "./TurnActions";
 import { PlayersList } from "../features/PlayersList";
@@ -123,6 +124,7 @@ export function Room(): JSX.Element {
 	const roomId = search.roomId;
 
 	const [user, setUser] = useState<User | null>(null);
+	const [onlineUsers, setOnlineUsers] = useState<Record<string, any>>({});
 
 	const [room, setRoom] = useState<GameRoom | null>(null);
 	const [players, setPlayers] = useState<Array<GamePlayer>>([]);
@@ -176,6 +178,9 @@ export function Room(): JSX.Element {
 	const playerSubscriptionRef = useRef<RealtimeChannel | null>(null);
 
 	const [showSidebar, setShowSidebar] = useState(false);
+
+	// ref for presence subscription
+	const presenceSubscriptionRef = useRef<RealtimeChannel | null>(null);
 
 	const handleStartGame = async () => {
 		try {
@@ -692,6 +697,54 @@ export function Room(): JSX.Element {
 		};
 	}, [roomId]);
 
+	// Setup presence subscription
+	useEffect(() => {
+		if (!user || !roomId) return;
+
+		// Create a presence subscription for this room
+		const presenceChannel = supabase.channel(`room:${roomId}`, {
+			config: {
+				presence: {
+					key: user.id,
+				},
+			},
+		});
+
+		// Handle presence state changes
+		presenceChannel
+			.on("presence", { event: "sync" }, () => {
+				const state = presenceChannel.presenceState();
+				setOnlineUsers(state);
+			})
+			.on("presence", { event: "join" }, ({ key, newPresences }) => {
+				console.log("User joined:", key, newPresences);
+			})
+			.on("presence", { event: "leave" }, ({ key, leftPresences }) => {
+				console.log("User left:", key, leftPresences);
+			});
+
+		// Subscribe to the channel and track presence
+		presenceChannel.subscribe(async (status) => {
+			if (status === "SUBSCRIBED") {
+				const status = await presenceChannel.track({
+					user_id: user.id,
+					online_at: new Date().toISOString(),
+				});
+				console.log("Presence tracking status:", status);
+			}
+		});
+
+		presenceSubscriptionRef.current = presenceChannel;
+
+		// Cleanup function
+		return () => {
+			if (presenceSubscriptionRef.current) {
+				presenceSubscriptionRef.current.unsubscribe();
+				presenceSubscriptionRef.current = null;
+			}
+		};
+	}, [user, roomId]);
+
 	const copyInviteLink = async () => {
 		const url = `${window.location.origin}/room?roomId=${roomId}`;
 		await navigator.clipboard.writeText(url);
@@ -980,6 +1033,7 @@ export function Room(): JSX.Element {
 										gameState={gameState}
 										user={user}
 										room={room}
+										onlineUsers={onlineUsers}
 									/>
 								)}
 							</div>
