@@ -2,30 +2,122 @@ import type { User } from "@supabase/supabase-js";
 import { useUser } from "../services/user";
 import { GamePlayer, GameState, GameRoom } from "../pages/Room";
 
+interface PlayerListItemProps {
+	player: GamePlayer;
+	isCurrentTurn: boolean;
+	isCurrentUser: boolean;
+	isOnline?: boolean;
+}
+
+const PlayerListItem: React.FC<PlayerListItemProps> = ({
+	player,
+	isCurrentTurn,
+	isCurrentUser,
+	isOnline = false,
+}) => {
+	const { data: userData } = useUser(player.user_id);
+
+	if (!userData) return null;
+
+	return (
+		<div
+			className={`p-2.5 rounded-lg ${
+				isCurrentTurn ? "bg-green-100 border-green-200" : "bg-white"
+			} border transition-colors duration-200 relative overflow-hidden`}
+		>
+			{isCurrentTurn && (
+				<div className="absolute right-0 top-0">
+					<div className="transform rotate-45 translate-y-[-50%] translate-x-[50%] bg-green-500 text-white px-8 py-1 text-xs">
+						Turn
+					</div>
+				</div>
+			)}
+			<div className="flex items-center space-x-2.5">
+				<div className="relative flex-shrink-0">
+					<img
+						alt={`${userData.username}'s avatar`}
+						className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
+						src={`/avatars/${userData.avatar_name || "default"}.svg`}
+					/>
+					<div
+						className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 border-white ${
+							isOnline ? "bg-green-500" : "bg-gray-300"
+						}`}
+					/>
+				</div>
+				<div className="flex-1 min-w-0">
+					<div className="flex items-center gap-1.5">
+						<p
+							className={`text-sm font-medium ${
+								isCurrentUser
+									? "text-indigo-600"
+									: isCurrentTurn
+										? "text-green-800"
+										: "text-gray-900"
+							} truncate`}
+						>
+							{userData.username}
+							{isCurrentUser && (
+								<span className="ml-1 text-xs text-gray-500">(You)</span>
+							)}
+						</p>
+					</div>
+					<p className="text-xs sm:text-sm text-gray-500">
+						Score: {player.score}
+					</p>
+				</div>
+				{isCurrentTurn && (
+					<div className="hidden sm:block">
+						<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">
+							Current
+						</span>
+					</div>
+				)}
+			</div>
+		</div>
+	);
+};
+
+const EmptyPlayerSlot: React.FC<{ slotNumber: number }> = ({ slotNumber }) => (
+	<div className="p-3 rounded-lg bg-gray-50 border border-dashed border-gray-200">
+		<div className="flex items-center space-x-3">
+			<div className="w-10 h-10 rounded-full bg-gray-200" />
+			<div className="flex-1">
+				<p className="text-sm text-gray-400">Waiting for Player {slotNumber}</p>
+			</div>
+		</div>
+	</div>
+);
+
 // Players List Component
 export const PlayersList: React.FC<{
 	players: Array<GamePlayer>;
 	gameState: GameState | null;
 	user: User | null;
 	room: GameRoom;
-}> = ({ players, gameState, user, room }) => {
+	onlineUsers: Record<string, any>;
+}> = ({ players, gameState, user, room, onlineUsers }) => {
+	console.log("PlayersList", { players, gameState, user, room, onlineUsers });
 	return (
 		<div className="space-y-3">
 			{players.map((player) => {
 				const isCurrentTurn = gameState?.current_player_id === player.id;
 				const isCurrentUser = player.user_id === user?.id;
-
+				const isOnline = Boolean(onlineUsers[player.user_id]);
+				debugger;
 				return (
 					<PlayerListItem
 						key={player.id}
 						player={player}
 						isCurrentTurn={isCurrentTurn}
 						isCurrentUser={isCurrentUser}
+						isOnline={isOnline}
 					/>
 				);
 			})}
 
-			{room?.status === "waiting" &&
+			{room &&
+				room?.status === "waiting" &&
 				Array.from({ length: room.max_players - players.length }).map(
 					(_, index) => (
 						<EmptyPlayerSlot
@@ -36,85 +128,4 @@ export const PlayersList: React.FC<{
 				)}
 		</div>
 	);
-}; // Player List Item Component
-
-export const PlayerListItem: React.FC<{
-	player: GamePlayer;
-	isCurrentTurn: boolean;
-	isCurrentUser: boolean;
-}> = ({ player, isCurrentTurn, isCurrentUser }) => {
-	const { data: userData, isLoading: userLoading } = useUser(player.user_id);
-	if (userLoading) {
-		return <div>Loading...</div>;
-	}
-
-	return (
-		<div
-			key={player.id}
-			className={`relative rounded-lg border ${
-				isCurrentTurn
-					? "border-green-500 bg-green-50"
-					: "border-gray-300 bg-white"
-			} p-3 shadow-sm transition-colors duration-200`}
-			// style={{
-			// 	animation: isCurrentTurn ? "softPulse 2s infinite" : "none",
-			// }}
-		>
-			<div className="flex items-center gap-3">
-				<div className="flex-shrink-0">
-					<div
-						className={`w-10 h-10 rounded-full ${
-							isCurrentTurn
-								? "bg-indigo-200"
-								: isCurrentUser
-									? "bg-green-200"
-									: "bg-gray-200"
-						} flex items-center justify-center`}
-					>
-						<span
-							className={`font-medium ${
-								isCurrentTurn
-									? "text-indigo-900"
-									: isCurrentUser
-										? "text-green-900"
-										: "text-gray-900"
-							}`}
-						>
-							P{player.player_order}
-						</span>
-					</div>
-				</div>
-				<div className="min-w-0 flex-1">
-					<div className="flex flex-wrap gap-2">
-						<p className="text-sm font-medium text-gray-900 truncate">
-							{isCurrentUser ? "You" : userData?.username}
-						</p>
-					</div>
-					<div className="mt-1 flex items-center justify-between">
-						<p className="text-sm text-gray-500">
-							Score: <span className="font-medium">{player.score}</span>
-						</p>
-					</div>
-				</div>
-			</div>
-		</div>
-	);
 };
-// Empty Player Slot Component
-
-export const EmptyPlayerSlot: React.FC<{ slotNumber: number }> = ({
-	slotNumber,
-}) => (
-	<div className="relative rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 shadow-sm">
-		<div className="flex items-center gap-3">
-			<div className="flex-shrink-0">
-				<div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-					<span className="text-gray-400 font-medium">{slotNumber}</span>
-				</div>
-			</div>
-			<div className="min-w-0 flex-1">
-				<p className="text-sm text-gray-500">Waiting for player...</p>
-			</div>
-		</div>
-	</div>
-);
