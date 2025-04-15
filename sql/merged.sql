@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   onboarding_completed boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  fcm_token text;
+  fcm_token text
 );
 
 -- Set up RLS for profiles
@@ -920,6 +920,7 @@ BEGIN
     SET outcome = 'bust'
     WHERE id = v_latest_action.id;
 
+    -- Call end_turn with 0 score for bust
     PERFORM end_turn(p_game_id, 0);
 
   ELSIF p_outcome = 'bank' THEN
@@ -939,6 +940,7 @@ BEGIN
     FROM turn_actions
     WHERE turn_id = v_turn.id;
 
+    -- Call end_turn with the calculated score
     PERFORM end_turn(p_game_id, v_score_result.score);
 
   ELSIF p_outcome = 'continue' THEN
@@ -1052,11 +1054,17 @@ CREATE OR REPLACE FUNCTION end_turn(
 DECLARE
   v_turn game_turns;
   v_next_player_id UUID;
+  v_next_player_user_id UUID;
   v_pending_actions INTEGER;
   v_new_turn_id UUID;
   v_current_score INTEGER;
   v_winner_id UUID;
   v_winner_user_id UUID;
+  v_game_room game_rooms;
+  v_is_player_present BOOLEAN;
+  v_room_name TEXT;
+  v_last_notification_time TIMESTAMP WITH TIME ZONE;
+  v_notification_cooldown INTERVAL := '5 minutes'::INTERVAL;
 BEGIN
   -- Check if all actions have outcomes before ending turn
   SELECT COUNT(*)
@@ -1134,7 +1142,7 @@ BEGIN
   WHERE id = v_turn.player_id;
   
   -- Get next player in turn order (using player_order instead of turn_order)
-  SELECT gp.id INTO v_next_player_id
+  SELECT gp.id, gp.user_id INTO v_next_player_id, v_next_player_user_id
   FROM game_players gp
   WHERE gp.game_id = p_game_id
   AND gp.player_order > (
@@ -1145,16 +1153,49 @@ BEGIN
   ORDER BY gp.player_order
   LIMIT 1;
 
-  -- if the v_next_player_id is not found, raise an exception
-  IF NOT FOUND THEN
-
-  -- If no next player, wrap around to first player
+  -- if the v_next_player_id is not found, wrap around to first player
   IF v_next_player_id IS NULL THEN
-    SELECT gp.id INTO v_next_player_id
+    SELECT gp.id, gp.user_id INTO v_next_player_id, v_next_player_user_id
     FROM game_players gp
     WHERE gp.game_id = p_game_id
     ORDER BY gp.player_order
     LIMIT 1;
+  END IF;
+
+  -- Get the room name for the notification
+  SELECT name INTO v_room_name
+  FROM game_rooms
+  WHERE id = p_game_id;
+
+  -- Check if the next player is present in the game room using the presence channel
+  -- We'll use a function to check if the user is in the presence channel for this room
+  -- This is a more reliable way to check presence than using is_active
+  
+  -- Check if the player is in the presence channel for this room
+  -- Note: This is a simplified approach. In a real implementation, you would need to
+  -- query the presence channel directly, which might require a different approach
+  -- or a separate function that can access the presence channel data
+  
+  -- For now, we'll use a placeholder approach that assumes the player is not present
+  -- In a real implementation, you would replace this with actual presence channel checking
+  v_is_player_present := false;
+  
+  -- Check if we've sent a notification to this user recently (rate limiting)
+  SELECT MAX(created_at) INTO v_last_notification_time
+  FROM notifications
+  WHERE user_id = v_next_player_user_id
+  AND body LIKE 'It''s your turn%';
+  
+  -- If the player is not present and we haven't sent a notification recently, send one
+  IF NOT v_is_player_present AND (v_last_notification_time IS NULL OR now() - v_last_notification_time > v_notification_cooldown) THEN
+    -- Insert a notification for the player with additional context
+    INSERT INTO notifications (
+      user_id,
+      body
+    ) VALUES (
+      v_next_player_user_id,
+      'It''s your turn in game room: ' || v_room_name
+    );
   END IF;
 
   -- Create new turn for next player
@@ -1413,12 +1454,12 @@ RETURNS SETOF text AS $$
 BEGIN
   RETURN QUERY SELECT * FROM test_calculate_turn_score();
 END;
+$$ LANGUAGE plpgsql;
 
-create table public.notifications (
+-- Create notifications table
+CREATE TABLE IF NOT EXISTS public.notifications (
   id uuid not null default gen_random_uuid(),
   user_id uuid references auth.users(id) not null,
   created_at timestamp with time zone not null default now(),
   body text not null
-);
-
-$$ LANGUAGE plpgsql; 
+); 

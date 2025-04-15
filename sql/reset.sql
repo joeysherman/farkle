@@ -43,3 +43,4 @@ DELETE FROM auth.users;
 
 -- Run the merged SQL to recreate everything
 
+
