@@ -15,7 +15,7 @@ export const NotificationListener = (): JSX.Element | null => {
 			(payload: NotificationPayload) => {
 				if (payload?.notification) {
 					const { title, body } = payload.notification;
-
+					console.log("NotificationListener", payload);
 					// Display the notification as a toast
 					toast(
 						<div className="flex flex-col">
