@@ -5,7 +5,7 @@ import { Navbar } from "../components/layout/navbar/Navbar";
 import { supabase } from "../lib/supabaseClient";
 import { nanoid } from "nanoid";
 import { generateRoomName } from "../utils/roomNames";
-import { DashboardNotifications } from "../components/DashboardNotifications";
+
 import type { User } from "@supabase/supabase-js";
 
 interface GameRoom {
@@ -216,11 +216,6 @@ export const Home = (): FunctionComponent => {
 					<p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
 						Join the fun and play the classic dice game with friends online!
 					</p>
-					{user && (
-						<div className="mt-6">
-							<DashboardNotifications />
-						</div>
-					)}
 				</div>
 
 				{/* Available Rooms Section */}
