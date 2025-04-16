@@ -25,6 +25,7 @@ export const Home = (): FunctionComponent => {
 	const [roomName, setRoomName] = useState(nanoid(6));
 	const [error, setError] = useState("");
 	const [availableRooms, setAvailableRooms] = useState<Array<GameRoom>>([]);
+	const [currentRooms, setCurrentRooms] = useState<Array<GameRoom>>([]);
 	const [isAuthChecking, setIsAuthChecking] = useState(true);
 	const [user, setUser] = useState<User | null>(null);
 
@@ -54,12 +55,32 @@ export const Home = (): FunctionComponent => {
 				.order("created_at", { ascending: false });
 
 			if (data) {
-				setAvailableRooms(data);
+				// Filter out rooms that are already in currentRooms
+				const filteredRooms = data.filter(
+					(room) =>
+						!currentRooms.some((currentRoom) => currentRoom.id === room.id)
+				);
+				setAvailableRooms(filteredRooms);
+			}
+		};
+
+		const fetchCurrentRooms = async (): Promise<void> => {
+			if (!user) return;
+
+			const { data } = await supabase
+				.from("game_players")
+				.select("game_id, game_rooms(*)")
+				.eq("user_id", user.id)
+				.eq("is_active", true);
+
+			if (data) {
+				setCurrentRooms(data.map((item) => item.game_rooms as GameRoom));
 			}
 		};
 
 		if (!isAuthChecking) {
 			void fetchRooms();
+			void fetchCurrentRooms();
 		}
 		const roomSubscription = supabase
 			.channel("room_changes")
@@ -72,6 +93,7 @@ export const Home = (): FunctionComponent => {
 				},
 				() => {
 					void fetchRooms();
+					void fetchCurrentRooms();
 				}
 			)
 			.subscribe();
@@ -79,7 +101,7 @@ export const Home = (): FunctionComponent => {
 		return () => {
 			void roomSubscription.unsubscribe();
 		};
-	}, [isAuthChecking]);
+	}, [isAuthChecking, user, currentRooms]);
 
 	if (isAuthChecking) {
 		return (
@@ -217,6 +239,67 @@ export const Home = (): FunctionComponent => {
 						Join the fun and play the classic dice game with friends online!
 					</p>
 				</div>
+
+				{/* Current Rooms Section */}
+				{currentRooms.length > 0 && (
+					<div className="mb-12">
+						<h2 className="text-2xl font-bold text-gray-900 mb-4">
+							Your Current Rooms
+						</h2>
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+							{currentRooms.map((room) => (
+								<div
+									key={room.id}
+									className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
+								>
+									<div className="px-4 py-5 sm:p-6">
+										<div className="flex justify-between items-center mb-4">
+											<h3 className="text-lg font-medium text-gray-900">
+												{room.name}
+											</h3>
+											<span
+												className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+													room?.status === "waiting"
+														? "bg-yellow-100 text-yellow-800"
+														: "bg-green-100 text-green-800"
+												}`}
+											>
+												{room?.status === "waiting" ? "Waiting" : "In Progress"}
+											</span>
+										</div>
+										<p className="mt-1 text-sm text-gray-500">
+											Players: {room.current_players}/{room.max_players}
+										</p>
+										<div className="mt-4 flex gap-2">
+											<button
+												onClick={() =>
+													navigate({ to: "/room", search: { roomId: room.id } })
+												}
+												className={`flex-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
+													room?.status === "waiting"
+														? "bg-indigo-600 hover:bg-indigo-700"
+														: "bg-green-600 hover:bg-green-700"
+												} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+											>
+												{room?.status === "waiting" ? "Join Game" : "View Game"}
+											</button>
+											{user &&
+												room.created_by === user.id &&
+												room?.status === "in_progress" && (
+													<button
+														onClick={() => handleEndGame(room.id)}
+														className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+													>
+														End Game
+													</button>
+												)}
+										</div>
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
+				)}
 
 				{/* Available Rooms Section */}
 				{availableRooms.length > 0 && (
