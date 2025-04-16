@@ -4,6 +4,7 @@ import { RouterProvider, type createRouter } from "@tanstack/react-router";
 import type { FunctionComponent } from "./common/types";
 import { Toaster } from "react-hot-toast";
 import { NotificationListener } from "./components/NotificationListener";
+import { InitialNotificationPrompt } from "./components/InitialNotificationPrompt";
 // import { TanStackRouterDevelopmentTools } from "./components/utils/development-tools/TanStackRouterDevelopmentTools";
 
 const queryClient = new QueryClient();
@@ -15,6 +16,7 @@ const App = ({ router }: AppProps): FunctionComponent => {
 		<QueryClientProvider client={queryClient}>
 			<RouterProvider router={router} />
 			<Toaster position="top-right" />
+			<InitialNotificationPrompt />
 			<NotificationListener />
 			{/* <TanStackRouterDevelopmentTools
 				router={router}

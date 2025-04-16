@@ -38,7 +38,7 @@ export const NotificationListener = (): JSX.Element => {
 
 			const { error: updateError } = await supabase
 				.from("profiles")
-				.upsert({ id: userData?.user?.id, fcmToken: token });
+				.upsert({ id: userData?.user?.id, fcm_token: token });
 
 			if (updateError) throw updateError;
 
@@ -63,7 +63,7 @@ export const NotificationListener = (): JSX.Element => {
 
 			const { error: updateError } = await supabase
 				.from("profiles")
-				.update({ fcmToken: null })
+				.update({ fcm_token: null })
 				.eq("id", userData?.user?.id);
 
 			if (updateError) throw updateError;
@@ -108,6 +108,7 @@ export const NotificationListener = (): JSX.Element => {
 
 			return () => {
 				if (typeof unsubscribe === "function") {
+					console.log("unsubscribing from notifications");
 					unsubscribe();
 				}
 			};
