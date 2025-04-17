@@ -3,8 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, type createRouter } from "@tanstack/react-router";
 import type { FunctionComponent } from "./common/types";
 import { Toaster } from "react-hot-toast";
-import { NotificationListener } from "./components/NotificationListener";
-import { InitialNotificationPrompt } from "./components/InitialNotificationPrompt";
+import { NotificationProvider } from "./contexts/NotificationContext";
+// import { InitialNotificationPrompt } from "./components/InitialNotificationPrompt";
 // import { TanStackRouterDevelopmentTools } from "./components/utils/development-tools/TanStackRouterDevelopmentTools";
 
 const queryClient = new QueryClient();
@@ -14,16 +14,17 @@ type AppProps = { router: ReturnType<typeof createRouter> };
 const App = ({ router }: AppProps): FunctionComponent => {
 	return (
 		<QueryClientProvider client={queryClient}>
-			<RouterProvider router={router} />
-			<Toaster position="top-right" />
-			<InitialNotificationPrompt />
-			<NotificationListener />
-			{/* <TanStackRouterDevelopmentTools
-				router={router}
-				initialIsOpen={false}
-				position="bottom-right"
-			/>
-			<ReactQueryDevtools initialIsOpen={false} /> */}
+			<NotificationProvider>
+				<RouterProvider router={router} />
+				<Toaster position="top-right" />
+				{/* <InitialNotificationPrompt /> */}
+				{/* <TanStackRouterDevelopmentTools
+					router={router}
+					initialIsOpen={false}
+					position="bottom-right"
+				/>
+				<ReactQueryDevtools initialIsOpen={false} /> */}
+			</NotificationProvider>
 		</QueryClientProvider>
 	);
 };
