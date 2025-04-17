@@ -35,6 +35,9 @@ export function TurnActions({
 		const remainingDice = action.dice_values.filter(
 			(value) => !action.scoring_dice.includes(value)
 		);
+		if (!isLatest) {
+			debugger;
+		}
 
 		return (
 			<div className="bg-gray-50 rounded p-1.5 text-sm">
@@ -48,6 +51,11 @@ export function TurnActions({
 						{action?.dice_values.map((value, index) => {
 							let keptDice = action.kept_dice;
 							let isScoringDice = false;
+
+							// if isLatest is true, use the selected_dice array to determine if the dice is kept, otherwise use the kept_dice array
+							if (isLatest) {
+								keptDice = action.selected_dice;
+							}
 							// if keptDice is not empty, then it is a past turn action
 							if (keptDice.length > 0) {
 								// if the index is in the keptDice array, then it is a scoring dice
@@ -132,7 +140,7 @@ export function TurnActions({
 	}
 
 	return (
-		<div ref={turnActionsRef} className="h-auto min-h-[42px] overflow-hidden">
+		<div className="h-auto min-h-[42px] overflow-hidden">
 			{/* Mobile view */}
 			<div className="md:hidden">
 				{latestAction && (
@@ -250,15 +258,20 @@ export function TurnActions({
 			</div>
 
 			{/* Desktop view */}
-			<div className="hidden md:flex md:flex-col md:justify-end md:min-h-full">
-				{previousActions.length > 0 && (
-					<div className="space-y-1 mb-1">
-						{previousActions.map((action) => (
-							<RollDisplay key={action.id} action={action} isLatest={false} />
-						))}
-					</div>
-				)}
-				{latestAction && <RollDisplay action={latestAction} isLatest={true} />}
+			<div className="hidden md:flex md:flex-col h-[180px]">
+				{/* Scrollable previous actions */}
+				<div
+					ref={turnActionsRef}
+					className="flex-1 overflow-y-auto space-y-1 mb-1"
+				>
+					{previousActions.map((action) => (
+						<RollDisplay key={action.id} action={action} isLatest={false} />
+					))}
+				</div>
+				{/* Fixed latest action at bottom */}
+				<div className="flex-none">
+					{latestAction && <RollDisplay action={latestAction} isLatest />}
+				</div>
 			</div>
 		</div>
 	);

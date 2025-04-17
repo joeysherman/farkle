@@ -104,7 +104,7 @@ export const PlayersList: React.FC<{
 				const isCurrentTurn = gameState?.current_player_id === player.id;
 				const isCurrentUser = player.user_id === user?.id;
 				const isOnline = Boolean(onlineUsers[player.user_id]);
-				debugger;
+
 				return (
 					<PlayerListItem
 						key={player.id}
