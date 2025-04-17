@@ -656,6 +656,18 @@ export function Room(): JSX.Element {
 						});
 					}
 				)
+				.on(
+					"postgres_changes",
+					{
+						event: "INSERT",
+						schema: "public",
+						table: "game_players",
+						filter: `game_id=eq.${roomId}`,
+					},
+					(payload) => {
+						setPlayers((previous) => [...previous, payload.new as GamePlayer]);
+					}
+				)
 				.subscribe();
 		}
 		return () => {
