@@ -7,6 +7,7 @@ import { Toaster } from "react-hot-toast";
 import type { User } from "@supabase/supabase-js";
 import type { FunctionComponent } from "../common/types";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNotifications } from "../contexts/NotificationContext";
 
 const AVAILABLE_AVATARS = [
 	"default",
@@ -24,6 +25,7 @@ interface Profile {
 	avatarName: AvatarName;
 	createdAt: string;
 	hasChangedUsername: boolean;
+	fcmToken: string | null;
 }
 
 interface DatabaseProfile {
@@ -32,11 +34,20 @@ interface DatabaseProfile {
 	avatar_name: AvatarName;
 	created_at: string;
 	has_changed_username: boolean;
+	fcm_token: string | null;
 }
 
 export const Profile = (): FunctionComponent => {
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
+	const {
+		isSubscribed,
+		error: notificationError,
+		handleSubscribe,
+		handleUnsubscribe,
+		browserPermission,
+		checkBrowserPermission,
+	} = useNotifications();
 	const [loading, setLoading] = useState(true);
 	const [user, setUser] = useState<User | null>(null);
 	const [profile, setProfile] = useState<Profile | null>(null);
@@ -62,6 +73,7 @@ export const Profile = (): FunctionComponent => {
 				avatarName: dbProfile.avatar_name,
 				createdAt: dbProfile.created_at,
 				hasChangedUsername: dbProfile.has_changed_username,
+				fcmToken: dbProfile.fcm_token,
 			};
 
 			setProfile(formattedProfile);
@@ -131,6 +143,42 @@ export const Profile = (): FunctionComponent => {
 		queryClient.invalidateQueries({ queryKey: ["user", "profile", user.id] });
 		setProfile((previous) => (previous ? { ...previous, avatarName } : null));
 		setIsSelectingAvatar(false);
+	};
+
+	const handleNotificationToggle = async (): Promise<void> => {
+		if (isSubscribed) {
+			await handleUnsubscribe();
+		} else {
+			await handleSubscribe();
+		}
+	};
+
+	// Function to get browser permission status text
+	const getBrowserPermissionText = (): string => {
+		switch (browserPermission) {
+			case "granted":
+				return "Allowed";
+			case "denied":
+				return "Blocked";
+			case "default":
+				return "Not set";
+			default:
+				return "Unknown";
+		}
+	};
+
+	// Function to get browser permission status color
+	const getBrowserPermissionColor = (): string => {
+		switch (browserPermission) {
+			case "granted":
+				return "text-green-600";
+			case "denied":
+				return "text-red-600";
+			case "default":
+				return "text-yellow-600";
+			default:
+				return "text-gray-600";
+		}
 	};
 
 	if (loading) {
@@ -258,6 +306,93 @@ export const Profile = (): FunctionComponent => {
 										{new Date(profile?.createdAt || "").toLocaleDateString()}
 									</div>
 								</div>
+							</div>
+						</div>
+
+						{/* Notification Settings Section */}
+						<div className="mt-6 border-t border-gray-200 pt-6">
+							<h3 className="text-lg font-medium leading-6 text-gray-900">
+								Notification Settings
+							</h3>
+							<div className="mt-4">
+								<div className="flex flex-col space-y-4">
+									{/* Browser Permission Status */}
+									<div className="flex items-center justify-between">
+										<div className="flex items-center">
+											<span className="text-sm font-medium text-gray-700">
+												Browser notifications:
+											</span>
+											<span
+												className={`ml-2 text-sm font-medium ${getBrowserPermissionColor()}`}
+											>
+												{getBrowserPermissionText()}
+											</span>
+										</div>
+										<button
+											className="text-sm text-indigo-600 hover:text-indigo-500"
+											onClick={() => checkBrowserPermission()}
+											type="button"
+										>
+											Refresh
+										</button>
+									</div>
+
+									{/* App Notification Status */}
+									<div className="flex items-center justify-between">
+										<div className="flex items-center">
+											{isSubscribed ? (
+												<>
+													<div className="flex items-center">
+														<div className="h-2.5 w-2.5 rounded-full bg-green-500 mr-2"></div>
+														<span className="text-sm font-medium text-gray-900">
+															App notifications are enabled
+														</span>
+													</div>
+													<button
+														className="ml-4 text-sm font-medium text-red-600 hover:text-red-500"
+														onClick={() => void handleNotificationToggle()}
+														type="button"
+													>
+														Disable
+													</button>
+												</>
+											) : (
+												<>
+													<div className="flex items-center">
+														<div className="h-2.5 w-2.5 rounded-full bg-gray-300 mr-2"></div>
+														<span className="text-sm font-medium text-gray-900">
+															App notifications are disabled
+														</span>
+													</div>
+													<button
+														className="ml-4 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+														onClick={() => void handleNotificationToggle()}
+														type="button"
+													>
+														Enable
+													</button>
+												</>
+											)}
+										</div>
+									</div>
+								</div>
+
+								{notificationError && (
+									<p className="mt-2 text-sm text-red-600">
+										{notificationError}
+									</p>
+								)}
+
+								{browserPermission === "denied" && (
+									<p className="mt-2 text-sm text-red-600">
+										Browser notifications are blocked. Please enable them in
+										your browser settings to receive notifications.
+									</p>
+								)}
+
+								<p className="mt-1 text-sm text-gray-500">
+									Receive notifications about important updates and events.
+								</p>
 							</div>
 						</div>
 
