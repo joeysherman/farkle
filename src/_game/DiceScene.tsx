@@ -33,13 +33,51 @@ export function DiceScene({
 						isSpinning={isSpinning}
 						isScoringNumber={isScoringNumber || false}
 						onDiceClick={() => {
-							if (isCurrentPlayerTurn) {
-								if (selectedDiceIndices.includes(index)) {
-									setSelectedDiceIndices(
-										selectedDiceIndices.filter((i) => i !== index)
-									);
+							let sameDicePlacementsArray = [];
+							// get the dice that are the same as the current dice
+							// if the index is already in the selectedDiceIndices array
+							let indexAlreadyInSelectedDiceIndices = false;
+							let sameDice = false;
+							let newSelectedDiceIndices = [];
+
+							for (const selectedDiceIndex of selectedDiceIndices) {
+								if (selectedDiceIndex === index) {
+									indexAlreadyInSelectedDiceIndices = true;
+								}
+							}
+
+							if (indexAlreadyInSelectedDiceIndices) {
+								// if the number is 1 or 5 we can remove that dice from the selectedDiceIndices array
+								if (number === 1 || number === 5) {
 								} else {
-									setSelectedDiceIndices([...selectedDiceIndices, index]);
+									// find the same dice in the diceStates array
+									const sameDice = diceStates.filter(
+										(dice) => dice.number === number
+									);
+									// add the placement of the same dice to the sameDicePlacementsArray
+									for (const dice of sameDice) {
+										sameDicePlacementsArray.push(dice.placement - 1);
+									}
+									// remove the values from selectedDiceIndices that are in sameDicePlacementsArray
+									newSelectedDiceIndices = selectedDiceIndices.filter(
+										(i) => !sameDicePlacementsArray.includes(i)
+									);
+
+									setSelectedDiceIndices(newSelectedDiceIndices);
+								}
+							} else {
+								// if the number is 1 or 5 we can add that dice to the selectedDiceIndices array
+								if (number === 1 || number === 5) {
+								} else {
+									// find the same dice in the diceStates array
+									const sameDice = diceStates.filter(
+										(dice) => dice.number === number
+									);
+									// add the placement of the same dice to the sameDicePlacementsArray
+									for (const dice of sameDice) {
+										sameDicePlacementsArray.push(dice.placement - 1);
+									}
+									setSelectedDiceIndices(sameDicePlacementsArray);
 								}
 							}
 						}}

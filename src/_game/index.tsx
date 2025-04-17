@@ -89,16 +89,18 @@ export const GameScene = ({
 				<BoxingRing />
 				<Selection enabled={!isSpinning} autoClear={true}>
 					<EffectComposer multisampling={8} autoClear={false}>
-						<Outline
-							visibleEdgeColor="red"
-							edgeStrength={100}
-							edgeGlow={1}
-							//edgeThickness={5}
-							pulseSpeed={0.5}
-							blur={false}
-							xRay={false}
-							width={1000}
-						/>
+						{isCurrentPlayerTurn && (
+							<Outline
+								visibleEdgeColor="red"
+								edgeStrength={100}
+								edgeGlow={1}
+								//edgeThickness={5}
+								pulseSpeed={0.5}
+								blur={false}
+								xRay={false}
+								width={1000}
+							/>
+						)}
 						{/* <Outline
 							patternTexture={null} // a pattern texture
 							edgeStrength={2.5} // the edge strength

@@ -35,9 +35,6 @@ export function TurnActions({
 		const remainingDice = action.dice_values.filter(
 			(value) => !action.scoring_dice.includes(value)
 		);
-		if (!isLatest) {
-			debugger;
-		}
 
 		return (
 			<div className="bg-gray-50 rounded p-1.5 text-sm">
