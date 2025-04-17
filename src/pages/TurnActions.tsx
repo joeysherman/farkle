@@ -52,10 +52,8 @@ export function TurnActions({
 							let keptDice = action.kept_dice;
 							let isScoringDice = false;
 
-							// if isLatest is true, use the selected_dice array to determine if the dice is kept, otherwise use the kept_dice array
-							if (isLatest) {
-								keptDice = action.selected_dice;
-							}
+							keptDice = action.selected_dice;
+
 							// if keptDice is not empty, then it is a past turn action
 							if (keptDice.length > 0) {
 								// if the index is in the keptDice array, then it is a scoring dice
