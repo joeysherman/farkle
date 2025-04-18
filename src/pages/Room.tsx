@@ -958,15 +958,20 @@ export function Room(): JSX.Element {
 																	turnActions[turnActions.length - 1];
 																if (!latestAction) return;
 																// leftOverDice is the remaining dice that are not in the selectedDiceIndices array + 1
-																const leftOverDice = diceStates.filter(
-																	(dice) =>
-																		!selectedDiceIndices.includes(
-																			dice.placement - 1
-																		)
-																);
-																console.log(selectedDiceIndices);
-
+																let leftOverDice = [];
 																if (outcome === "continue") {
+																	if (selectedDiceIndices.length > 0) {
+																		leftOverDice = diceStates.filter(
+																			(dice) =>
+																				!selectedDiceIndices.includes(
+																					dice.placement - 1
+																				)
+																		);
+																	} else {
+																		leftOverDice = diceStates.filter(
+																			(dice) => !dice.isScoringNumber
+																		);
+																	}
 																	setDiceStates(leftOverDice);
 																	startSpin();
 																} else {
