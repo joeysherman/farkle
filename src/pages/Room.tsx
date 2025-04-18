@@ -518,7 +518,9 @@ export function Room(): JSX.Element {
 						(actionPayload: RealtimePostgresChangesPayload<TurnAction>) => {
 							const newAction = actionPayload.new as TurnAction;
 							if (!newAction) return;
-
+							debugger;
+							// set the selectedDiceIndices to empty array
+							setSelectedDiceIndices([]);
 							// wait 1 second, then stop the spin, then update the turn actions and dice states
 							setTimeout(() => {
 								setIsSpinning(false);
@@ -547,6 +549,8 @@ export function Room(): JSX.Element {
 									});
 									return newDiceStates;
 								});
+								// set the selectedDiceIndices to the selected_dice from the newAction
+								debugger;
 							}, 1000);
 						}
 					)
@@ -562,7 +566,7 @@ export function Room(): JSX.Element {
 						},
 						(payload) => {
 							const updatedAction = payload.new as TurnAction;
-
+							debugger;
 							// if updatedAction.outcome is continue, then we don't do anything
 							if (updatedAction.outcome === "continue") {
 								return;
@@ -968,7 +972,7 @@ export function Room(): JSX.Element {
 																	outcome,
 																	keptDice,
 																});
-																setSelectedDiceIndices([]);
+																//setSelectedDiceIndices([]);
 															}}
 															onRoll={() => {
 																setDiceStates([
