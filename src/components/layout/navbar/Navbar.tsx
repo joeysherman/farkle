@@ -139,9 +139,6 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 								<span className="text-sm font-medium text-gray-900">
 									{gameInfo.name}
 								</span>
-								<span className="text-sm text-gray-500">
-									{gameInfo.currentPlayers}/{gameInfo.maxPlayers}
-								</span>
 							</div>
 						)}
 					</div>

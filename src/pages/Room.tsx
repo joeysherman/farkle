@@ -895,15 +895,14 @@ export function Room(): JSX.Element {
 											{room && user && (
 												<div className="flex flex-col gap-3">
 													{/* Mobile Players List */}
+													<RoomControls
+														room={room}
+														user={user}
+														onStartGame={handleStartGame}
+														onEndGame={handleEndGame}
+														onShowInvite={() => setShowInviteModal(true)}
+													/>
 													<div className="bg-gray-50 rounded-lg p-2">
-														<div className="flex items-center justify-between mb-2">
-															<h3 className="text-sm font-medium text-gray-700">
-																Players
-															</h3>
-															<span className="text-xs text-gray-500">
-																{room.current_players}/{room.max_players}
-															</span>
-														</div>
 														{players &&
 															gameState &&
 															user &&
@@ -918,13 +917,6 @@ export function Room(): JSX.Element {
 																/>
 															)}
 													</div>
-													<RoomControls
-														room={room}
-														user={user}
-														onStartGame={handleStartGame}
-														onEndGame={handleEndGame}
-														onShowInvite={() => setShowInviteModal(true)}
-													/>
 												</div>
 											)}
 										</div>
@@ -1045,13 +1037,15 @@ export function Room(): JSX.Element {
 										</div>
 
 										{/* Turn Actions History */}
-										<div className="mt-2">
-											<TurnActions
-												isCurrentPlayerTurn={isCurrentPlayerTurn}
-												turnActions={turnActions}
-												room={room}
-											/>
-										</div>
+										{room?.status === "in_progress" && (
+											<div className="mt-2">
+												<TurnActions
+													isCurrentPlayerTurn={isCurrentPlayerTurn}
+													turnActions={turnActions}
+													room={room}
+												/>
+											</div>
+										)}
 									</div>
 								</div>
 							</div>

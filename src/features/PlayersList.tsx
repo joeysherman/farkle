@@ -1,6 +1,8 @@
 import type { User } from "@supabase/supabase-js";
 import { useUser } from "../services/user";
 import { GamePlayer, GameState, GameRoom } from "../pages/Room";
+import { useState } from "react";
+import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
 
 interface PlayerListItemProps {
 	player: GamePlayer;
@@ -99,8 +101,60 @@ export const PlayersList: React.FC<{
 }> = ({ players, gameState, user, room, onlineUsers }) => {
 	return (
 		<div className="space-y-1.5 md:space-y-2.5">
-			{/* Current Players */}
-			<div className="space-y-1.5 md:space-y-2">
+			{/* Header with toggle button */}
+			<div className="flex items-center justify-between">
+				<h3 className="text-sm font-medium text-gray-700">
+					Players ({players.length}/{room.max_players})
+				</h3>
+			</div>
+
+			{/* Mobile Collapse for Players List */}
+			<div className="md:hidden">
+				<div className="collapse collapse-arrow bg-white rounded-lg border">
+					<input type="checkbox" className="peer" />
+					<div className="collapse-title text-sm font-medium text-gray-700 flex items-center justify-between">
+						<span>Players List</span>
+						<ChevronDownIcon className="h-5 w-5 text-gray-500 peer-checked:rotate-180 transition-transform" />
+					</div>
+					<div className="collapse-content">
+						<div className="space-y-1.5">
+							{players.map((player) => {
+								const isCurrentTurn =
+									gameState?.current_player_id === player.id;
+								const isCurrentUser = player.user_id === user?.id;
+								const isOnline = Boolean(onlineUsers[player.user_id]);
+
+								return (
+									<PlayerListItem
+										key={player.id}
+										player={player}
+										isCurrentTurn={isCurrentTurn}
+										isCurrentUser={isCurrentUser}
+										isOnline={isOnline}
+									/>
+								);
+							})}
+
+							{/* Empty Slots */}
+							{room?.status === "waiting" && (
+								<div className="space-y-1.5 mt-1.5">
+									{Array.from({
+										length: room.max_players - players.length,
+									}).map((_, index) => (
+										<EmptyPlayerSlot
+											key={`empty-${index}`}
+											slotNumber={players.length + index + 1}
+										/>
+									))}
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			{/* Desktop Players List (Always Visible) */}
+			<div className="hidden md:block space-y-1.5">
 				{players.map((player) => {
 					const isCurrentTurn = gameState?.current_player_id === player.id;
 					const isCurrentUser = player.user_id === user?.id;
@@ -116,21 +170,21 @@ export const PlayersList: React.FC<{
 						/>
 					);
 				})}
-			</div>
 
-			{/* Empty Slots */}
-			{room?.status === "waiting" && (
-				<div className="space-y-1.5 md:space-y-2 mt-1.5 md:mt-2">
-					{Array.from({ length: room.max_players - players.length }).map(
-						(_, index) => (
-							<EmptyPlayerSlot
-								key={`empty-${index}`}
-								slotNumber={players.length + index + 1}
-							/>
-						)
-					)}
-				</div>
-			)}
+				{/* Empty Slots */}
+				{room?.status === "waiting" && (
+					<div className="space-y-1.5 mt-1.5">
+						{Array.from({ length: room.max_players - players.length }).map(
+							(_, index) => (
+								<EmptyPlayerSlot
+									key={`empty-${index}`}
+									slotNumber={players.length + index + 1}
+								/>
+							)
+						)}
+					</div>
+				)}
+			</div>
 		</div>
 	);
 };
