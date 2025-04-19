@@ -877,6 +877,28 @@ export function Room(): JSX.Element {
 										user={user}
 										room={room}
 										onlineUsers={onlineUsers}
+										turnSummary={
+											players.length > 0 &&
+											turnActions &&
+											gameState?.current_player_id &&
+											room?.status === "in_progress" ? (
+												<MobileTurnSummary
+													room={room}
+													isCurrentPlayerTurn={isCurrentPlayerTurn}
+													players={players}
+													currentPlayer={players.find(
+														(player) =>
+															player.id === gameState.current_player_id
+													)}
+													turnActions={turnActions}
+													gameState={gameState}
+												/>
+											) : room?.status === "rebuttal" &&
+											  room?.winner_id &&
+											  players?.length > 0 ? (
+												<MobileShowWinner room={room} players={players} />
+											) : null
+										}
 									/>
 								)}
 							</div>
@@ -887,22 +909,24 @@ export function Room(): JSX.Element {
 					<div className="flex-1 flex flex-col h-[calc(100vh-84px)] md:h-full md:w-3/4">
 						<div className="flex-1 relative">
 							{/* Game Controls Overlay */}
-							<div className="absolute top-0 left-0 right-0 z-10 p-2 sm:p-3">
-								<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-2 sm:p-3">
+							<div className="absolute top-0 left-0 right-0 z-10 p-2">
+								<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-1">
 									<div className="flex flex-col">
 										{/* Mobile Room Controls and Players List */}
 										<div className="md:hidden">
 											{room && user && (
 												<div className="flex flex-col gap-3">
-													{/* Mobile Players List */}
-													<RoomControls
+													{/* Mobile Room Controls */}
+
+													{/* <RoomControls
 														room={room}
 														user={user}
 														onStartGame={handleStartGame}
 														onEndGame={handleEndGame}
 														onShowInvite={() => setShowInviteModal(true)}
-													/>
-													<div className="bg-gray-50 rounded-lg p-2">
+													/> */}
+													{/* Mobile Players List */}
+													<div className="rounded-lg p-1">
 														{players &&
 															gameState &&
 															user &&
@@ -914,6 +938,34 @@ export function Room(): JSX.Element {
 																	user={user}
 																	room={room}
 																	onlineUsers={onlineUsers}
+																	turnSummary={
+																		players.length > 0 &&
+																		turnActions &&
+																		gameState?.current_player_id &&
+																		room?.status === "in_progress" ? (
+																			<MobileTurnSummary
+																				room={room}
+																				isCurrentPlayerTurn={
+																					isCurrentPlayerTurn
+																				}
+																				players={players}
+																				currentPlayer={players.find(
+																					(player) =>
+																						player.id ===
+																						gameState.current_player_id
+																				)}
+																				turnActions={turnActions}
+																				gameState={gameState}
+																			/>
+																		) : room?.status === "rebuttal" &&
+																		  room?.winner_id &&
+																		  players?.length > 0 ? (
+																			<MobileShowWinner
+																				room={room}
+																				players={players}
+																			/>
+																		) : null
+																	}
 																/>
 															)}
 													</div>
@@ -934,17 +986,19 @@ export function Room(): JSX.Element {
 												turnActions &&
 												gameState?.current_player_id &&
 												room?.status === "in_progress" && (
-													<TurnSummary
-														room={room}
-														isCurrentPlayerTurn={isCurrentPlayerTurn}
-														players={players}
-														currentPlayer={players.find(
-															(player) =>
-																player.id === gameState.current_player_id
-														)}
-														turnActions={turnActions}
-														gameState={gameState}
-													/>
+													<div className="hidden md:block">
+														<TurnSummary
+															room={room}
+															isCurrentPlayerTurn={isCurrentPlayerTurn}
+															players={players}
+															currentPlayer={players.find(
+																(player) =>
+																	player.id === gameState.current_player_id
+															)}
+															turnActions={turnActions}
+															gameState={gameState}
+														/>
+													</div>
 												)}
 										</div>
 
@@ -1228,6 +1282,93 @@ function TurnSummary({
 	);
 }
 
+// Create a mobile version of the TurnSummary component
+function MobileTurnSummary({
+	room,
+	players,
+	currentPlayer,
+	turnActions,
+	gameState,
+	isCurrentPlayerTurn,
+}: {
+	room: GameRoom;
+	currentPlayer: GamePlayer;
+	turnActions: TurnAction[];
+	players: GamePlayer[];
+	gameState: GameState;
+	isCurrentPlayerTurn: boolean;
+}) {
+	const { data: userData, isLoading: userLoading } = useUser(
+		currentPlayer.user_id
+	);
+	// Calculate total score for the current turn
+	const currentTurnScore = turnActions.reduce(
+		(total, action) => total + action.score,
+		0
+	);
+
+	// get the latest turn action if there are any
+	const latestTurnAction = turnActions[turnActions.length - 1];
+	const isFarkle = latestTurnAction?.score === 0;
+
+	if (userLoading || !userData) {
+		return <div>Loading...</div>;
+	}
+
+	return (
+		<div className="flex items-center justify-between w-full">
+			<div className="flex items-center gap-2">
+				<div className="relative">
+					<img
+						alt="User avatar"
+						className="w-7 h-7 rounded-full border-2 border-white shadow-sm"
+						src={`/avatars/${userData?.avatar_name || "default"}.svg`}
+					/>
+					{isCurrentPlayerTurn && (
+						<div className="absolute -bottom-1 -right-1 w-2 h-2 bg-green-500 rounded-full border-2 border-white" />
+					)}
+				</div>
+				<div>
+					<div className="flex items-center gap-1">
+						<p className="text-sm font-semibold text-gray-900">
+							{userData?.username}
+						</p>
+						<span className="text-xs font-medium text-gray-600">
+							• Score: {currentPlayer.score}
+						</span>
+					</div>
+					<div className="flex items-center gap-1">
+						<span className="text-xs font-medium text-gray-600">
+							{room?.status === "rebuttal"
+								? "Rebuttal"
+								: `Turn ${gameState.current_turn_number}`}
+						</span>
+						{turnActions.length > 0 && (
+							<span className="text-xs text-gray-500">
+								• Roll {turnActions.length}
+							</span>
+						)}
+					</div>
+				</div>
+			</div>
+			{turnActions.length > 0 && (
+				<div className="flex flex-col items-end">
+					<p className="text-xs text-gray-500 uppercase tracking-wide">
+						Roll Score
+					</p>
+					{isFarkle ? (
+						<p className="text-sm font-bold text-red-600">Farkle!</p>
+					) : (
+						<p className="text-sm font-bold text-green-600">
+							+{currentTurnScore}
+						</p>
+					)}
+				</div>
+			)}
+		</div>
+	);
+}
+
 function CurrentPlayerTurn({ currentPlayer }: { currentPlayer: GamePlayer }) {
 	// show the current player's name and the number of rolls they have made
 	// show the current player's avatar
@@ -1284,6 +1425,53 @@ function ShowWinner({
 					</div>
 					<p className="text-sm font-medium text-amber-600">
 						Score: {winner.score}
+					</p>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+// Mobile version of ShowWinner
+function MobileShowWinner({
+	room,
+	players,
+}: {
+	room: GameRoom;
+	players: Array<GamePlayer>;
+}) {
+	const winner = players.find((player) => player.user_id === room.winner_id);
+	const { data: userData, isLoading: userLoading } = useUser(winner?.user_id);
+
+	if (!winner || userLoading) {
+		return null;
+	}
+
+	return (
+		<div className="flex items-center justify-between w-full">
+			<div className="flex items-center gap-2">
+				<div className="relative">
+					<img
+						alt={`${userData?.username}'s avatar`}
+						className="w-7 h-7 rounded-full border-2 border-amber-500 shadow"
+						src={`/avatars/${userData?.avatar_name || "default"}.svg`}
+					/>
+					<svg
+						className="w-3 h-3 text-amber-500 absolute -top-1 -right-1"
+						fill="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279-7.416-3.967-7.417 3.967 1.481-8.279-6.064-5.828 8.332-1.151z" />
+					</svg>
+				</div>
+				<div>
+					<div className="flex items-center gap-1">
+						<h3 className="text-sm font-semibold text-gray-900 truncate">
+							{userData?.username}
+						</h3>
+					</div>
+					<p className="text-xs font-medium text-amber-600">
+						Winner • Score: {winner.score}
 					</p>
 				</div>
 			</div>

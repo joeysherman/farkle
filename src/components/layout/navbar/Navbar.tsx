@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment } from "react";
+import { Fragment } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "../../../lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
@@ -54,49 +54,14 @@ const useProfileData = (userId: string) => {
 
 export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	const navigate = useNavigate();
-	const [user, setUser] = useState<User | null>(null);
-	const [profile, setProfile] = useState<Profile | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [isLoggingOut, setIsLoggingOut] = useState(false);
-
+	const { data: user, isLoading: isUserLoading } = useUserData();
 	const { data: profileData, isLoading: isProfileLoading } = useProfileData(
 		user?.id ?? ""
 	);
-
-	useEffect(() => {
-		// Get initial session and profile
-		const fetchUserAndProfile = async (): Promise<void> => {
-			try {
-				const {
-					data: { session },
-				} = await supabase.auth.getSession();
-
-				setUser(session?.user ?? null);
-
-				if (session?.user) {
-					const { data: profileData } = await supabase
-						.from("profiles")
-						.select("id, username, avatar_name")
-						.eq("id", session.user.id)
-						.single();
-
-					setProfile(profileData);
-				}
-
-				setLoading(false);
-			} catch (error) {
-				console.error("Error fetching user and profile:", error);
-
-				setLoading(false);
-			}
-		};
-
-		void fetchUserAndProfile();
-	}, []);
+	const loading = isUserLoading || isProfileLoading;
 
 	const handleSignOut = async (): Promise<void> => {
 		try {
-			setIsLoggingOut(true);
 			await supabase.auth.signOut();
 			// Wait a moment to show the splash screen
 			await new Promise<void>((resolve) => {
@@ -107,18 +72,6 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 			console.error("Error signing out:", error);
 		}
 	};
-
-	// Show logout splash screen
-	if (isLoggingOut) {
-		return (
-			<div className="fixed inset-0 bg-gray-50 flex items-center justify-center z-50">
-				<div className="text-center">
-					<div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin mx-auto"></div>
-					<p className="mt-4 text-lg text-gray-600">Signing out...</p>
-				</div>
-			</div>
-		);
-	}
 
 	return (
 		<nav className="bg-white shadow">
@@ -167,7 +120,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 										leaveFrom="transform opacity-100 scale-100"
 										leaveTo="transform opacity-0 scale-95"
 									>
-										<MenuItems className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+										<MenuItems className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
 											<div className="px-1 py-1">
 												<MenuItem>
 													{({ active }): JSX.Element => (

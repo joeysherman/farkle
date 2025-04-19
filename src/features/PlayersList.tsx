@@ -98,15 +98,22 @@ export const PlayersList: React.FC<{
 	user: User | null;
 	room: GameRoom;
 	onlineUsers: Record<string, any>;
-}> = ({ players, gameState, user, room, onlineUsers }) => {
+	turnSummary?: React.ReactNode;
+}> = ({ players, gameState, user, room, onlineUsers, turnSummary }) => {
 	return (
 		<div className="space-y-1.5 md:space-y-2.5">
 			{/* Mobile Collapse for Players List */}
 			<div className="md:hidden">
 				<div className="collapse collapse-arrow bg-white rounded-lg border">
 					<input className="peer" type="checkbox" />
-					<div className="collapse-title text-sm font-medium text-gray-700 text-center">
-						Players ({players.length}/{room.max_players})
+					<div className="collapse-title text-sm font-medium text-gray-700 p-1">
+						{turnSummary ? (
+							<div className="py-1">{turnSummary}</div>
+						) : (
+							<div className="text-center">
+								Players ({players.length}/{room.max_players})
+							</div>
+						)}
 					</div>
 					<div className="collapse-content">
 						<div className="space-y-1.5">
