@@ -889,18 +889,11 @@ export function Room(): JSX.Element {
 							{/* Game Controls Overlay */}
 							<div className="absolute top-0 left-0 right-0 z-10 p-2 sm:p-3">
 								<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-2 sm:p-3">
-									<div className="flex flex-col gap-3">
+									<div className="flex flex-col">
 										{/* Mobile Room Controls and Players List */}
 										<div className="md:hidden">
 											{room && user && (
 												<div className="flex flex-col gap-3">
-													<RoomControls
-														room={room}
-														user={user}
-														onStartGame={handleStartGame}
-														onEndGame={handleEndGame}
-														onShowInvite={() => setShowInviteModal(true)}
-													/>
 													{/* Mobile Players List */}
 													<div className="bg-gray-50 rounded-lg p-2">
 														<div className="flex items-center justify-between mb-2">
@@ -925,6 +918,13 @@ export function Room(): JSX.Element {
 																/>
 															)}
 													</div>
+													<RoomControls
+														room={room}
+														user={user}
+														onStartGame={handleStartGame}
+														onEndGame={handleEndGame}
+														onShowInvite={() => setShowInviteModal(true)}
+													/>
 												</div>
 											)}
 										</div>
@@ -940,7 +940,8 @@ export function Room(): JSX.Element {
 												)}
 											{players.length > 0 &&
 												turnActions &&
-												gameState?.current_player_id && (
+												gameState?.current_player_id &&
+												room?.status === "in_progress" && (
 													<TurnSummary
 														room={room}
 														isCurrentPlayerTurn={isCurrentPlayerTurn}
