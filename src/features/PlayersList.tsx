@@ -21,34 +21,34 @@ const PlayerListItem: React.FC<PlayerListItemProps> = ({
 
 	return (
 		<div
-			className={`p-2.5 rounded-lg ${
+			className={`p-2 md:p-2.5 rounded-lg ${
 				isCurrentTurn ? "bg-green-100 border-green-200" : "bg-white"
 			} border transition-colors duration-200 relative overflow-hidden`}
 		>
 			{isCurrentTurn && (
 				<div className="absolute right-0 top-0">
-					<div className="transform rotate-45 translate-y-[-50%] translate-x-[50%] bg-green-500 text-white px-8 py-1 text-xs">
+					<div className="transform rotate-45 translate-y-[-50%] translate-x-[50%] bg-green-500 text-white px-6 md:px-8 py-1 text-xs">
 						Turn
 					</div>
 				</div>
 			)}
-			<div className="flex items-center space-x-2.5">
+			<div className="flex items-center space-x-2 md:space-x-2.5">
 				<div className="relative flex-shrink-0">
 					<img
 						alt={`${userData.username}'s avatar`}
-						className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
+						className="w-7 h-7 md:w-8 md:h-8 rounded-full"
 						src={`/avatars/${userData.avatar_name || "default"}.svg`}
 					/>
 					<div
-						className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 border-white ${
+						className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 md:w-3 md:h-3 rounded-full border-2 border-white ${
 							isOnline ? "bg-green-500" : "bg-gray-300"
 						}`}
 					/>
 				</div>
 				<div className="flex-1 min-w-0">
-					<div className="flex items-center gap-1.5">
+					<div className="flex items-center gap-1">
 						<p
-							className={`text-sm font-medium ${
+							className={`text-xs md:text-sm font-medium ${
 								isCurrentUser
 									? "text-indigo-600"
 									: isCurrentTurn
@@ -62,9 +62,7 @@ const PlayerListItem: React.FC<PlayerListItemProps> = ({
 							)}
 						</p>
 					</div>
-					<p className="text-xs sm:text-sm text-gray-500">
-						Score: {player.score}
-					</p>
+					<p className="text-xs text-gray-500">Score: {player.score}</p>
 				</div>
 				{isCurrentTurn && (
 					<div className="hidden sm:block">
@@ -79,11 +77,13 @@ const PlayerListItem: React.FC<PlayerListItemProps> = ({
 };
 
 const EmptyPlayerSlot: React.FC<{ slotNumber: number }> = ({ slotNumber }) => (
-	<div className="p-3 rounded-lg bg-gray-50 border border-dashed border-gray-200">
-		<div className="flex items-center space-x-3">
-			<div className="w-10 h-10 rounded-full bg-gray-200" />
+	<div className="p-2 md:p-2.5 rounded-lg bg-gray-50 border border-dashed border-gray-200">
+		<div className="flex items-center space-x-2 md:space-x-2.5">
+			<div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gray-200" />
 			<div className="flex-1">
-				<p className="text-sm text-gray-400">Waiting for Player {slotNumber}</p>
+				<p className="text-xs md:text-sm text-gray-400">
+					Waiting for Player {slotNumber}
+				</p>
 			</div>
 		</div>
 	</div>
@@ -97,35 +97,40 @@ export const PlayersList: React.FC<{
 	room: GameRoom;
 	onlineUsers: Record<string, any>;
 }> = ({ players, gameState, user, room, onlineUsers }) => {
-	console.log("PlayersList", { players, gameState, user, room, onlineUsers });
 	return (
-		<div className="space-y-3">
-			{players.map((player) => {
-				const isCurrentTurn = gameState?.current_player_id === player.id;
-				const isCurrentUser = player.user_id === user?.id;
-				const isOnline = Boolean(onlineUsers[player.user_id]);
+		<div className="space-y-1.5 md:space-y-2.5">
+			{/* Current Players */}
+			<div className="space-y-1.5 md:space-y-2">
+				{players.map((player) => {
+					const isCurrentTurn = gameState?.current_player_id === player.id;
+					const isCurrentUser = player.user_id === user?.id;
+					const isOnline = Boolean(onlineUsers[player.user_id]);
 
-				return (
-					<PlayerListItem
-						key={player.id}
-						player={player}
-						isCurrentTurn={isCurrentTurn}
-						isCurrentUser={isCurrentUser}
-						isOnline={isOnline}
-					/>
-				);
-			})}
-
-			{room &&
-				room?.status === "waiting" &&
-				Array.from({ length: room.max_players - players.length }).map(
-					(_, index) => (
-						<EmptyPlayerSlot
-							key={`empty-${index}`}
-							slotNumber={players.length + index + 1}
+					return (
+						<PlayerListItem
+							key={player.id}
+							player={player}
+							isCurrentTurn={isCurrentTurn}
+							isCurrentUser={isCurrentUser}
+							isOnline={isOnline}
 						/>
-					)
-				)}
+					);
+				})}
+			</div>
+
+			{/* Empty Slots */}
+			{room?.status === "waiting" && (
+				<div className="space-y-1.5 md:space-y-2 mt-1.5 md:mt-2">
+					{Array.from({ length: room.max_players - players.length }).map(
+						(_, index) => (
+							<EmptyPlayerSlot
+								key={`empty-${index}`}
+								slotNumber={players.length + index + 1}
+							/>
+						)
+					)}
+				</div>
+			)}
 		</div>
 	);
 };
