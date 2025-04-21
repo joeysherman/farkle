@@ -917,14 +917,15 @@ export function Room(): JSX.Element {
 											{room && user && (
 												<div className="flex flex-col gap-3">
 													{/* Mobile Room Controls */}
-
-													{/* <RoomControls
-														room={room}
-														user={user}
-														onStartGame={handleStartGame}
-														onEndGame={handleEndGame}
-														onShowInvite={() => setShowInviteModal(true)}
-													/> */}
+													{room?.status === "waiting" && (
+														<RoomControls
+															room={room}
+															user={user}
+															onStartGame={handleStartGame}
+															onEndGame={handleEndGame}
+															onShowInvite={() => setShowInviteModal(true)}
+														/>
+													)}
 													{/* Mobile Players List */}
 													<div className="rounded-lg p-1">
 														{players &&

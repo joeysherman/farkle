@@ -139,116 +139,44 @@ export function TurnActions({
 			{/* Mobile view */}
 			<div className="md:hidden">
 				{latestAction && (
-					<Disclosure>
-						{({ open }) => (
-							<div className="flex flex-col">
-								<Disclosure.Button className="w-full">
-									<div className="bg-gray-50 rounded p-1.5 text-sm">
-										<div className="flex items-center gap-2">
-											<span className="text-gray-500 min-w-[60px]">
-												Latest Roll:
-											</span>
-
-											{/* Combined dice display */}
-											<div className="flex gap-1 flex-1">
-												{latestAction?.dice_values.map((value, index) => {
-													let keptDice = latestAction.kept_dice;
-													let isScoringDice = false;
-													if (keptDice.length > 0) {
-														isScoringDice = keptDice.includes(index);
-													} else {
-														isScoringDice =
-															latestAction.scoring_dice.includes(value);
-													}
-													if (isScoringDice) {
-														return (
-															<div
-																key={index}
-																className="w-6 h-6 flex items-center justify-center text-xs rounded bg-green-100 border border-green-300 text-green-700"
-															>
-																{value}
-															</div>
-														);
-													} else {
-														return (
-															<div
-																key={index}
-																className="w-6 h-6 flex items-center justify-center text-xs rounded bg-white border border-gray-300 text-gray-700"
-															>
-																{value}
-															</div>
-														);
-													}
-												})}
-
-												{/* Show Farkle or empty state */}
-												{latestAction.dice_values.filter(
-													(value) => !latestAction.scoring_dice.includes(value)
-												).length === 0 &&
-													latestAction.scoring_dice.length === 0 && (
-														<span className="text-red-500 text-xs font-medium">
-															Farkle!
-														</span>
-													)}
-											</div>
-
-											{/* Score indicator */}
-											<div
-												className={`min-w-[50px] text-right font-medium ${
-													latestAction.score > 0
-														? "text-green-600"
-														: "text-red-500"
-												}`}
-											>
-												{latestAction.score > 0
-													? `+${latestAction.score}`
-													: "+0"}
-											</div>
-
-											{/* Dropdown icon */}
-											{previousActions.length > 0 && (
-												<div className="flex items-center ml-1">
-													<svg
-														className={`w-4 h-4 transform ${open ? "rotate-180" : ""} transition-transform duration-200 text-gray-500`}
-														fill="none"
-														viewBox="0 0 24 24"
-														stroke="currentColor"
-													>
-														<path
-															strokeLinecap="round"
-															strokeLinejoin="round"
-															strokeWidth={2}
-															d="M19 9l-7 7-7-7"
-														/>
-													</svg>
-												</div>
-											)}
-										</div>
-									</div>
-								</Disclosure.Button>
-
-								{previousActions.length > 0 && (
-									<Disclosure.Panel static>
-										{({ open }) => (
-											<div
-												className={`space-y-1 overflow-hidden transition-all duration-200 ease-in-out ${
-													open ? "opacity-100" : "opacity-0 h-0"
-												}`}
-											>
-												{previousActions.map((action) => (
-													<RollDisplay
-														key={action.id}
-														action={action}
-														isLatest={false}
-													/>
-												))}
-											</div>
-										)}
-									</Disclosure.Panel>
-								)}
+					<div className="collapse bg-white rounded-lg border">
+						<input type="checkbox" className="peer" />
+						<div className="collapse-title flex items-center justify-between p-0">
+							<div className="flex-1 p-2">
+								<RollDisplay action={latestAction} isLatest />
+							</div>
+							<div className="flex items-center justify-center w-8 h-full">
+								<div className="w-4 h-4 text-gray-400">
+									<svg
+										className="w-full h-full transform peer-checked:rotate-180 transition-transform duration-200"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M19 9l-7 7-7-7"
+										/>
+									</svg>
+								</div>
+							</div>
+						</div>
+						{previousActions.length > 0 && (
+							<div className="collapse-content px-2 pb-2">
+								<div className="space-y-1.5">
+									{previousActions.map((action) => (
+										<RollDisplay
+											key={action.id}
+											action={action}
+											isLatest={false}
+										/>
+									))}
+								</div>
 							</div>
 						)}
-					</Disclosure>
+					</div>
 				)}
 			</div>
 

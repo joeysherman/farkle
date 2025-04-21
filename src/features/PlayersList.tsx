@@ -42,7 +42,7 @@ const PlayerListItem: React.FC<PlayerListItemProps> = ({
 						src={`/avatars/${userData.avatar_name || "default"}.svg`}
 					/>
 					<div
-						className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 md:w-3 md:h-3 rounded-full border-2 border-white ${
+						className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 md:w-3 md:h-3 rounded-full border-2 border-white ${
 							isOnline ? "bg-green-500" : "bg-gray-300"
 						}`}
 					/>
@@ -104,18 +104,37 @@ export const PlayersList: React.FC<{
 		<div className="space-y-1.5 md:space-y-2.5">
 			{/* Mobile Collapse for Players List */}
 			<div className="md:hidden">
-				<div className="collapse collapse-arrow bg-white rounded-lg border">
-					<input className="peer" type="checkbox" />
-					<div className="collapse-title text-sm font-medium text-gray-700 p-1">
-						{turnSummary ? (
-							<div className="py-1">{turnSummary}</div>
-						) : (
-							<div className="text-center">
-								Players ({players.length}/{room.max_players})
+				<div className="collapse bg-white rounded-lg border">
+					<input type="checkbox" className="peer" />
+					<div className="collapse-title flex items-center justify-between p-0">
+						<div className="flex-1 p-2">
+							{turnSummary ? (
+								<div>{turnSummary}</div>
+							) : (
+								<div className="text-sm font-medium text-gray-700">
+									Players ({players.length}/{room.max_players})
+								</div>
+							)}
+						</div>
+						<div className="flex items-center justify-center w-8 h-full">
+							<div className="w-4 h-4 text-gray-400">
+								<svg
+									className="w-full h-full transform peer-checked:rotate-180 transition-transform duration-200"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M19 9l-7 7-7-7"
+									/>
+								</svg>
 							</div>
-						)}
+						</div>
 					</div>
-					<div className="collapse-content">
+					<div className="collapse-content px-2">
 						<div className="space-y-1.5">
 							{players.map((player) => {
 								const isCurrentTurn =
@@ -125,11 +144,11 @@ export const PlayersList: React.FC<{
 
 								return (
 									<PlayerListItem
+										key={player.id}
+										player={player}
 										isCurrentTurn={isCurrentTurn}
 										isCurrentUser={isCurrentUser}
 										isOnline={isOnline}
-										key={player.id}
-										player={player}
 									/>
 								);
 							})}
