@@ -37,7 +37,7 @@ export function TurnActions({
 		);
 
 		return (
-			<div className="bg-gray-50 rounded p-1.5 text-sm">
+			<div className="rounded p-1 text-sm">
 				<div className="flex items-center gap-2">
 					<span className="text-gray-500 min-w-[60px]">
 						{isLatest ? "Latest Roll:" : "Roll " + action.action_number + ":"}
@@ -140,31 +140,37 @@ export function TurnActions({
 			<div className="md:hidden">
 				{latestAction && (
 					<div className="collapse bg-white rounded-lg border">
-						<input type="checkbox" className="peer" />
+						<input
+							type="checkbox"
+							className="peer"
+							disabled={previousActions.length === 0}
+						/>
 						<div className="collapse-title flex items-center justify-between p-0">
 							<div className="flex-1 p-2">
 								<RollDisplay action={latestAction} isLatest />
 							</div>
-							<div className="flex items-center justify-center w-8 h-full">
-								<div className="w-4 h-4 text-gray-400">
-									<svg
-										className="w-full h-full transform peer-checked:rotate-180 transition-transform duration-200"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-									>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={2}
-											d="M19 9l-7 7-7-7"
-										/>
-									</svg>
+							{previousActions.length > 0 && (
+								<div className="flex items-center justify-center w-8 h-full">
+									<div className="w-4 h-4 text-gray-400">
+										<svg
+											className="w-full h-full transform peer-checked:rotate-180 transition-transform duration-200"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M19 9l-7 7-7-7"
+											/>
+										</svg>
+									</div>
 								</div>
-							</div>
+							)}
 						</div>
 						{previousActions.length > 0 && (
-							<div className="collapse-content px-2 pb-2">
+							<div className="collapse-content px-2">
 								<div className="space-y-1.5">
 									{previousActions.map((action) => (
 										<RollDisplay

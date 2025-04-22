@@ -29,7 +29,7 @@ const PlayerListItem: React.FC<PlayerListItemProps> = ({
 		>
 			{isCurrentTurn && (
 				<div className="absolute right-0 top-0">
-					<div className="transform rotate-45 translate-y-[-50%] translate-x-[50%] bg-green-500 text-white px-6 md:px-8 py-1 text-xs">
+					<div className="transform rotate-45 translate-y-[-50%] translate-x-[50%] bg-green-500 text-white px-6 md:px-8 pb-3 text-xs">
 						Turn
 					</div>
 				</div>

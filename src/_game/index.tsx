@@ -57,12 +57,12 @@ export const GameScene = ({
 	const orbitControlsRef = useRef();
 
 	return (
-		<div className="relative w-full h-full" style={{ minHeight: "300px" }}>
+		<div className="relative w-full h-full" style={{ minHeight: "500px" }}>
 			<Canvas
 				shadows
 				camera={{
-					position: [-ARENA_SIZE * 0.5, ARENA_SIZE * 1.5, ARENA_SIZE * 1.75],
-					fov: 20,
+					position: [-ARENA_SIZE * 0.4, ARENA_SIZE * 1.2, ARENA_SIZE * 1.4],
+					fov: 30,
 				}}
 				style={{
 					background: "#f3f4f6",
@@ -74,7 +74,6 @@ export const GameScene = ({
 				}}
 			>
 				<ambientLight intensity={0.5} />
-				{/* <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} /> */}
 				<pointLight position={[-50, 100, -50]} />
 				<directionalLight
 					position={[-50, 100, -50]}
@@ -94,22 +93,12 @@ export const GameScene = ({
 								visibleEdgeColor="red"
 								edgeStrength={100}
 								edgeGlow={1}
-								//edgeThickness={5}
 								pulseSpeed={0.5}
 								blur={false}
 								xRay={false}
 								width={1000}
 							/>
 						)}
-						{/* <Outline
-							patternTexture={null} // a pattern texture
-							edgeStrength={2.5} // the edge strength
-							pulseSpeed={0.0} // a pulse speed. A value of zero disables the pulse effect
-							visibleEdgeColor={0xffffff} // the color of visible edges
-							hiddenEdgeColor={0x22090a} // the color of hidden edges
-							blur={false} // whether the outline should be blurred
-							xRay={false} // indicates whether X-Ray outlines are enabled
-						/> */}
 					</EffectComposer>
 					<DiceScene
 						isCurrentPlayerTurn={isCurrentPlayerTurn}
@@ -122,15 +111,16 @@ export const GameScene = ({
 				<OrbitControls
 					ref={orbitControlsRef}
 					enableDamping
-					minPolarAngle={0}
-					maxPolarAngle={Math.PI / 2 - 0.1}
 					dampingFactor={0.05}
+					enablePan
+					enableZoom
+					minPolarAngle={Math.PI / 6}
+					maxPolarAngle={Math.PI / 2 - 0.1}
+					minDistance={ARENA_SIZE * 1}
+					maxDistance={ARENA_SIZE * 3}
 					rotateSpeed={0.5}
-					enablePan={false}
-					enableZoom={true}
-					minDistance={ARENA_SIZE * 0.75}
-					maxDistance={ARENA_SIZE * 4}
 					zoomSpeed={0.75}
+					target={[0, 0, 0]}
 				/>
 			</Canvas>
 		</div>

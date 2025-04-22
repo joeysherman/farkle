@@ -33,6 +33,8 @@ export function DiceScene({
 						isSpinning={isSpinning}
 						isScoringNumber={isScoringNumber || false}
 						onDiceClick={() => {
+							debugger;
+							if (!isCurrentPlayerTurn) return;
 							// get the dice that are the same as the current dice
 							// if the index is already in the selectedDiceIndices array
 							let diceAlreadySelected = false;
