@@ -3,6 +3,7 @@ import {
 	Billboard,
 	OrbitControls,
 	CameraControls,
+	PerspectiveCamera,
 } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
@@ -57,29 +58,40 @@ export const GameScene = ({
 	const orbitControlsRef = useRef();
 
 	return (
-		<div className="relative w-full h-full" style={{ minHeight: "500px" }}>
+		<div className="absolute bottom-0 w-full h-3/4 md:h-full">
 			<Canvas
-				shadows
-				camera={{
-					position: [-ARENA_SIZE * 0.4, ARENA_SIZE * 1.2, ARENA_SIZE * 1.4],
-					fov: 30,
-				}}
-				style={{
-					background: "#f3f4f6",
-					position: "absolute",
-					top: 0,
-					left: 0,
-					width: "100%",
-					height: "100%",
-				}}
+
+			// shadows
+			// camera={{
+			// 	position: [-ARENA_SIZE * 0.4, ARENA_SIZE * 1.2, ARENA_SIZE * 1.4],
+			// 	fov: 30,
+			// }}
+
+			// style={{
+			// 	background: "#f3f4f6",
+			// 	position: "absolute",
+
+			// 	right: 0,
+			// 	bottom: 0,
+			// 	left: 0,
+			// 	width: "100%",
+			// 	height: "100%",
+			// }}
 			>
+				<PerspectiveCamera
+					makeDefault
+					position={[-ARENA_SIZE * 3.5, ARENA_SIZE * 3.5, ARENA_SIZE * 1]}
+					fov={30}
+					near={5}
+					far={1000}
+				/>
 				<ambientLight intensity={0.5} />
 				<pointLight position={[-50, 100, -50]} />
 				<directionalLight
 					position={[-50, 100, -50]}
 					intensity={2}
 					castShadow
-					shadow-mapSize={[4096, 4096]}
+					//shadow-mapSize={[4096, 4096]}
 					shadow-camera-left={-20}
 					shadow-camera-right={20}
 					shadow-camera-top={20}
@@ -116,11 +128,11 @@ export const GameScene = ({
 					enableZoom
 					minPolarAngle={Math.PI / 6}
 					maxPolarAngle={Math.PI / 2 - 0.1}
-					minDistance={ARENA_SIZE * 1}
+					minDistance={ARENA_SIZE * 0.2}
 					maxDistance={ARENA_SIZE * 3}
 					rotateSpeed={0.5}
 					zoomSpeed={0.75}
-					target={[0, 0, 0]}
+					//target={[0, 0, 0]}
 				/>
 			</Canvas>
 		</div>

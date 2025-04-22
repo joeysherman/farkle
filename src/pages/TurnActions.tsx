@@ -37,7 +37,7 @@ export function TurnActions({
 		);
 
 		return (
-			<div className="rounded p-1 text-sm">
+			<div className="rounded p-1.5 text-sm">
 				<div className="flex items-center gap-2">
 					<span className="text-gray-500 min-w-[60px]">
 						{isLatest ? "Latest Roll:" : "Roll " + action.action_number + ":"}
@@ -89,7 +89,7 @@ export function TurnActions({
 					<div
 						className={`min-w-[50px] text-right font-medium ${
 							action.score > 0 ? "text-green-600" : "text-red-500"
-						}`}
+						} ${isLatest ? "" : "pr-6"}`}
 					>
 						{action.score > 0 ? `+${action.score}` : "+0"}
 					</div>
@@ -99,39 +99,40 @@ export function TurnActions({
 	};
 
 	if (turnActions.length === 0) {
-		if (isCurrentPlayerTurn) {
-			return (
-				<div ref={turnActionsRef} className="h-[42px] overflow-y-auto">
-					<div className="flex justify-center items-center h-[42px]">
-						{room?.status === "in_progress" ? (
-							<p className="text-sm text-gray-500 italic">Start rolling!</p>
-						) : (
-							<p className="text-sm text-gray-500 italic">Start the game.</p>
-						)}
-					</div>
-				</div>
-			);
-		} else {
-			return (
-				<div ref={turnActionsRef} className="h-[42px] overflow-y-auto">
-					<div className="flex justify-center items-center h-[42px]">
-						{room?.status === "in_progress" ? (
-							isCurrentPlayerTurn ? (
-								<p className="text-sm text-gray-500 italic">Start rolling!</p>
-							) : (
-								<p className="text-sm text-gray-500 italic">
-									Waiting for player to roll.
-								</p>
-							)
-						) : (
-							<p className="text-sm text-gray-500 italic">
-								Waiting for game to start.
-							</p>
-						)}
-					</div>
-				</div>
-			);
-		}
+		// if (isCurrentPlayerTurn) {
+		// 	return (
+		// 		<div ref={turnActionsRef} className="h-[42px] overflow-y-auto">
+		// 			<div className="flex justify-center items-center h-[42px]">
+		// 				{room?.status === "in_progress" ? (
+		// 					<p className="text-sm text-gray-500 italic">Start rolling!</p>
+		// 				) : (
+		// 					<p className="text-sm text-gray-500 italic">Start the game.</p>
+		// 				)}
+		// 			</div>
+		// 		</div>
+		// 	);
+		// } else {
+		// 	return (
+		// 		<div ref={turnActionsRef} className="h-[42px] overflow-y-auto">
+		// 			<div className="flex justify-center items-center h-[42px]">
+		// 				{room?.status === "in_progress" ? (
+		// 					isCurrentPlayerTurn ? (
+		// 						<p className="text-sm text-gray-500 italic">Start rolling!</p>
+		// 					) : (
+		// 						<p className="text-sm text-gray-500 italic">
+		// 							Waiting for player to roll.
+		// 						</p>
+		// 					)
+		// 				) : (
+		// 					<p className="text-sm text-gray-500 italic">
+		// 						Waiting for game to start.
+		// 					</p>
+		// 				)}
+		// 			</div>
+		// 		</div>
+		// 	);
+		// }
+		return null;
 	}
 
 	return (
@@ -146,7 +147,7 @@ export function TurnActions({
 							disabled={previousActions.length === 0}
 						/>
 						<div className="collapse-title flex items-center justify-between p-0">
-							<div className="flex-1 p-2">
+							<div className="flex-1 p-2 pr-0">
 								<RollDisplay action={latestAction} isLatest />
 							</div>
 							{previousActions.length > 0 && (
