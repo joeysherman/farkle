@@ -1326,7 +1326,7 @@ function MobileTurnSummary({
 						src={`/avatars/${userData?.avatar_name || "default"}.svg`}
 					/>
 					{isCurrentPlayerTurn && (
-						<div className="absolute -bottom-1 -right-1 w-2 h-2 bg-green-500 rounded-full border-2 border-white" />
+						<div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
 					)}
 				</div>
 				<div>

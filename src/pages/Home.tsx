@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 import { generateRoomName } from "../utils/roomNames";
 
 import type { User } from "@supabase/supabase-js";
-
+import { useAuth } from "../contexts/AuthContext";
 interface GameRoom {
 	id: string;
 	name: string;
@@ -21,37 +21,17 @@ interface GameRoom {
 export const Home = (): FunctionComponent => {
 	const navigate = useNavigate();
 	const [loading, setLoading] = useState(false);
-	const [showCreateRoom, setShowCreateRoom] = useState(false);
-	const [roomName, setRoomName] = useState(nanoid(6));
-	const [error, setError] = useState("");
+	const { isAuthChecking, user } = useAuth();
 	const [availableRooms, setAvailableRooms] = useState<Array<GameRoom>>([]);
 	const [currentRooms, setCurrentRooms] = useState<Array<GameRoom>>([]);
-	const [isAuthChecking, setIsAuthChecking] = useState(true);
-	const [user, setUser] = useState<User | null>(null);
-
-	useEffect(() => {
-		const checkAuth = async (): Promise<void> => {
-			const {
-				data: { user: authUser },
-			} = await supabase.auth.getUser();
-
-			if (!authUser) {
-				await navigate({ to: "/signup" });
-				return;
-			}
-			setUser(authUser);
-			setIsAuthChecking(false);
-		};
-
-		void checkAuth();
-	}, [navigate]);
+	const [error, setError] = useState("");
 
 	useEffect(() => {
 		const fetchRooms = async (): Promise<void> => {
 			const { data } = await supabase
 				.from("game_rooms")
 				.select("*")
-				.in("status", ["waiting", "in_progress"])
+				.in("status", ["waiting"])
 				.order("created_at", { ascending: false });
 
 			if (data) {
@@ -60,6 +40,7 @@ export const Home = (): FunctionComponent => {
 					(room) =>
 						!currentRooms.some((currentRoom) => currentRoom.id === room.id)
 				);
+				debugger;
 				setAvailableRooms(filteredRooms);
 			}
 		};
@@ -77,42 +58,11 @@ export const Home = (): FunctionComponent => {
 				setCurrentRooms(data.map((item) => item.game_rooms as GameRoom));
 			}
 		};
-
-		if (!isAuthChecking) {
+		if (!isAuthChecking && user && currentRooms.length === 0) {
 			void fetchRooms();
 			void fetchCurrentRooms();
 		}
-		const roomSubscription = supabase
-			.channel("room_changes")
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "game_rooms",
-				},
-				() => {
-					void fetchRooms();
-					void fetchCurrentRooms();
-				}
-			)
-			.subscribe();
-
-		return () => {
-			void roomSubscription.unsubscribe();
-		};
 	}, [isAuthChecking, user, currentRooms]);
-
-	if (isAuthChecking) {
-		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
-				<div className="text-center">
-					<div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin mx-auto"></div>
-					<p className="mt-4 text-gray-600">Loading... home</p>
-				</div>
-			</div>
-		);
-	}
 
 	const handleCreateRoom = async () => {
 		try {
