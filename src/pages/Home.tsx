@@ -34,7 +34,7 @@ export const Home = (): FunctionComponent => {
 				.from("game_players")
 				.select("game_id, game_rooms(*)")
 				.eq("user_id", user.id)
-				.eq("is_active", true);
+				.eq("is_joined", true);
 
 			const { data: waitingRooms } = await supabase
 				.from("game_rooms")

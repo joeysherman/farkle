@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS public.game_players (
   player_order int not null,
   score int default 0 not null,
   is_active boolean default true not null,
+  is_joined boolean default false not null,
   joined_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(game_id, user_id),
   unique(game_id, player_order)
@@ -217,7 +218,7 @@ CREATE POLICY "Players can update game state"
       SELECT 1 FROM game_players
       WHERE game_id = game_states.game_id
       AND user_id = auth.uid()
-      AND is_active = true
+      AND is_joined = true
     )
   );
 
@@ -290,12 +291,14 @@ BEGIN
     user_id,
     player_order,
     score,
-    is_active
+    is_active,
+    is_joined
   ) VALUES (
     v_room_id,
     auth.uid(),
     1,
     0,
+    true,
     true
   ) RETURNING id INTO v_player_id;
 
@@ -370,12 +373,14 @@ BEGIN
     user_id,
     player_order,
     is_active,
+    is_joined,
     score
   )
   VALUES (
     room_id,
     auth.uid(),
     next_order,
+    true,
     true,
     0
   )
@@ -418,7 +423,8 @@ RETURNS void AS $$
 BEGIN
   -- Set player as inactive
   UPDATE game_players
-  SET is_active = false
+  SET is_active = false,
+    is_joined = false
   WHERE game_id = room_id
   AND user_id = auth.uid();
 
@@ -429,7 +435,7 @@ BEGIN
   AND NOT EXISTS (
     SELECT 1 FROM game_players
     WHERE game_id = room_id
-    AND is_active = true
+    AND is_joined = true
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -1061,7 +1067,8 @@ DECLARE
   v_winner_id UUID;
   v_winner_user_id UUID;
   v_game_room game_rooms;
-  v_is_player_present BOOLEAN;
+  v_is_player_active BOOLEAN;
+  v_is_player_joined BOOLEAN;
   v_room_name TEXT;
   v_last_notification_time TIMESTAMP WITH TIME ZONE;
   v_notification_cooldown INTERVAL := '5 minutes'::INTERVAL;
@@ -1178,17 +1185,17 @@ BEGIN
   
   -- For now, we'll use a placeholder approach that assumes the player is not present
   -- In a real implementation, you would replace this with actual presence channel checking
-  v_is_player_present := false;
   
-  -- Check if we've sent a notification to this user recently (rate limiting)
-  SELECT MAX(created_at) INTO v_last_notification_time
-  FROM notifications
-  WHERE user_id = v_next_player_user_id
-  AND body LIKE 'It''s your turn%';
+  v_is_player_active := false;
+  v_is_player_joined := false;
+  -- check if the player is_active and is_joined
+  SELECT is_active, is_joined INTO v_is_player_active, v_is_player_joined
+  FROM game_players
+  WHERE user_id = v_next_player_user_id;
   
-  -- If the player is not present and we haven't sent a notification recently, send one
-  IF NOT v_is_player_present AND (v_last_notification_time IS NULL OR now() - v_last_notification_time > v_notification_cooldown) THEN
-    -- Insert a notification for the player with additional context
+  -- if the player is not is_active and is_joined, then we can create a new notification
+  IF NOT v_is_player_active AND v_is_player_joined THEN
+       -- Insert a notification for the player with additional context
     INSERT INTO notifications (
       user_id,
       body
@@ -1197,7 +1204,18 @@ BEGIN
       'It''s your turn in game room: ' || v_room_name
     );
   END IF;
+  IF v_is_player_active THEN
+       -- Insert a notification for the player with additional context
+    INSERT INTO notifications (
+      user_id,
+      body
+    ) VALUES (
+      v_next_player_user_id,
+      'User is active!: ' || v_room_name
+    );
+  END IF;
 
+  
   -- Create new turn for next player
   INSERT INTO game_turns (
     game_id,
@@ -1291,8 +1309,8 @@ BEGIN
     UPDATE game_rooms
     SET current_players = current_players + 1
     WHERE id = NEW.game_id;
-  ELSIF TG_OP = 'UPDATE' AND OLD.is_active != NEW.is_active THEN
-    IF NEW.is_active THEN
+  ELSIF TG_OP = 'UPDATE' AND OLD.is_joined != NEW.is_joined THEN
+    IF NEW.is_joined THEN
       UPDATE game_rooms
       SET current_players = current_players + 1
       WHERE id = NEW.game_id;
@@ -1307,7 +1325,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER maintain_current_players
-  AFTER INSERT OR UPDATE OF is_active ON game_players
+  AFTER INSERT OR UPDATE OF is_joined ON game_players
   FOR EACH ROW
   EXECUTE FUNCTION update_current_players();
 

@@ -733,23 +733,41 @@ export function Room(): JSX.Element {
 					const state = presenceChannel.presenceState();
 					console.log("Presence state:", state);
 					// always make sure it's a new object
+					// update the game_players table to set is_active to true for each key in the state which is the user_id
+					debugger;
+					const keys = Object.keys(state);
+					// keys.forEach((key) => {
+					// 	debugger;
+					// 	supabase
+					// 		.from("game_players")
+					// 		.update({ is_active: true })
+					// 		.eq("user_id", key);
+					// });
 					setOnlineUsers(Object.assign({}, state));
 				})
-				.on("presence", { event: "join" }, ({ key, newPresences }) => {
+				.on("presence", { event: "join" }, async ({ key, newPresences }) => {
 					console.log("User joined:", key, newPresences);
-
+					await supabase
+						.from("game_players")
+						.update({ is_active: true })
+						.eq("user_id", key);
 					// setOnlineUsers((prev) => ({
 					// 	...prev,
 					// 	[key]: newPresences[0],
 					// }));
 				})
-				.on("presence", { event: "leave" }, ({ key }) => {
+				.on("presence", { event: "leave" }, async ({ key }) => {
 					console.log("User left:", key);
 					// setOnlineUsers((prev) => {
 					// 	const newState = { ...prev };
 					// 	delete newState[key];
 					// 	return newState;
 					// });
+					debugger;
+					await supabase
+						.from("game_players")
+						.update({ is_active: false })
+						.eq("user_id", key);
 				});
 
 			// Subscribe to the channel and track presence
@@ -766,10 +784,12 @@ export function Room(): JSX.Element {
 			presenceSubscriptionRef.current = presenceChannel;
 		}
 		// Cleanup function
-		return () => {
+		return async () => {
 			if (presenceSubscriptionRef.current) {
+				debugger;
 				console.log("unsubscribing from presence");
-				void presenceSubscriptionRef.current.unsubscribe();
+				await presenceSubscriptionRef.current.untrack();
+
 				presenceSubscriptionRef.current = null;
 			}
 		};
