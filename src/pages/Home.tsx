@@ -27,42 +27,42 @@ export const Home = (): FunctionComponent => {
 	const [error, setError] = useState("");
 
 	useEffect(() => {
-		const fetchRooms = async (): Promise<void> => {
-			const { data } = await supabase
-				.from("game_rooms")
-				.select("*")
-				.in("status", ["waiting"])
-				.order("created_at", { ascending: false });
-
-			if (data) {
-				// Filter out rooms that are already in currentRooms
-				const filteredRooms = data.filter(
-					(room) =>
-						!currentRooms.some((currentRoom) => currentRoom.id === room.id)
-				);
-				debugger;
-				setAvailableRooms(filteredRooms);
-			}
-		};
-
 		const fetchCurrentRooms = async (): Promise<void> => {
 			if (!user) return;
 
-			const { data } = await supabase
+			const { data: playerRooms } = await supabase
 				.from("game_players")
 				.select("game_id, game_rooms(*)")
 				.eq("user_id", user.id)
 				.eq("is_active", true);
 
-			if (data) {
-				setCurrentRooms(data.map((item) => item.game_rooms as GameRoom));
+			const { data: waitingRooms } = await supabase
+				.from("game_rooms")
+				.select("*")
+				.in("status", ["waiting"])
+				.order("created_at", { ascending: false });
+
+			if (waitingRooms) {
+				debugger;
+				// Filter out rooms that are already in currentRooms
+				const filteredRooms = waitingRooms.filter(
+					(room) =>
+						!playerRooms.some(
+							(playerRoom) => playerRoom.game_rooms.id === room.id
+						)
+				);
+				setAvailableRooms(filteredRooms);
+			}
+
+			if (playerRooms) {
+				debugger;
+				setCurrentRooms(playerRooms.map((item) => item.game_rooms as GameRoom));
 			}
 		};
-		if (!isAuthChecking && user && currentRooms.length === 0) {
-			void fetchRooms();
+		if (!isAuthChecking && user) {
 			void fetchCurrentRooms();
 		}
-	}, [isAuthChecking, user, currentRooms]);
+	}, [isAuthChecking, user]);
 
 	const handleCreateRoom = async () => {
 		try {
@@ -217,9 +217,15 @@ export const Home = (): FunctionComponent => {
 												{room?.status === "waiting" ? "Waiting" : "In Progress"}
 											</span>
 										</div>
-										<p className="mt-1 text-sm text-gray-500">
-											Players: {room.current_players}/{room.max_players}
-										</p>
+										<div className="flex justify-between items-center">
+											<p className="mt-1 text-sm text-gray-500">
+												Created by:{" "}
+												{room.created_by === user?.id ? "You" : "Someone else"}
+											</p>
+											<p className="mt-1 text-sm text-gray-500">
+												Players: {room.current_players}/{room.max_players}
+											</p>
+										</div>
 										<div className="mt-4 flex gap-2">
 											<button
 												onClick={() =>
@@ -231,7 +237,9 @@ export const Home = (): FunctionComponent => {
 														: "bg-green-600 hover:bg-green-700"
 												} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
 											>
-												{room?.status === "waiting" ? "Join Game" : "View Game"}
+												{room?.status === "waiting"
+													? "Continue Game"
+													: "Continue Game"}
 											</button>
 											{user &&
 												room.created_by === user.id &&
@@ -252,11 +260,12 @@ export const Home = (): FunctionComponent => {
 				)}
 
 				{/* Available Rooms Section */}
-				{availableRooms.length > 0 && (
-					<div className="mb-12">
-						<h2 className="text-2xl font-bold text-gray-900 mb-4">
-							Available Rooms
-						</h2>
+
+				<div className="mb-12">
+					<h2 className="text-2xl font-bold text-gray-900 mb-4">
+						Available Rooms
+					</h2>
+					{availableRooms.length > 0 && (
 						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 							{availableRooms.map((room) => (
 								<div
@@ -309,46 +318,23 @@ export const Home = (): FunctionComponent => {
 								</div>
 							))}
 						</div>
-					</div>
-				)}
+					)}
+					{availableRooms.length === 0 && (
+						<div>
+							<p className="text-gray-500 text-center">No available rooms</p>
+							{/* add the button to create a room here */}
+							<button
+								onClick={handleCreateRoom}
+								className="mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+							>
+								Create Room
+							</button>
+						</div>
+					)}
+				</div>
 
 				{/* Main Menu Options */}
 				<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-					{/* Quick Play */}
-					<div className="bg-white overflow-hidden shadow rounded-lg">
-						<div className="px-4 py-5 sm:p-6">
-							<h3 className="text-lg font-medium text-gray-900">Quick Play</h3>
-							<p className="mt-2 text-sm text-gray-500">
-								Join a random game that's waiting for players
-							</p>
-							<button
-								onClick={handleQuickPlay}
-								disabled={loading}
-								className="mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-							>
-								{loading ? "Finding Game..." : "Find Game"}
-							</button>
-						</div>
-					</div>
-
-					{/* Create Game */}
-					<div className="bg-white overflow-hidden shadow rounded-lg">
-						<div className="px-4 py-5 sm:p-6">
-							<h3 className="text-lg font-medium text-gray-900">Create Game</h3>
-							<p className="mt-2 text-sm text-gray-500">
-								Create a new game room and invite friends
-							</p>
-							<button
-								onClick={handleCreateRoom}
-								disabled={loading}
-								className="mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-							>
-								{loading ? "Creating..." : "Create Room"}
-							</button>
-							{error && <p className="text-red-500 mt-2">{error}</p>}
-						</div>
-					</div>
-
 					{/* Profile & Settings */}
 					<div className="bg-white overflow-hidden shadow rounded-lg">
 						<div className="px-4 py-5 sm:p-6">
