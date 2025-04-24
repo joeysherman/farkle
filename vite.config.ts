@@ -6,6 +6,9 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 import { defineConfig } from "vitest/config";
 import { VitePWA } from 'vite-plugin-pwa';
 
+// determine if we are in production or development
+const isProduction = process.env.NODE_ENV === 'production';
+
 // https://vitejs.dev/config/
 export default defineConfig({
 	plugins: [
@@ -26,33 +29,51 @@ export default defineConfig({
 		VitePWA({
 			registerType: 'autoUpdate',
 			devOptions: {
-				enabled: true,
+				enabled: !isProduction,
 				type: 'module',
 			},
 			manifest: {
-				name: 'Vite React Boilerplate',
-				short_name: 'Vite React',
-				description: 'A production ready, batteries included starter template for Vite + React projects',
+				name: 'My Awesome App',
+				short_name: 'MyApp',
+				description: 'My Awesome App description',
 				theme_color: '#ffffff',
 				icons: [
-					{
-						src: '/icons/icon-192x192.svg',
-						sizes: '192x192',
-						type: 'image/svg+xml',
-					},
-					{
-						src: '/icons/icon-512x512.svg',
-						sizes: '512x512',
-						type: 'image/svg+xml',
-					},
-					{
-						src: '/icons/icon-512x512.svg',
-						sizes: '512x512',
-						type: 'image/svg+xml',
-						purpose: 'any maskable',
-					},
-				],
-			},
+				  {
+					src: 'pwa-192x192.png',
+					sizes: '192x192',
+					type: 'image/png'
+				  },
+				  {
+					src: 'pwa-512x512.png',
+					sizes: '512x512',
+					type: 'image/png'
+				  }
+				]
+			  },
+			// manifest: {
+			// 	name: 'Vite React Boilerplate',
+			// 	short_name: 'Vite React',
+			// 	description: 'A production ready, batteries included starter template for Vite + React projects',
+			// 	theme_color: '#ffffff',
+			// 	icons: [
+			// 		{
+			// 			src: '/icons/icon-192x192.svg',
+			// 			sizes: '192x192',
+			// 			type: 'image/svg+xml',
+			// 		},
+			// 		{
+			// 			src: '/icons/icon-512x512.svg',
+			// 			sizes: '512x512',
+			// 			type: 'image/svg+xml',
+			// 		},
+			// 		{
+			// 			src: '/icons/icon-512x512.svg',
+			// 			sizes: '512x512',
+			// 			type: 'image/svg+xml',
+			// 			purpose: 'any maskable',
+			// 		},
+			// 	],
+			// },
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,ico,svg,png,json}'],
 				cleanupOutdatedCaches: true,
@@ -77,7 +98,7 @@ export default defineConfig({
 					}
 				]
 			},
-			includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+			//includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
 		})
 	],
 	server: {
