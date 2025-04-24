@@ -1214,8 +1214,6 @@ BEGIN
       'User is active!: ' || v_room_name
     );
   END IF;
-
-  
   -- Create new turn for next player
   INSERT INTO game_turns (
     game_id,
