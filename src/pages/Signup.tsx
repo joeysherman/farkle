@@ -133,11 +133,11 @@ export function Signup(): JSX.Element {
 			<BouncingDice />
 			<div className="max-w-md w-full space-y-8 backdrop-blur-sm bg-white/70 p-8 rounded-xl shadow-xl">
 				<div>
-					<h1 className="text-center text-4xl font-extrabold text-indigo-900 mb-2">
-						Farkle
-					</h1>
-					<p className="text-center text-lg text-indigo-600 font-medium italic">
-						10k call it a day
+					<h2 className="text-center text-2xl font-bold text-gray-900">
+						Create your account
+					</h2>
+					<p className="mt-2 text-center text-sm text-gray-600">
+						Join us to start playing Farkle online
 					</p>
 				</div>
 
@@ -214,18 +214,23 @@ export function Signup(): JSX.Element {
 							disabled={loading}
 							type="submit"
 						>
-							{loading ? "Creating account..." : "Create account"}
+							{loading ? "Creating account..." : "Sign up"}
 						</button>
 					</div>
 				</form>
 
-				<div className="text-center">
-					<Link
-						className="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
-						to="/signin"
-					>
-						Already have an account? Sign in
-					</Link>
+				<div className="mt-8 pt-6 border-t border-gray-200">
+					<p className="text-center text-sm text-gray-600">
+						Already have an account?
+					</p>
+					<div className="mt-3">
+						<Link
+							className="w-full flex justify-center py-2 px-4 border border-indigo-600 rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-transparent hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+							to="/signin"
+						>
+							Sign in
+						</Link>
+					</div>
 				</div>
 			</div>
 		</div>

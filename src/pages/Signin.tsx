@@ -61,20 +61,21 @@ export function Signin(): JSX.Element {
 
 	if (isAuthenticated) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
-				<div className="max-w-md w-full">
+			<div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+				<div className="max-w-md w-full space-y-8">
 					<div className="rounded-md bg-yellow-50 p-4">
 						<div className="flex">
 							<div className="flex-shrink-0">
 								<svg
 									className="h-5 w-5 text-yellow-400"
-									viewBox="0 0 20 20"
 									fill="currentColor"
+									viewBox="0 0 20 20"
+									xmlns="http://www.w3.org/2000/svg"
 								>
 									<path
-										fillRule="evenodd"
-										d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
 										clipRule="evenodd"
+										d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+										fillRule="evenodd"
 									/>
 								</svg>
 							</div>
@@ -129,11 +130,11 @@ export function Signin(): JSX.Element {
 			<BouncingDice />
 			<div className="max-w-md w-full space-y-8 backdrop-blur-sm bg-white/70 p-8 rounded-xl shadow-xl">
 				<div>
-					<h1 className="text-center text-4xl font-extrabold text-indigo-900 mb-2">
-						Farkle
-					</h1>
-					<p className="text-center text-lg text-indigo-600 font-medium italic">
-						10k call it a day
+					<h2 className="text-center text-2xl font-bold text-gray-900">
+						Welcome back!
+					</h2>
+					<p className="mt-2 text-center text-sm text-gray-600">
+						Sign in to continue your game
 					</p>
 				</div>
 
@@ -154,86 +155,80 @@ export function Signin(): JSX.Element {
 				)}
 
 				<form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-					<div className="rounded-md shadow-sm -space-y-px">
-						<div>
-							<label htmlFor="email-address" className="sr-only">
-								Email address
-							</label>
+					<div>
+						<label
+							className="block text-sm font-medium text-gray-700"
+							htmlFor="email"
+						>
+							Email address
+						</label>
+						<div className="mt-1">
 							<input
-								id="email-address"
+								autoComplete="username email"
+								className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white/50 backdrop-blur-sm"
+								disabled={loading}
+								id="email"
 								name="email"
-								type="email"
-								autoComplete="email"
+								placeholder="Enter your email"
 								required
-								className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-								placeholder="Email address"
+								type="email"
 								value={email}
-								onChange={(e) => setEmail(e.target.value)}
+								onChange={(event): void => {
+									setEmail(event.target.value);
+								}}
 							/>
 						</div>
-						<div>
-							<label htmlFor="password" className="sr-only">
-								Password
-							</label>
+					</div>
+
+					<div>
+						<label
+							className="block text-sm font-medium text-gray-700"
+							htmlFor="password"
+						>
+							Password
+						</label>
+						<div className="mt-1">
 							<input
+								autoComplete="current-password"
+								className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white/50 backdrop-blur-sm"
+								disabled={loading}
 								id="password"
 								name="password"
-								type="password"
-								autoComplete="current-password"
+								placeholder="Enter your password"
 								required
-								className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-								placeholder="Password"
+								type="password"
 								value={password}
-								onChange={(e) => setPassword(e.target.value)}
+								onChange={(event): void => {
+									setPassword(event.target.value);
+								}}
 							/>
 						</div>
 					</div>
 
 					<div>
 						<button
-							type="submit"
+							className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
 							disabled={loading}
-							className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+							type="submit"
 						>
-							{loading ? (
-								<>
-									<svg
-										className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-										xmlns="http://www.w3.org/2000/svg"
-										fill="none"
-										viewBox="0 0 24 24"
-									>
-										<circle
-											className="opacity-25"
-											cx="12"
-											cy="12"
-											r="10"
-											stroke="currentColor"
-											strokeWidth="4"
-										></circle>
-										<path
-											className="opacity-75"
-											fill="currentColor"
-											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-										></path>
-									</svg>
-									Signing in...
-								</>
-							) : (
-								"Sign in"
-							)}
+							{loading ? "Signing in..." : "Sign in"}
 						</button>
 					</div>
+				</form>
 
-					<div className="text-center">
+				<div className="mt-8 pt-6 border-t border-gray-200">
+					<p className="text-center text-sm text-gray-600">
+						Don't have an account yet?
+					</p>
+					<div className="mt-3">
 						<Link
+							className="w-full flex justify-center py-2 px-4 border border-indigo-600 rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-transparent hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
 							to="/signup"
-							className="font-medium text-indigo-600 hover:text-indigo-500"
 						>
-							Don't have an account? Sign up
+							Sign up
 						</Link>
 					</div>
-				</form>
+				</div>
 			</div>
 		</div>
 	);
