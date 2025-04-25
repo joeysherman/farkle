@@ -1,6 +1,6 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
-
+import { Navbar } from "../components/layout/navbar/Navbar";
 export const Route = createRootRoute({
 	component: RootLayout,
 });
@@ -21,7 +21,8 @@ function RootContent(): JSX.Element {
 	}
 
 	return (
-		<div>
+		<div className="min-h-screen bg-gray-100">
+			<Navbar />
 			<Outlet />
 		</div>
 	);

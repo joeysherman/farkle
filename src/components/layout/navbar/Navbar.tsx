@@ -97,7 +97,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 					</div>
 
 					<div className="flex items-center">
-						{!loading && user ? (
+						{!loading && user && (
 							<div className="flex items-center">
 								<Menu as="div" className="relative inline-block text-left">
 									<MenuButton className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -150,15 +150,6 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 										</MenuItems>
 									</Transition>
 								</Menu>
-							</div>
-						) : (
-							<div className="flex items-center space-x-4">
-								<Link
-									className="inline-flex items-center px-2 py-1 sm:px-3 sm:py-1.5 border border-transparent text-sm font-medium rounded text-indigo-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-									to="/signup"
-								>
-									Sign in
-								</Link>
 							</div>
 						)}
 					</div>

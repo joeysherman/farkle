@@ -859,292 +859,273 @@ export function Room(): JSX.Element {
 	}
 
 	return (
-		<div className="min-h-screen bg-gray-50">
-			<Navbar
-				gameInfo={
-					room
-						? {
-								name: room.name,
-								currentPlayers: room.current_players,
-								maxPlayers: room.max_players,
-							}
-						: undefined
-				}
-			/>
-			<main className="max-w-[1600px] mx-auto h-[calc(100vh-48px)] sm:h-[calc(100vh-64px)]">
-				<div className="flex flex-col md:flex-row md:space-x-4 h-full">
-					{/* Left Column - Room Details (Hidden on mobile) */}
-					<div className="hidden md:relative md:block md:w-1/4 md:h-full">
-						<div className="h-full flex flex-col bg-white shadow-lg md:shadow-none">
-							{room && user && (
-								<RoomHeader room={room} user={user}>
-									<div className="hidden md:block">
-										<RoomControls
-											room={room}
-											user={user}
-											onStartGame={handleStartGame}
-											onEndGame={handleEndGame}
-											onShowInvite={() => setShowInviteModal(true)}
-										/>
-									</div>
-								</RoomHeader>
-							)}
-							<div className="flex-1 overflow-y-auto p-4">
-								{players && gameState && user && room && onlineUsers && (
-									<PlayersList
-										players={players}
-										gameState={gameState}
-										user={user}
+		<main className="max-w-[1600px] mx-auto h-[calc(100vh-48px)] sm:h-[calc(100vh-64px)]">
+			<div className="flex flex-col md:flex-row md:space-x-4 h-full">
+				{/* Left Column - Room Details (Hidden on mobile) */}
+				<div className="hidden md:relative md:block md:w-1/4 md:h-full">
+					<div className="h-full flex flex-col bg-white shadow-lg md:shadow-none">
+						{room && user && (
+							<RoomHeader room={room} user={user}>
+								<div className="hidden md:block">
+									<RoomControls
 										room={room}
-										onlineUsers={onlineUsers}
-										turnSummary={
-											players.length > 0 &&
-											turnActions &&
-											gameState?.current_player_id &&
-											room?.status === "in_progress" ? (
-												<MobileTurnSummary
-													room={room}
-													isCurrentPlayerTurn={isCurrentPlayerTurn}
-													players={players}
-													currentPlayer={players.find(
-														(player) =>
-															player.id === gameState.current_player_id
-													)}
-													turnActions={turnActions}
-													gameState={gameState}
-												/>
-											) : room?.status === "rebuttal" &&
-											  room?.winner_id &&
-											  players?.length > 0 ? (
-												<MobileShowWinner room={room} players={players} />
-											) : null
-										}
+										user={user}
+										onStartGame={handleStartGame}
+										onEndGame={handleEndGame}
+										onShowInvite={() => setShowInviteModal(true)}
 									/>
-								)}
-							</div>
-						</div>
-					</div>
-
-					{/* Right Column - Game Canvas */}
-					<div className="flex-1 flex flex-col h-[calc(100vh-84px)] md:h-full md:w-3/4">
-						<div className="flex-1 relative">
-							{/* Game Controls Overlay */}
-							<div className="absolute top-0 left-0 right-0 z-10 p-2">
-								<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-1">
-									<div className="flex flex-col">
-										{/* Mobile Room Controls and Players List */}
-										{/* Game Actions */}
-										<div className="flex items-center justify-center">
-											{gameState &&
-												user &&
-												players &&
-												turnActions &&
-												(room?.status === "in_progress" ||
-													room?.status === "rebuttal") && (
-													<GameActions
-														gameState={gameState}
-														user={user}
-														players={players}
-														isPending={isPending || isSpinning}
-														turnActions={turnActions}
-														selectedDiceIndices={selectedDiceIndices}
-														onTurnAction={(keptDice, outcome) => {
-															const latestAction =
-																turnActions[turnActions.length - 1];
-															if (!latestAction) return;
-															let leftOverDice = [];
-															if (outcome === "continue") {
-																if (selectedDiceIndices.length > 0) {
-																	leftOverDice = diceStates.filter(
-																		(dice) =>
-																			!selectedDiceIndices.includes(
-																				dice.placement - 1
-																			)
-																	);
-																} else {
-																	leftOverDice = diceStates.filter(
-																		(dice) => !dice.isScoringNumber
-																	);
-																}
-																setDiceStates(leftOverDice);
-																startSpin();
-															} else {
-																setDiceStates([]);
-															}
-															handleTurnAction({
-																roomId: roomId,
-																outcome,
-																keptDice,
-															});
-														}}
-														onRoll={() => {
-															setDiceStates([
-																{
-																	number: 6,
-																	placement: 1,
-																	isScoringNumber: true,
-																},
-																{
-																	number: 2,
-																	placement: 2,
-																	isScoringNumber: false,
-																},
-																{
-																	number: 3,
-																	placement: 3,
-																	isScoringNumber: false,
-																},
-																{
-																	number: 4,
-																	placement: 4,
-																	isScoringNumber: false,
-																},
-																{
-																	number: 5,
-																	placement: 5,
-																	isScoringNumber: false,
-																},
-																{
-																	number: 6,
-																	placement: 6,
-																	isScoringNumber: true,
-																},
-															]);
-															if (!isSpinning) {
-																startSpin();
-															}
-															handleRoll();
-															setSelectedDiceIndices([]);
-														}}
-														setSelectedDiceIndices={() => {}}
-													/>
-												)}
-										</div>
-
-										<div className="md:hidden">
-											{room && user && (
-												<div className="flex flex-col gap-3">
-													{/* Mobile Room Controls */}
-													{room?.status === "waiting" && (
-														<RoomControls
-															room={room}
-															user={user}
-															onStartGame={handleStartGame}
-															onEndGame={handleEndGame}
-															onShowInvite={() => setShowInviteModal(true)}
-														/>
-													)}
-													{/* Mobile Players List */}
-													<div className="rounded-lg p-1">
-														{players &&
-															gameState &&
-															user &&
-															room &&
-															onlineUsers && (
-																<PlayersList
-																	players={players}
-																	gameState={gameState}
-																	user={user}
-																	room={room}
-																	onlineUsers={onlineUsers}
-																	turnSummary={
-																		players.length > 0 &&
-																		turnActions &&
-																		gameState?.current_player_id &&
-																		room?.status === "in_progress" ? (
-																			<MobileTurnSummary
-																				room={room}
-																				isCurrentPlayerTurn={
-																					isCurrentPlayerTurn
-																				}
-																				players={players}
-																				currentPlayer={players.find(
-																					(player) =>
-																						player.id ===
-																						gameState.current_player_id
-																				)}
-																				turnActions={turnActions}
-																				gameState={gameState}
-																			/>
-																		) : room?.status === "rebuttal" &&
-																		  room?.winner_id &&
-																		  players?.length > 0 ? (
-																			<MobileShowWinner
-																				room={room}
-																				players={players}
-																			/>
-																		) : null
-																	}
-																/>
-															)}
-													</div>
-												</div>
-											)}
-										</div>
-
-										{/* Turn Summary Section */}
-										<div className="flex flex-col gap-3">
-											{room?.status === "rebuttal" &&
-												room?.winner_id &&
-												players?.length > 0 && (
-													<div className="flex-1">
-														<ShowWinner room={room} players={players} />
-													</div>
-												)}
-											{players.length > 0 &&
-												turnActions &&
-												gameState?.current_player_id &&
-												room?.status === "in_progress" && (
-													<div className="hidden md:block">
-														<TurnSummary
-															room={room}
-															isCurrentPlayerTurn={isCurrentPlayerTurn}
-															players={players}
-															currentPlayer={players.find(
-																(player) =>
-																	player.id === gameState.current_player_id
-															)}
-															turnActions={turnActions}
-															gameState={gameState}
-														/>
-													</div>
-												)}
-										</div>
-
-										{/* Turn Actions History */}
-										{room?.status === "in_progress" && (
-											<div className="mt-2">
-												<TurnActions
-													isCurrentPlayerTurn={isCurrentPlayerTurn}
-													turnActions={turnActions}
-													room={room}
-												/>
-											</div>
-										)}
-									</div>
 								</div>
-							</div>
-
-							{/* Game Scene */}
-							<div className="h-full">
-								<GameScene
-									isCurrentPlayerTurn={isCurrentPlayerTurn}
-									diceStates={diceStates}
-									isSpinning={isSpinning}
-									selectedDiceIndices={selectedDiceIndices}
-									setSelectedDiceIndices={(e) => {
-										updateTurnActions(
-											e,
-											turnActions[turnActions.length - 1]?.id
-										);
-									}}
+							</RoomHeader>
+						)}
+						<div className="flex-1 overflow-y-auto p-4">
+							{players && gameState && user && room && onlineUsers && (
+								<PlayersList
+									players={players}
+									gameState={gameState}
+									user={user}
+									room={room}
+									onlineUsers={onlineUsers}
+									turnSummary={
+										players.length > 0 &&
+										turnActions &&
+										gameState?.current_player_id &&
+										room?.status === "in_progress" ? (
+											<MobileTurnSummary
+												room={room}
+												isCurrentPlayerTurn={isCurrentPlayerTurn}
+												players={players}
+												currentPlayer={players.find(
+													(player) => player.id === gameState.current_player_id
+												)}
+												turnActions={turnActions}
+												gameState={gameState}
+											/>
+										) : room?.status === "rebuttal" &&
+										  room?.winner_id &&
+										  players?.length > 0 ? (
+											<MobileShowWinner room={room} players={players} />
+										) : null
+									}
 								/>
-							</div>
+							)}
 						</div>
 					</div>
 				</div>
-			</main>
-		</div>
+
+				{/* Right Column - Game Canvas */}
+				<div className="flex-1 flex flex-col h-[calc(100vh-84px)] md:h-full md:w-3/4">
+					<div className="flex-1 relative">
+						{/* Game Controls Overlay */}
+						<div className="absolute top-0 left-0 right-0 z-10 p-2">
+							<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-1">
+								<div className="flex flex-col">
+									{/* Mobile Room Controls and Players List */}
+									{/* Game Actions */}
+									<div className="flex items-center justify-center">
+										{gameState &&
+											user &&
+											players &&
+											turnActions &&
+											(room?.status === "in_progress" ||
+												room?.status === "rebuttal") && (
+												<GameActions
+													gameState={gameState}
+													user={user}
+													players={players}
+													isPending={isPending || isSpinning}
+													turnActions={turnActions}
+													selectedDiceIndices={selectedDiceIndices}
+													onTurnAction={(keptDice, outcome) => {
+														const latestAction =
+															turnActions[turnActions.length - 1];
+														if (!latestAction) return;
+														let leftOverDice = [];
+														if (outcome === "continue") {
+															if (selectedDiceIndices.length > 0) {
+																leftOverDice = diceStates.filter(
+																	(dice) =>
+																		!selectedDiceIndices.includes(
+																			dice.placement - 1
+																		)
+																);
+															} else {
+																leftOverDice = diceStates.filter(
+																	(dice) => !dice.isScoringNumber
+																);
+															}
+															setDiceStates(leftOverDice);
+															startSpin();
+														} else {
+															setDiceStates([]);
+														}
+														handleTurnAction({
+															roomId: roomId,
+															outcome,
+															keptDice,
+														});
+													}}
+													onRoll={() => {
+														setDiceStates([
+															{
+																number: 6,
+																placement: 1,
+																isScoringNumber: true,
+															},
+															{
+																number: 2,
+																placement: 2,
+																isScoringNumber: false,
+															},
+															{
+																number: 3,
+																placement: 3,
+																isScoringNumber: false,
+															},
+															{
+																number: 4,
+																placement: 4,
+																isScoringNumber: false,
+															},
+															{
+																number: 5,
+																placement: 5,
+																isScoringNumber: false,
+															},
+															{
+																number: 6,
+																placement: 6,
+																isScoringNumber: true,
+															},
+														]);
+														if (!isSpinning) {
+															startSpin();
+														}
+														handleRoll();
+														setSelectedDiceIndices([]);
+													}}
+													setSelectedDiceIndices={() => {}}
+												/>
+											)}
+									</div>
+
+									<div className="md:hidden">
+										{room && user && (
+											<div className="flex flex-col gap-3">
+												{/* Mobile Room Controls */}
+												{room?.status === "waiting" && (
+													<RoomControls
+														room={room}
+														user={user}
+														onStartGame={handleStartGame}
+														onEndGame={handleEndGame}
+														onShowInvite={() => setShowInviteModal(true)}
+													/>
+												)}
+												{/* Mobile Players List */}
+												<div className="rounded-lg p-1">
+													{players &&
+														gameState &&
+														user &&
+														room &&
+														onlineUsers && (
+															<PlayersList
+																players={players}
+																gameState={gameState}
+																user={user}
+																room={room}
+																onlineUsers={onlineUsers}
+																turnSummary={
+																	players.length > 0 &&
+																	turnActions &&
+																	gameState?.current_player_id &&
+																	room?.status === "in_progress" ? (
+																		<MobileTurnSummary
+																			room={room}
+																			isCurrentPlayerTurn={isCurrentPlayerTurn}
+																			players={players}
+																			currentPlayer={players.find(
+																				(player) =>
+																					player.id ===
+																					gameState.current_player_id
+																			)}
+																			turnActions={turnActions}
+																			gameState={gameState}
+																		/>
+																	) : room?.status === "rebuttal" &&
+																	  room?.winner_id &&
+																	  players?.length > 0 ? (
+																		<MobileShowWinner
+																			room={room}
+																			players={players}
+																		/>
+																	) : null
+																}
+															/>
+														)}
+												</div>
+											</div>
+										)}
+									</div>
+
+									{/* Turn Summary Section */}
+									<div className="flex flex-col gap-3">
+										{room?.status === "rebuttal" &&
+											room?.winner_id &&
+											players?.length > 0 && (
+												<div className="flex-1">
+													<ShowWinner room={room} players={players} />
+												</div>
+											)}
+										{players.length > 0 &&
+											turnActions &&
+											gameState?.current_player_id &&
+											room?.status === "in_progress" && (
+												<div className="hidden md:block">
+													<TurnSummary
+														room={room}
+														isCurrentPlayerTurn={isCurrentPlayerTurn}
+														players={players}
+														currentPlayer={players.find(
+															(player) =>
+																player.id === gameState.current_player_id
+														)}
+														turnActions={turnActions}
+														gameState={gameState}
+													/>
+												</div>
+											)}
+									</div>
+
+									{/* Turn Actions History */}
+									{room?.status === "in_progress" && (
+										<div className="mt-2">
+											<TurnActions
+												isCurrentPlayerTurn={isCurrentPlayerTurn}
+												turnActions={turnActions}
+												room={room}
+											/>
+										</div>
+									)}
+								</div>
+							</div>
+						</div>
+
+						{/* Game Scene */}
+						<div className="h-full">
+							<GameScene
+								isCurrentPlayerTurn={isCurrentPlayerTurn}
+								diceStates={diceStates}
+								isSpinning={isSpinning}
+								selectedDiceIndices={selectedDiceIndices}
+								setSelectedDiceIndices={(e) => {
+									updateTurnActions(e, turnActions[turnActions.length - 1]?.id);
+								}}
+							/>
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
 	);
 }
 
