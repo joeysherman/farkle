@@ -97,11 +97,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 					</div>
 
 					<div className="flex items-center">
-						{loading ? (
-							<div className="text-gray-500 text-sm sm:text-base">
-								Loading...
-							</div>
-						) : user ? (
+						{!loading && user ? (
 							<div className="flex items-center">
 								<Menu as="div" className="relative inline-block text-left">
 									<MenuButton className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">

@@ -183,14 +183,14 @@ export const Home = (): FunctionComponent => {
 					<h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900">
 						Welcome to Farkle Online
 					</h1>
-					<p className="mt-2 sm:mt-3 max-w-md mx-auto text-sm sm:text-base text-gray-500 md:mt-5 md:text-xl md:max-w-3xl">
+					<p className="mt-3 max-w-md mx-auto text-gray-500 md:text-xl md:max-w-3xl">
 						Join the fun and play the classic dice game with friends online!
 					</p>
 				</div>
 
 				{/* Current Rooms Section */}
 
-				<div className="mb-8 sm:mb-12">
+				<div className="mb-8">
 					<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
 						Your Current Games
 					</h2>
@@ -264,7 +264,7 @@ export const Home = (): FunctionComponent => {
 				</div>
 
 				{/* Available Rooms Section */}
-				<div className="mb-8 sm:mb-12">
+				<div className="mb-8">
 					<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
 						Available Games
 					</h2>
