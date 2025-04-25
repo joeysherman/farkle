@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "../../../lib/supabaseClient";
+import { useAuth } from "../../../contexts/AuthContext";
 import type { User } from "@supabase/supabase-js";
 import {
 	Menu,
@@ -54,7 +55,8 @@ const useProfileData = (userId: string) => {
 
 export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	const navigate = useNavigate();
-	const { data: user, isLoading: isUserLoading } = useUserData();
+	const { user, isAuthChecking: isUserLoading, signOut } = useAuth();
+
 	const { data: profileData, isLoading: isProfileLoading } = useProfileData(
 		user?.id ?? ""
 	);
@@ -62,12 +64,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 
 	const handleSignOut = async (): Promise<void> => {
 		try {
-			await supabase.auth.signOut();
-			// Wait a moment to show the splash screen
-			await new Promise<void>((resolve) => {
-				setTimeout(resolve, 1000);
-			});
-			void navigate({ to: "/signup" });
+			await signOut();
 		} catch (error) {
 			console.error("Error signing out:", error);
 		}

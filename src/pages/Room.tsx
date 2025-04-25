@@ -734,10 +734,10 @@ export function Room(): JSX.Element {
 					console.log("Presence state:", state);
 					// always make sure it's a new object
 					// update the game_players table to set is_active to true for each key in the state which is the user_id
-					debugger;
+
 					const keys = Object.keys(state);
 					// keys.forEach((key) => {
-					// 	debugger;
+					//
 					// 	supabase
 					// 		.from("game_players")
 					// 		.update({ is_active: true })
@@ -763,7 +763,7 @@ export function Room(): JSX.Element {
 					// 	delete newState[key];
 					// 	return newState;
 					// });
-					debugger;
+
 					await supabase
 						.from("game_players")
 						.update({ is_active: false })
@@ -786,7 +786,6 @@ export function Room(): JSX.Element {
 		// Cleanup function
 		return async () => {
 			if (presenceSubscriptionRef.current) {
-				debugger;
 				console.log("unsubscribing from presence");
 				await presenceSubscriptionRef.current.untrack();
 

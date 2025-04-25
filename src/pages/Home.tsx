@@ -30,10 +30,8 @@ export const Home = (): FunctionComponent => {
 	);
 	const [error, setError] = useState("");
 
-	debugger;
 	useEffect(() => {
 		const fetchCurrentRooms = async (): Promise<void> => {
-			debugger;
 			if (!user) return;
 
 			// get the rooms where this user is a player and the room status is not completed
@@ -55,7 +53,6 @@ export const Home = (): FunctionComponent => {
 			if (waitingRooms) {
 				// Filter out rooms that are already in currentRooms
 				if (playerRooms && playerRooms.length > 0) {
-					debugger;
 					const filteredRooms = waitingRooms.filter(
 						(room) =>
 							!playerRooms.some(

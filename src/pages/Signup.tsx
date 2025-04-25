@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { supabase } from "../lib/supabaseClient";
 import { BouncingDice } from "../components/BouncingDice";
+import { useAuth } from "../contexts/AuthContext";
 
 export function Signup(): JSX.Element {
 	const [loading, setLoading] = useState(false);
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
+	const { signUp } = useAuth();
 
 	const [message, setMessage] = useState<{
 		type: "success" | "error";
@@ -20,10 +21,7 @@ export function Signup(): JSX.Element {
 			setLoading(true);
 			setMessage(null);
 
-			const { error } = await supabase.auth.signUp({
-				email,
-				password,
-			});
+			const { error } = await signUp(email, password);
 
 			if (error) throw error;
 			setMessage({
@@ -126,7 +124,7 @@ export function Signup(): JSX.Element {
 							disabled={loading}
 							type="submit"
 						>
-							{loading ? "Creating account..." : "Sign up"}
+							{loading ? "Creating account..." : "Create account"}
 						</button>
 					</div>
 				</form>

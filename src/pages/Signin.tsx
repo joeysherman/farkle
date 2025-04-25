@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { supabase } from "../lib/supabaseClient";
 import { BouncingDice } from "../components/BouncingDice";
+import { useAuth } from "../contexts/AuthContext";
 
 export function Signin(): JSX.Element {
 	const navigate = useNavigate();
+	const { signIn } = useAuth();
 
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -22,10 +23,7 @@ export function Signin(): JSX.Element {
 			setLoading(true);
 			setMessage(null);
 
-			const { error, data } = await supabase.auth.signInWithPassword({
-				email,
-				password,
-			});
+			const { error } = await signIn(email, password);
 
 			if (error) throw error;
 			void navigate({ to: "/" });

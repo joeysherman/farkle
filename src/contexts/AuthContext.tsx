@@ -1,13 +1,8 @@
-import {
-	createContext,
-	useContext,
-	useState,
-	useEffect,
-	ReactNode,
-} from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import type { ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "../lib/supabaseClient";
-import { User } from "@supabase/supabase-js";
+import type { User, AuthError } from "@supabase/supabase-js";
 
 interface Profile {
 	id: string;
@@ -17,6 +12,17 @@ interface Profile {
 interface AuthContextType {
 	user: User | null;
 	isAuthChecking: boolean;
+	signIn: (
+		email: string,
+		password: string
+	) => Promise<{ error: AuthError | null }>;
+	signUp: (
+		email: string,
+		password: string
+	) => Promise<{ error: AuthError | null }>;
+	signOut: () => Promise<void>;
+	resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+	updatePassword: (password: string) => Promise<{ error: AuthError | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,6 +46,7 @@ export function AuthProvider({
 				} = await supabase.auth.getUser();
 
 				if (authUser) {
+					debugger;
 					const { data: profile } = await supabase
 						.from("profiles")
 						.select("*")
@@ -75,14 +82,73 @@ export function AuthProvider({
 
 		void checkAuth();
 
-		return () => {
+		return (): void => {
 			isMounted = false;
 		};
 	}, [navigate]);
 
+	// Sign in with email and password
+	const signIn = async (
+		email: string,
+		password: string
+	): Promise<{ error: AuthError | null }> => {
+		const { error, data } = await supabase.auth.signInWithPassword({
+			email,
+			password,
+		});
+		if (data && data.user) {
+			setUser(data.user);
+		}
+		return { error };
+	};
+
+	// Sign up with email and password
+	const signUp = async (
+		email: string,
+		password: string
+	): Promise<{ error: AuthError | null }> => {
+		const { error } = await supabase.auth.signUp({
+			email,
+			password,
+		});
+		return { error };
+	};
+
+	// Sign out
+	const signOut = async (): Promise<void> => {
+		await supabase.auth.signOut();
+		setUser(null);
+		await navigate({ to: "/signin" });
+	};
+
+	// Reset password (send reset email)
+	const resetPassword = async (
+		email: string
+	): Promise<{ error: AuthError | null }> => {
+		const { error } = await supabase.auth.resetPasswordForEmail(email, {
+			redirectTo: `${window.location.origin}/reset-password`,
+		});
+		return { error };
+	};
+
+	// Update password
+	const updatePassword = async (
+		password: string
+	): Promise<{ error: AuthError | null }> => {
+		const { error } = await supabase.auth.updateUser({
+			password,
+		});
+		return { error };
+	};
+
 	const value = {
 		user,
 		isAuthChecking,
+		signIn,
+		signUp,
+		signOut,
+		resetPassword,
+		updatePassword,
 	};
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
