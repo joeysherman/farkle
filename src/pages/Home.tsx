@@ -30,8 +30,10 @@ export const Home = (): FunctionComponent => {
 	);
 	const [error, setError] = useState("");
 
+	debugger;
 	useEffect(() => {
 		const fetchCurrentRooms = async (): Promise<void> => {
+			debugger;
 			if (!user) return;
 
 			// get the rooms where this user is a player and the room status is not completed
@@ -128,31 +130,6 @@ export const Home = (): FunctionComponent => {
 		}
 	};
 
-	const handleQuickPlay = async () => {
-		try {
-			setLoading(true);
-			const { data: rooms } = await supabase
-				.from("game_rooms")
-				.select("*")
-				.eq("status", "waiting")
-				.gt("current_players", 0)
-				.lt("current_players", "max_players")
-				.limit(1)
-				.single();
-
-			if (rooms) {
-				navigate({ to: "/room", search: { roomId: rooms.id } });
-			} else {
-				// No rooms available, create one
-				handleCreateRoom();
-			}
-		} catch (error) {
-			console.error("Error finding game:", error);
-		} finally {
-			setLoading(false);
-		}
-	};
-
 	const handleEndGame = async (roomId: string) => {
 		try {
 			const { error } = await supabase.rpc("end_game", {
@@ -170,20 +147,6 @@ export const Home = (): FunctionComponent => {
 					? err.message
 					: "Failed to end game. Please try again."
 			);
-		}
-	};
-
-	const runAllTests = async (): Promise<void> => {
-		try {
-			setLoading(true);
-			const { error } = await supabase.rpc("run_all_tests");
-			if (error) throw error;
-			alert("Tests completed successfully!");
-		} catch (error) {
-			console.error("Test error:", error);
-			alert("Failed to run tests. Check console for details.");
-		} finally {
-			setLoading(false);
 		}
 	};
 

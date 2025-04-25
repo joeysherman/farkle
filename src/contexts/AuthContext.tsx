@@ -64,7 +64,7 @@ export function AuthProvider({
 				} else if (isMounted) {
 					setIsAuthChecking(false);
 					setUser(null);
-					await navigate({ to: "/signup" });
+					await navigate({ to: "/signin" });
 				}
 			} catch (error) {
 				console.error("Auth check error:", error);
@@ -90,6 +90,7 @@ export function AuthProvider({
 
 export function useAuth(): AuthContextType {
 	const context = useContext(AuthContext);
+
 	if (context === undefined) {
 		throw new Error("useAuth must be used within an AuthProvider");
 	}
