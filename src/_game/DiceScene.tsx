@@ -33,7 +33,6 @@ export function DiceScene({
 						isSpinning={isSpinning}
 						isScoringNumber={isScoringNumber || false}
 						onDiceClick={() => {
-							debugger;
 							if (!isCurrentPlayerTurn) return;
 							// get the dice that are the same as the current dice
 							// if the index is already in the selectedDiceIndices array
@@ -93,7 +92,7 @@ export function DiceScene({
 											selectedDiceIndices.includes(dice.placement - 1) &&
 											number === dice.number
 									);
-									debugger;
+
 									// if the currentlySelectedDice is 0
 									// find the number of dice from the diceStates.number array that are the same as the number
 									if (currentlySelectedDice.length === 0) {
@@ -109,7 +108,7 @@ export function DiceScene({
 													numberOfDice[i].placement - 1
 												);
 											}
-											debugger;
+
 											setSelectedDiceIndices(newSelectedDiceIndices);
 										}
 									}

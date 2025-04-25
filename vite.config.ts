@@ -33,21 +33,18 @@ export default defineConfig({
 				type: 'module',
 			},
 			manifest: {
-				name: 'My Awesome App',
-				short_name: 'MyApp',
-				description: 'My Awesome App description',
+				name: 'Farkle Online',
+				display: 'standalone',
+				short_name: 'Farkle',
+				description: 'Farkle is a dice game where your decisions and luck determine your outcome.',
 				theme_color: '#ffffff',
 				icons: [
 				  {
-					src: 'pwa-192x192.png',
-					sizes: '192x192',
-					type: 'image/png'
-				  },
-				  {
-					src: 'pwa-512x512.png',
-					sizes: '512x512',
+					src: 'icon.png',
+					
 					type: 'image/png'
 				  }
+			
 				]
 			  },
 			// manifest: {

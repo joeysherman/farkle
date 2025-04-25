@@ -43,7 +43,6 @@ export const Home = (): FunctionComponent => {
 				.order("created_at", { ascending: false });
 
 			if (waitingRooms) {
-				debugger;
 				// Filter out rooms that are already in currentRooms
 				const filteredRooms = waitingRooms.filter(
 					(room) =>
@@ -55,7 +54,6 @@ export const Home = (): FunctionComponent => {
 			}
 
 			if (playerRooms) {
-				debugger;
 				setCurrentRooms(playerRooms.map((item) => item.game_rooms as GameRoom));
 			}
 		};
@@ -331,31 +329,6 @@ export const Home = (): FunctionComponent => {
 							</button>
 						</div>
 					)}
-				</div>
-
-				{/* Main Menu Options */}
-				<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-					{/* Profile & Settings */}
-					<div className="bg-white overflow-hidden shadow rounded-lg">
-						<div className="px-4 py-5 sm:p-6">
-							<h3 className="text-lg font-medium text-gray-900">
-								Profile & Settings
-							</h3>
-							<p className="mt-2 text-sm text-gray-500">
-								View your stats and customize game settings
-							</p>
-							<button className="mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-								View Profile
-							</button>
-							<button
-								onClick={runAllTests}
-								disabled={loading}
-								className="mt-2 w-full inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-							>
-								{loading ? "Running Tests..." : "Run All Tests"}
-							</button>
-						</div>
-					</div>
 				</div>
 
 				{/* Game Rules Section */}
