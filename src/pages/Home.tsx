@@ -330,7 +330,7 @@ export const Home = (): FunctionComponent => {
 				</div>
 
 				{/* Game Rules Section */}
-				<div className="mt-8">
+				<div className="pt-0">
 					<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
 						How to Play
 					</h2>
