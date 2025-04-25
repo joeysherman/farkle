@@ -34,9 +34,13 @@ export const Home = (): FunctionComponent => {
 		const fetchCurrentRooms = async (): Promise<void> => {
 			if (!user) return;
 
+			// get the rooms where this user is a player and the room status is not completed
+			// and only get the game_rooms data
 			const { data: playerRooms } = await supabase
 				.from("game_players")
 				.select("game_id, game_rooms(*)")
+				.not("game_rooms.status", "eq", "completed")
+				.not("game_rooms", "is", null)
 				.eq("user_id", user.id)
 				.eq("is_joined", true);
 
@@ -48,13 +52,18 @@ export const Home = (): FunctionComponent => {
 
 			if (waitingRooms) {
 				// Filter out rooms that are already in currentRooms
-				const filteredRooms = waitingRooms.filter(
-					(room) =>
-						!playerRooms.some(
-							(playerRoom) => playerRoom.game_rooms.id === room.id
-						)
-				);
-				setAvailableRooms(filteredRooms);
+				if (playerRooms && playerRooms.length > 0) {
+					debugger;
+					const filteredRooms = waitingRooms.filter(
+						(room) =>
+							!playerRooms.some(
+								(playerRoom) => playerRoom.game_rooms.id === room.id
+							)
+					);
+					setAvailableRooms(filteredRooms);
+				} else {
+					setAvailableRooms(waitingRooms);
+				}
 			}
 
 			if (playerRooms) {
@@ -264,9 +273,32 @@ export const Home = (): FunctionComponent => {
 						</>
 					)}
 					{currentRooms && currentRooms.length === 0 && (
-						<div className="min-h-[146px] w-full opacity-70 rounded-lg shadow">
-							<div className="text-center text-gray-500">
-								No current games right now.
+						<div className="min-h-[146px] w-full bg-white opacity-100 rounded-lg shadow hover:shadow-md transition-shadow duration-200">
+							<div className="p-6 text-center">
+								<h3 className="text-xl font-semibold text-gray-900 mb-3">
+									No games available
+								</h3>
+								<p className="text-sm text-gray-600 mb-6">
+									Create a new game and invite friends to play!
+								</p>
+								<button
+									className="inline-flex items-center justify-center px-6 pl-4 py-3 border-2 border-green-600 text-sm font-medium rounded-md text-green-600 bg-transparent hover:bg-green-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-sm hover:shadow transition-all duration-200 group"
+									onClick={handleCreateRoom}
+								>
+									<svg
+										className="h-5 w-5 mr-2 text-green-600 group-hover:text-white transition-colors duration-200"
+										fill="currentColor"
+										viewBox="0 0 20 20"
+										xmlns="http://www.w3.org/2000/svg"
+									>
+										<path
+											fillRule="evenodd"
+											d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+											clipRule="evenodd"
+										/>
+									</svg>
+									Create Game
+								</button>
 							</div>
 						</div>
 					)}
