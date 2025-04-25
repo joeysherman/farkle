@@ -37,16 +37,27 @@ export default defineConfig({
 				display: 'standalone',
 				short_name: 'Farkle',
 				description: 'Farkle is a dice game where your decisions and luck determine your outcome.',
-				theme_color: '#ffffff',
+				theme_color: '#4f46e5',
+				background_color: '#ffffff',
 				icons: [
-				  {
-					src: 'icon.png',
-					
-					type: 'image/png'
-				  }
-			
+					{
+						src: 'icon-192.png',
+						sizes: '192x192',
+						type: 'image/png'
+					},
+					{
+						src: 'icon-512.png',
+						sizes: '512x512',
+						type: 'image/png'
+					},
+					{
+						src: 'icon-512.png',
+						sizes: '512x512',
+						type: 'image/png',
+						purpose: 'maskable'
+					}
 				]
-			  },
+			},
 			// manifest: {
 			// 	name: 'Vite React Boilerplate',
 			// 	short_name: 'Vite React',

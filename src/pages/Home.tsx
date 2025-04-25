@@ -177,36 +177,36 @@ export const Home = (): FunctionComponent => {
 	return (
 		<div className="min-h-screen bg-gray-100">
 			<Navbar />
-			<div className="container mx-auto px-4 py-8">
+			<div className="container mx-auto px-4 py-4 sm:py-8">
 				{/* Hero Section */}
-				<div className="text-center mb-12">
-					<h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
+				<div className="text-center mb-8 sm:mb-12">
+					<h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900">
 						Welcome to Farkle Online
 					</h1>
-					<p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+					<p className="mt-2 sm:mt-3 max-w-md mx-auto text-sm sm:text-base text-gray-500 md:mt-5 md:text-xl md:max-w-3xl">
 						Join the fun and play the classic dice game with friends online!
 					</p>
 				</div>
 
 				{/* Current Rooms Section */}
 				{currentRooms.length > 0 && (
-					<div className="mb-12">
-						<h2 className="text-2xl font-bold text-gray-900 mb-4">
+					<div className="mb-8 sm:mb-12">
+						<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
 							Your Current Rooms
 						</h2>
-						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+						<div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
 							{currentRooms.map((room) => (
 								<div
 									key={room.id}
 									className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
 								>
-									<div className="px-4 py-5 sm:p-6">
-										<div className="flex justify-between items-center mb-4">
-											<h3 className="text-lg font-medium text-gray-900">
+									<div className="p-4 sm:p-6">
+										<div className="flex justify-between items-center mb-3 sm:mb-4">
+											<h3 className="text-base sm:text-lg font-medium text-gray-900 truncate">
 												{room.name}
 											</h3>
 											<span
-												className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+												className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
 													room?.status === "waiting"
 														? "bg-yellow-100 text-yellow-800"
 														: "bg-green-100 text-green-800"
@@ -258,25 +258,24 @@ export const Home = (): FunctionComponent => {
 				)}
 
 				{/* Available Rooms Section */}
-
-				<div className="mb-12">
-					<h2 className="text-2xl font-bold text-gray-900 mb-4">
+				<div className="mb-8 sm:mb-12">
+					<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
 						Available Rooms
 					</h2>
 					{availableRooms.length > 0 && (
-						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+						<div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
 							{availableRooms.map((room) => (
 								<div
 									key={room.id}
 									className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
 								>
-									<div className="px-4 py-5 sm:p-6">
-										<div className="flex justify-between items-center mb-4">
-											<h3 className="text-lg font-medium text-gray-900">
+									<div className="p-4 sm:p-6">
+										<div className="flex justify-between items-center mb-3 sm:mb-4">
+											<h3 className="text-base sm:text-lg font-medium text-gray-900 truncate">
 												{room.name}
 											</h3>
 											<span
-												className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+												className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
 													room?.status === "waiting"
 														? "bg-yellow-100 text-yellow-800"
 														: "bg-green-100 text-green-800"
@@ -288,12 +287,12 @@ export const Home = (): FunctionComponent => {
 										<p className="mt-1 text-sm text-gray-500">
 											Players: {room.current_players}/{room.max_players}
 										</p>
-										<div className="mt-4 flex gap-2">
+										<div className="mt-3 sm:mt-4 flex gap-2">
 											<button
 												onClick={() =>
 													navigate({ to: "/room", search: { roomId: room.id } })
 												}
-												className={`flex-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
+												className={`flex-1 inline-flex justify-center py-2 px-3 sm:px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
 													room?.status === "waiting"
 														? "bg-indigo-600 hover:bg-indigo-700"
 														: "bg-green-600 hover:bg-green-700"
@@ -306,7 +305,7 @@ export const Home = (): FunctionComponent => {
 												room?.status === "in_progress" && (
 													<button
 														onClick={() => handleEndGame(room.id)}
-														className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+														className="inline-flex justify-center py-2 px-3 sm:px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
 													>
 														End Game
 													</button>
@@ -319,24 +318,28 @@ export const Home = (): FunctionComponent => {
 					)}
 					{availableRooms.length === 0 && (
 						<div>
-							<p className="text-gray-500 text-center">No available rooms</p>
-							{/* add the button to create a room here */}
+							<p className="text-gray-500 text-center text-sm sm:text-base">
+								No available rooms
+							</p>
 							<button
 								onClick={handleCreateRoom}
-								className="mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+								disabled={loading}
+								className="mt-3 sm:mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
 							>
-								Create Room
+								{loading ? "Creating..." : "Create Room"}
 							</button>
 						</div>
 					)}
 				</div>
 
 				{/* Game Rules Section */}
-				<div className="mt-12">
-					<h2 className="text-2xl font-bold text-gray-900 mb-4">How to Play</h2>
+				<div className="mt-8 sm:mt-12">
+					<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
+						How to Play
+					</h2>
 					<div className="bg-white shadow overflow-hidden sm:rounded-lg">
-						<div className="px-4 py-5 sm:p-6">
-							<dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+						<div className="px-3 py-4 sm:p-6">
+							<dl className="grid grid-cols-1 gap-y-4 sm:gap-y-6 sm:grid-cols-2 sm:gap-x-4">
 								<div>
 									<dt className="text-sm font-medium text-gray-500">
 										Objective
@@ -348,15 +351,12 @@ export const Home = (): FunctionComponent => {
 								</div>
 								<div>
 									<dt className="text-sm font-medium text-gray-500">Scoring</dt>
-									<dd className="mt-1 text-sm text-gray-900">
-										• Single 1: 100 points
-										<br />
-										• Single 5: 50 points
-										<br />
-										• Three of a kind: Value × 100 (1s are worth 1000)
-										<br />
-										• Three pairs: 750 points
-										<br />• Straight (1-6): 1000 points
+									<dd className="mt-1 text-sm text-gray-900 space-y-1">
+										<p>• Single 1: 100 points</p>
+										<p>• Single 5: 50 points</p>
+										<p>• Three of a kind: Value × 100 (1s are worth 1000)</p>
+										<p>• Three pairs: 750 points</p>
+										<p>• Straight (1-6): 1000 points</p>
 									</dd>
 								</div>
 							</dl>
