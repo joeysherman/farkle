@@ -14,9 +14,9 @@ function RootLayout(): JSX.Element {
 }
 
 function RootContent(): JSX.Element {
-	const { isAuthChecking } = useAuth();
+	const { isAuthChecking, user } = useAuth();
 
-	if (isAuthChecking) {
+	if (isAuthChecking && !user) {
 		return <div>Loading...root</div>;
 	}
 

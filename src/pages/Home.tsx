@@ -189,13 +189,14 @@ export const Home = (): FunctionComponent => {
 				</div>
 
 				{/* Current Rooms Section */}
-				{currentRooms.length > 0 && (
-					<div className="mb-8 sm:mb-12">
-						<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
-							Your Current Rooms
-						</h2>
-						<div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-							{currentRooms.map((room) => (
+
+				<div className="mb-8 sm:mb-12">
+					<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
+						Your Current Games
+					</h2>
+					<div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+						{currentRooms.length > 0 &&
+							currentRooms.map((room) => (
 								<div
 									key={room.id}
 									className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
@@ -253,18 +254,23 @@ export const Home = (): FunctionComponent => {
 									</div>
 								</div>
 							))}
-						</div>
+						{currentRooms.length === 0 && (
+							<>
+								<div className="skeleton h-[146px] w-full opacity-70 rounded-lg shadow"></div>
+								<div className="skeleton h-[146px] w-full opacity-70 rounded-lg shadow"></div>
+							</>
+						)}
 					</div>
-				)}
+				</div>
 
 				{/* Available Rooms Section */}
 				<div className="mb-8 sm:mb-12">
 					<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
-						Available Rooms
+						Available Games
 					</h2>
-					{availableRooms.length > 0 && (
-						<div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-							{availableRooms.map((room) => (
+					<div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+						{availableRooms.length > 0 &&
+							availableRooms.map((room) => (
 								<div
 									key={room.id}
 									className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
@@ -314,26 +320,17 @@ export const Home = (): FunctionComponent => {
 									</div>
 								</div>
 							))}
-						</div>
-					)}
-					{availableRooms.length === 0 && (
-						<div>
-							<p className="text-gray-500 text-center text-sm sm:text-base">
-								No available rooms
-							</p>
-							<button
-								onClick={handleCreateRoom}
-								disabled={loading}
-								className="mt-3 sm:mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-							>
-								{loading ? "Creating..." : "Create Room"}
-							</button>
-						</div>
-					)}
+						{availableRooms.length === 0 && (
+							<>
+								<div className="skeleton h-[146px] w-full opacity-70 rounded-lg shadow"></div>
+								<div className="skeleton h-[146px] w-full opacity-70 rounded-lg shadow"></div>
+							</>
+						)}
+					</div>
 				</div>
 
 				{/* Game Rules Section */}
-				<div className="mt-8 sm:mt-12">
+				<div className="mt-8">
 					<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
 						How to Play
 					</h2>
