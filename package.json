@@ -55,6 +55,7 @@
 		"@tanstack/react-router": "^1.51.6",
 		"@tanstack/react-table": "^8.20.5",
 		"dat.gui": "^0.7.9",
+		"date-fns": "^4.1.0",
 		"dayjs": "^1.11.13",
 		"firebase": "^11.6.0",
 		"framer-motion": "11.2.0",

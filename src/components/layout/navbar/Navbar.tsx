@@ -131,6 +131,20 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 												</MenuItem>
 												<MenuItem>
 													{({ active }): JSX.Element => (
+														<Link
+															className={`${
+																active
+																	? "bg-indigo-500 text-white"
+																	: "text-gray-900"
+															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+															to="/history"
+														>
+															History
+														</Link>
+													)}
+												</MenuItem>
+												<MenuItem>
+													{({ active }): JSX.Element => (
 														<button
 															className={`${
 																active
