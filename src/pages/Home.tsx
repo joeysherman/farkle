@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { FunctionComponent } from "../common/types";
 import { Navbar } from "../components/layout/navbar/Navbar";
@@ -29,6 +29,8 @@ export const Home = (): FunctionComponent => {
 		null
 	);
 	const [error, setError] = useState("");
+
+	const gameRoomSubscriptionRef = useRef<RealtimeChannel | null>(null);
 
 	useEffect(() => {
 		const fetchCurrentRooms = async (): Promise<void> => {
@@ -129,9 +131,11 @@ export const Home = (): FunctionComponent => {
 
 	const handleEndGame = async (roomId: string) => {
 		try {
-			const { error } = await supabase.rpc("end_game", {
+			const { error, data } = await supabase.rpc("end_game", {
 				p_game_id: roomId,
 			});
+			debugger;
+			setCurrentRooms(currentRooms?.filter((room) => room.id !== roomId));
 
 			if (error) {
 				console.error("End game error:", error);

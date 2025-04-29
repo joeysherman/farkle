@@ -29,7 +29,7 @@ export interface GameRoom {
 	current_players: number;
 	status: "waiting" | "in_progress" | "completed";
 	invite_code: string;
-	table_model?: "boxing_ring" | "coliseum";
+	table_model?: "boxing_ring" | "coliseum" | "poker_table";
 }
 
 export interface GamePlayer {
