@@ -19,6 +19,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { GameActions } from "./GameActions";
 import { useUser } from "../services/user";
 import { InviteModal } from "../features/InviteModal";
+import { RoomSettingsDialog } from "../features/RoomSettingsDialog";
 
 export interface GameRoom {
 	id: string;
@@ -28,6 +29,7 @@ export interface GameRoom {
 	current_players: number;
 	status: "waiting" | "in_progress" | "completed";
 	invite_code: string;
+	table_model?: "boxing_ring" | "coliseum";
 }
 
 export interface GamePlayer {
@@ -43,6 +45,8 @@ export interface GameState {
 	current_turn_number: number;
 	current_player_id: string;
 	last_updated_at: string;
+	diceStates: Array<{ number: number; isScoringNumber: boolean }>;
+	isSpinning: boolean;
 }
 
 interface GameTurn {
@@ -132,6 +136,7 @@ export function Room(): JSX.Element {
 	const [players, setPlayers] = useState<Array<GamePlayer>>([]);
 	const [gameState, setGameState] = useState<GameState | null>(null);
 	const [currentTurn, setCurrentTurn] = useState<GameTurn | null>(null);
+	const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
 	const [isCurrentPlayerTurn, setIsCurrentPlayerTurn] = useState(false);
 
@@ -372,10 +377,15 @@ export function Room(): JSX.Element {
 			}
 
 			setRoom(roomData as GameRoom);
+
+			// Show settings dialog if user is the creator and table_model is not set
+			if (roomData.created_by === user?.id && !roomData.table_model) {
+				setShowSettingsDialog(true);
+			}
 		};
 
 		void fetchRoom();
-	}, []);
+	}, [roomId, user]);
 
 	// players
 	useEffect(() => {
@@ -859,6 +869,12 @@ export function Room(): JSX.Element {
 
 	return (
 		<main className="max-w-[1600px] mx-auto h-[calc(100vh-48px)] sm:h-[calc(100vh-64px)]">
+			{showSettingsDialog && (
+				<RoomSettingsDialog
+					roomId={roomId}
+					onClose={() => setShowSettingsDialog(false)}
+				/>
+			)}
 			<div className="flex flex-col md:flex-row md:space-x-4 h-full">
 				{/* Left Column - Room Details (Hidden on mobile) */}
 				<div className="hidden md:relative md:block md:w-1/4 md:h-full">
@@ -1119,13 +1135,12 @@ export function Room(): JSX.Element {
 						{/* Game Scene */}
 						<div className="h-full">
 							<GameScene
-								isCurrentPlayerTurn={isCurrentPlayerTurn}
-								diceStates={diceStates}
-								isSpinning={isSpinning}
+								diceStates={gameState?.diceStates || []}
+								isSpinning={gameState?.isSpinning || false}
 								selectedDiceIndices={selectedDiceIndices}
-								setSelectedDiceIndices={(e) => {
-									updateTurnActions(e, turnActions[turnActions.length - 1]?.id);
-								}}
+								setSelectedDiceIndices={setSelectedDiceIndices}
+								isCurrentPlayerTurn={isCurrentPlayerTurn}
+								tableModel={room?.table_model || "boxing_ring"}
 							/>
 						</div>
 					</div>

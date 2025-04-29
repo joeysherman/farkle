@@ -19,6 +19,7 @@ import {
 } from "@react-three/postprocessing";
 import { useRef, useState, useEffect } from "react";
 import { BoxingRing } from "./BoxingRing";
+import { Coliseum } from "./Coliseum";
 import { ARENA_SIZE } from "./constants";
 import { Model as DiceModel } from "./modals/DiceModel";
 import { DiceScene } from "./DiceScene";
@@ -105,6 +106,7 @@ export const GameScene = ({
 	selectedDiceIndices,
 	setSelectedDiceIndices,
 	isCurrentPlayerTurn,
+	tableModel = "boxing_ring",
 }: GameSceneProps) => {
 	const cameraControlsRef = useRef();
 	const orbitControlsRef = useRef();
@@ -226,7 +228,7 @@ export const GameScene = ({
 					shadow-camera-top={20}
 					shadow-camera-bottom={-20}
 				/>
-				<BoxingRing />
+				{tableModel === "boxing_ring" ? <BoxingRing /> : <Coliseum />}
 				<Selection enabled={!isSpinning} autoClear={true}>
 					<EffectComposer multisampling={8} autoClear={false}>
 						{isCurrentPlayerTurn && (
