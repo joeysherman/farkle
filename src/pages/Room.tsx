@@ -1134,14 +1134,23 @@ export function Room(): JSX.Element {
 
 						{/* Game Scene */}
 						<div className="h-full">
-							<GameScene
-								diceStates={gameState?.diceStates || []}
-								isSpinning={gameState?.isSpinning || false}
-								selectedDiceIndices={selectedDiceIndices}
-								setSelectedDiceIndices={setSelectedDiceIndices}
-								isCurrentPlayerTurn={isCurrentPlayerTurn}
-								tableModel={room?.table_model || "boxing_ring"}
-							/>
+							{room &&
+								(room?.status === "waiting" ||
+									room?.status === "in_progress") && (
+									<GameScene
+										isCurrentPlayerTurn={isCurrentPlayerTurn}
+										diceStates={diceStates}
+										isSpinning={isSpinning}
+										selectedDiceIndices={selectedDiceIndices}
+										setSelectedDiceIndices={(e) => {
+											updateTurnActions(
+												e,
+												turnActions[turnActions.length - 1]?.id
+											);
+										}}
+										tableModel={room?.table_model || "boxing_ring"}
+									/>
+								)}
 						</div>
 					</div>
 				</div>

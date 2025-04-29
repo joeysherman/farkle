@@ -20,6 +20,7 @@ export function DiceScene({
 	selectedDiceIndices,
 	setSelectedDiceIndices,
 }: DiceSceneProps) {
+	debugger;
 	return (
 		<Suspense fallback={null}>
 			{diceStates.map((diceState, index) => {

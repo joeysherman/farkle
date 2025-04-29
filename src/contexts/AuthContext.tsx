@@ -46,7 +46,6 @@ export function AuthProvider({
 				} = await supabase.auth.getUser();
 
 				if (authUser) {
-					debugger;
 					const { data: profile } = await supabase
 						.from("profiles")
 						.select("*")

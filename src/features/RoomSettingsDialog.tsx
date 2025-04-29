@@ -29,12 +29,13 @@ const cameraPresets = {
 		maxDistance: 120,
 	},
 	poker_table: {
-		position: [0, -3, 0],
+		position: [0, 10, 0],
 		scale: [1, 1, 1],
-		cameraPosition: [0, 15, 30],
+		//cameraPosition: [0, 15, 30],
+		cameraPosition: [0, 0, 0],
 		fov: 20,
-		minDistance: 35,
-		maxDistance: 35,
+		minDistance: 140,
+		maxDistance: 140,
 	},
 };
 

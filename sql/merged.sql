@@ -2,7 +2,7 @@
 DO $$ 
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'game_status') THEN
-    CREATE TYPE game_status AS ENUM ('settings', 'ready', 'waiting', 'in_progress', 'rebuttal', 'completed');
+    CREATE TYPE game_status AS ENUM ('settings', 'waiting', 'in_progress', 'rebuttal', 'completed');
   END IF;
 END $$;
 
@@ -460,7 +460,7 @@ BEGIN
   UPDATE game_rooms
   SET status = 'in_progress'
   WHERE id = room_id
-  AND status IN ('ready', 'waiting')
+  AND status IN ('waiting')
   AND current_players > 0;  -- Allow single player games
 
   -- Initialize game state if not exists
@@ -1509,7 +1509,7 @@ BEGIN
   UPDATE game_rooms
   SET 
     table_model = p_table_model,
-    status = 'ready'
+    status = 'waiting'
   WHERE id = p_room_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER; 
