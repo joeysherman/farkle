@@ -19,12 +19,14 @@ import {
 } from "@react-three/postprocessing";
 import { useRef, useState, useEffect } from "react";
 import { BoxingRing } from "./BoxingRing";
+import { Coliseum } from "./Coliseum";
 import { ARENA_SIZE } from "./constants";
 import { Model as DiceModel } from "./modals/DiceModel";
 import { DiceScene } from "./DiceScene";
 import { DebugPanel, CameraDebug } from "./DebugPanel";
+import { PokerTable } from "./PokerTable";
 
-const isDev = process.env.NODE_ENV === "development";
+const isDev = process.env.NODE_ENV !== "development";
 
 // Camera presets for different device types
 const cameraPresets = {
@@ -105,6 +107,7 @@ export const GameScene = ({
 	selectedDiceIndices,
 	setSelectedDiceIndices,
 	isCurrentPlayerTurn,
+	tableModel = "boxing_ring",
 }: GameSceneProps) => {
 	const cameraControlsRef = useRef();
 	const orbitControlsRef = useRef();
@@ -226,7 +229,13 @@ export const GameScene = ({
 					shadow-camera-top={20}
 					shadow-camera-bottom={-20}
 				/>
-				<BoxingRing />
+				{tableModel === "boxing_ring" ? (
+					<BoxingRing />
+				) : tableModel === "coliseum" ? (
+					<Coliseum />
+				) : (
+					<PokerTable />
+				)}
 				<Selection enabled={!isSpinning} autoClear={true}>
 					<EffectComposer multisampling={8} autoClear={false}>
 						{isCurrentPlayerTurn && (

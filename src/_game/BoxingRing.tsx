@@ -1,12 +1,11 @@
 import { useGLTF } from "@react-three/drei";
 import { Suspense } from "react";
-import boxingRingModel from "./modals/boxing_ring.glb";
 
 // Preload the model
-useGLTF.preload(boxingRingModel);
+useGLTF.preload("/models/boxing_ring.glb");
 
 function BoxingRingModel() {
-	const { scene } = useGLTF(boxingRingModel);
+	const { scene } = useGLTF("/models/boxing_ring.glb");
 
 	return (
 		<primitive

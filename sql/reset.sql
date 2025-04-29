@@ -29,6 +29,7 @@ DROP FUNCTION IF EXISTS run_all_tests();
 DROP FUNCTION IF EXISTS remove_first_occurrence(INTEGER[], INTEGER[]);
 DROP FUNCTION IF EXISTS select_dice(UUID, INTEGER[]);
 DROP FUNCTION IF EXISTS update_current_players();
+DROP FUNCTION IF EXISTS update_room_settings(UUID, TEXT);
 
 -- Drop types (after functions that depend on them)
 DROP TYPE IF EXISTS turn_score_result CASCADE;
