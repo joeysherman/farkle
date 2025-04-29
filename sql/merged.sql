@@ -2,7 +2,7 @@
 DO $$ 
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'game_status') THEN
-    CREATE TYPE game_status AS ENUM ('waiting', 'in_progress', 'rebuttal', 'completed');
+    CREATE TYPE game_status AS ENUM ('settings', 'ready', 'waiting', 'in_progress', 'rebuttal', 'completed');
   END IF;
 END $$;
 
@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS public.game_rooms (
   current_players int default 0,
   winner_id uuid references public.profiles(id),
   invite_code char(6) unique not null,
+  table_model text default 'boxing_ring' check (table_model in ('boxing_ring', 'coliseum', 'poker_table')),
   ended_at timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -276,13 +277,15 @@ BEGIN
     created_by,
     status,
     max_players,
-    invite_code
+    invite_code,
+    table_model
   ) VALUES (
     p_name,
     auth.uid(),
-    'waiting',
+    'settings',
     4,
-    v_invite_code
+    v_invite_code,
+    'boxing_ring'
   ) RETURNING id INTO v_room_id;
 
   -- Add the creator as the first player
@@ -317,7 +320,7 @@ BEGIN
 
   -- Create game state record with current player as first player
   -- and current turn number as 1
-  -- and game status as waiting
+  -- and game status as settings
   INSERT INTO game_states (
     game_id,
     current_player_id,
@@ -457,7 +460,7 @@ BEGIN
   UPDATE game_rooms
   SET status = 'in_progress'
   WHERE id = room_id
-  AND status = 'waiting'
+  AND status IN ('ready', 'waiting')
   AND current_players > 0;  -- Allow single player games
 
   -- Initialize game state if not exists
@@ -1478,4 +1481,35 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   user_id uuid references auth.users(id) not null,
   created_at timestamp with time zone not null default now(),
   body text not null
-); 
+);
+
+-- Function to update room settings
+CREATE OR REPLACE FUNCTION update_room_settings(p_room_id UUID, p_table_model TEXT)
+RETURNS void AS $$
+BEGIN
+  -- Verify user is room creator
+  IF NOT EXISTS (
+    SELECT 1 FROM game_rooms
+    WHERE id = p_room_id
+    AND created_by = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Only room creator can update settings';
+  END IF;
+
+  -- Verify room is in settings status
+  IF NOT EXISTS (
+    SELECT 1 FROM game_rooms
+    WHERE id = p_room_id
+    AND status = 'settings'
+  ) THEN
+    RAISE EXCEPTION 'Room settings can only be updated when in settings status';
+  END IF;
+
+  -- Update room settings
+  UPDATE game_rooms
+  SET 
+    table_model = p_table_model,
+    status = 'ready'
+  WHERE id = p_room_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER; 

@@ -24,6 +24,7 @@ import { ARENA_SIZE } from "./constants";
 import { Model as DiceModel } from "./modals/DiceModel";
 import { DiceScene } from "./DiceScene";
 import { DebugPanel, CameraDebug } from "./DebugPanel";
+import { PokerTable } from "./PokerTable";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -228,7 +229,13 @@ export const GameScene = ({
 					shadow-camera-top={20}
 					shadow-camera-bottom={-20}
 				/>
-				{tableModel === "boxing_ring" ? <BoxingRing /> : <Coliseum />}
+				{tableModel === "boxing_ring" ? (
+					<BoxingRing />
+				) : tableModel === "coliseum" ? (
+					<Coliseum />
+				) : (
+					<PokerTable />
+				)}
 				<Selection enabled={!isSpinning} autoClear={true}>
 					<EffectComposer multisampling={8} autoClear={false}>
 						{isCurrentPlayerTurn && (
