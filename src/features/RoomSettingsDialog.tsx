@@ -110,12 +110,18 @@ export function RoomSettingsDialog({
 	const handleSave = async (): Promise<void> => {
 		try {
 			setIsSaving(true);
-			const { error } = await supabase
-				.from("game_rooms")
-				.update({ table_model: selectedModel })
-				.eq("id", roomId);
+			console.log("Attempting to update room:", roomId);
+			const { data, error } = await supabase.rpc("update_room_settings", {
+				p_room_id: roomId,
+				p_table_model: selectedModel,
+			});
 
-			if (error) throw error;
+			if (error) {
+				console.error("Supabase error:", error);
+				throw error;
+			}
+
+			console.log("Update successful:", data);
 			onClose();
 		} catch (error) {
 			console.error("Error saving room settings:", error);

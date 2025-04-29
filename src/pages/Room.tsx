@@ -379,7 +379,7 @@ export function Room(): JSX.Element {
 			setRoom(roomData as GameRoom);
 
 			// Show settings dialog if user is the creator and table_model is not set
-			if (roomData.created_by === user?.id && !roomData.table_model) {
+			if (roomData.created_by === user?.id && roomData?.status === "settings") {
 				setShowSettingsDialog(true);
 			}
 		};
