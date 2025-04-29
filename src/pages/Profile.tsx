@@ -194,7 +194,6 @@ export const Profile = (): FunctionComponent => {
 
 	return (
 		<div className="min-h-screen bg-gray-100">
-			<Navbar />
 			<Toaster position="bottom-center" />
 			<div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
 				<div className="bg-white shadow sm:rounded-lg">

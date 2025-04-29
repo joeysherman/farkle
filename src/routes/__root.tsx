@@ -23,7 +23,9 @@ function RootContent(): JSX.Element {
 	return (
 		<div className="min-h-screen bg-gray-100">
 			<Navbar />
-			<Outlet />
+			<div className="pt-12 sm:pt-16">
+				<Outlet />
+			</div>
 		</div>
 	);
 }
