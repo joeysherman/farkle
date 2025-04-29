@@ -23,6 +23,58 @@ interface GameHistory {
 export default function History(): JSX.Element {
 	const { user } = useAuth();
 
+	// Helper function to parse duration string to minutes
+	const parseDuration = (duration: string): number => {
+		const days = duration.match(/(\d+) days?/);
+		const timeMatch = duration.match(/(\d+):(\d+):(\d+)/);
+		let totalMinutes = 0;
+
+		if (days && days[1]) {
+			totalMinutes += parseInt(days[1]) * 24 * 60;
+		}
+
+		if (timeMatch && timeMatch[1] && timeMatch[2]) {
+			totalMinutes += parseInt(timeMatch[1]) * 60; // hours to minutes
+			totalMinutes += parseInt(timeMatch[2]); // minutes
+		}
+
+		return totalMinutes;
+	};
+
+	// Format duration from interval to human-readable string
+	const formatDuration = (duration: string | number): string => {
+		if (typeof duration === "number") {
+			// Convert minutes to days, hours, minutes
+			const days = Math.floor(duration / (24 * 60));
+			const hours = Math.floor((duration % (24 * 60)) / 60);
+			const minutes = Math.floor(duration % 60);
+
+			const parts = [];
+			if (days > 0) parts.push(`${days}d`);
+			if (hours > 0) parts.push(`${hours}h`);
+			if (minutes > 0) parts.push(`${minutes}m`);
+			return parts.join(" ") || "< 1m";
+		}
+
+		// Handle string duration (existing logic)
+		const days = duration.match(/(\d+) days?/);
+		const timeMatch = duration.match(/(\d+):(\d+):(\d+)/);
+		const parts = [];
+
+		if (days && days[1]) {
+			parts.push(`${days[1]}d`);
+		}
+
+		if (timeMatch && timeMatch[1] && timeMatch[2]) {
+			const hours = parseInt(timeMatch[1]);
+			const minutes = parseInt(timeMatch[2]);
+			if (hours > 0) parts.push(`${hours}h`);
+			if (minutes > 0) parts.push(`${minutes}m`);
+		}
+
+		return parts.join(" ") || "< 1m";
+	};
+
 	// Fetch game history data
 	const { data: historyData, isLoading: isHistoryLoading } = useQuery({
 		queryKey: ["gameHistory"],
@@ -55,43 +107,33 @@ export default function History(): JSX.Element {
 	// Calculate statistics from game history
 	const userStats = historyData
 		? {
-				total_games: historyData.length,
-				games_won: historyData.filter((game) => game.winner_id === user?.id)
+				totalGames: historyData.length,
+				gamesWon: historyData.filter((game) => game.winner_id === user?.id)
 					.length,
+				// Calculate average duration
+				averageDuration:
+					historyData.length > 0
+						? formatDuration(
+								historyData.reduce(
+									(accumulator, game) =>
+										accumulator + parseDuration(game.duration),
+									0
+								) / historyData.length
+							)
+						: "0m",
+				lastPlayed:
+					historyData.length > 0
+						? format(new Date(historyData[0].created_at), "MMM d, yyyy")
+						: "Never",
 			}
 		: null;
 
 	// Calculate win rate
 	const winRate = userStats
-		? userStats.total_games > 0
-			? ((userStats.games_won / userStats.total_games) * 100).toFixed(1)
+		? userStats.totalGames > 0
+			? ((userStats.gamesWon / userStats.totalGames) * 100).toFixed(1)
 			: "0"
 		: "0";
-
-	// Format duration from interval to human-readable string
-	const formatDuration = (duration: string): string => {
-		// Parse the interval string (e.g., "4 days 22:32:10.577723")
-		const days = duration.match(/(\d+) days?/);
-		const timeMatch = duration.match(/(\d+):(\d+):(\d+)/);
-
-		const parts = [];
-
-		if (days) {
-			parts.push(`${days[1]}d`);
-		}
-
-		if (timeMatch) {
-			const [, hours, minutes] = timeMatch;
-			if (parseInt(hours) > 0) {
-				parts.push(`${parseInt(hours)}h`);
-			}
-			if (parseInt(minutes) > 0) {
-				parts.push(`${parseInt(minutes)}m`);
-			}
-		}
-
-		return parts.join(" ") || "< 1m";
-	};
 
 	return (
 		<div className="container mx-auto px-4 py-8">
@@ -99,79 +141,100 @@ export default function History(): JSX.Element {
 
 			{/* User Stats Summary */}
 			{userStats && (
-				<div className="bg-white rounded-lg shadow-md p-6 mb-8">
-					<h2 className="text-xl font-semibold mb-4">Your Statistics</h2>
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-						<div className="bg-indigo-50 p-4 rounded-lg">
-							<p className="text-sm text-indigo-600">Total Games</p>
-							<p className="text-2xl font-bold">{userStats.total_games}</p>
+				<div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-8">
+					<h2 className="text-2xl font-bold mb-4 sm:mb-6">Your Statistics</h2>
+					<div className="grid grid-cols-2 gap-3 sm:gap-4">
+						{/* Primary Stats */}
+						<div className="col-span-2 bg-indigo-50 rounded-lg p-4 sm:p-6">
+							<div className="text-indigo-600 text-base sm:text-lg mb-1 sm:mb-2">
+								Total Games
+							</div>
+							<div className="text-3xl sm:text-4xl font-bold">
+								{userStats.totalGames}
+							</div>
 						</div>
-						<div className="bg-green-50 p-4 rounded-lg">
-							<p className="text-sm text-green-600">Games Won</p>
-							<p className="text-2xl font-bold">{userStats.games_won}</p>
+						<div className="bg-green-50 rounded-lg p-4 sm:p-6">
+							<div className="text-green-600 text-base sm:text-lg mb-1 sm:mb-2">
+								Games Won
+							</div>
+							<div className="text-3xl sm:text-4xl font-bold">
+								{userStats.gamesWon}
+							</div>
 						</div>
-						<div className="bg-purple-50 p-4 rounded-lg">
-							<p className="text-sm text-purple-600">Win Rate</p>
-							<p className="text-2xl font-bold">{winRate}%</p>
+						<div className="bg-purple-50 rounded-lg p-4 sm:p-6">
+							<div className="text-purple-600 text-base sm:text-lg mb-1 sm:mb-2">
+								Win Rate
+							</div>
+							<div className="text-3xl sm:text-4xl font-bold">{winRate}%</div>
+						</div>
+
+						{/* Additional Stats */}
+						<div className="bg-blue-50 rounded-lg p-4 sm:p-6">
+							<div className="text-blue-600 text-base sm:text-lg mb-1 sm:mb-2">
+								Avg Duration
+							</div>
+							<div className="text-xl sm:text-2xl font-bold">
+								{userStats.averageDuration}
+							</div>
+						</div>
+						<div className="bg-rose-50 rounded-lg p-4 sm:p-6">
+							<div className="text-rose-600 text-base sm:text-lg mb-1 sm:mb-2">
+								Last Played
+							</div>
+							<div className="text-xl sm:text-2xl font-bold">
+								{userStats.lastPlayed}
+							</div>
 						</div>
 					</div>
 				</div>
 			)}
 
-			{/* Game History Table */}
+			{/* Game History Cards */}
 			<div className="bg-white rounded-lg shadow-md overflow-hidden">
 				<h2 className="text-xl font-semibold p-6 border-b">Recent Games</h2>
 				{isHistoryLoading ? (
 					<div className="p-6 text-center">Loading game history...</div>
 				) : historyData && historyData.length > 0 ? (
-					<div className="overflow-x-auto">
-						<table className="min-w-full divide-y divide-gray-200">
-							<thead className="bg-gray-50">
-								<tr>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Game
-									</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Winner
-									</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Duration
-									</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Date
-									</th>
-								</tr>
-							</thead>
-							<tbody className="bg-white divide-y divide-gray-200">
-								{historyData.map((game) => (
-									<tr key={game.id} className="hover:bg-gray-50">
-										<td className="px-6 py-4 whitespace-nowrap">
-											<div className="text-sm font-medium text-gray-900">
-												{game.game_room?.name || "Unnamed Game"}
-											</div>
-										</td>
-										<td className="px-6 py-4 whitespace-nowrap">
-											<div
-												className={`text-sm ${game.winner_id === user?.id ? "font-bold text-indigo-600" : "text-gray-900"}`}
+					<div className="p-4">
+						<div className="grid grid-cols-1 gap-4">
+							{historyData.map((game) => (
+								<div
+									key={game.id}
+									className="bg-gray-50 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
+								>
+									<div className="flex flex-col space-y-2">
+										<div className="text-lg font-medium text-gray-900">
+											{game.game_room?.name || "Unnamed Game"}
+										</div>
+										<div className="flex items-center space-x-2">
+											<span className="text-sm text-gray-500">Winner:</span>
+											<span
+												className={`text-sm ${
+													game.winner_id === user?.id
+														? "font-bold text-indigo-600"
+														: "text-gray-900"
+												}`}
 											>
 												{game.winner?.username || "Unknown"}
 												{game.winner_id === user?.id && " (You)"}
-											</div>
-										</td>
-										<td className="px-6 py-4 whitespace-nowrap">
-											<div className="text-sm text-gray-900">
+											</span>
+										</div>
+										<div className="flex items-center space-x-2">
+											<span className="text-sm text-gray-500">Duration:</span>
+											<span className="text-sm text-gray-900">
 												{formatDuration(game.duration)}
-											</div>
-										</td>
-										<td className="px-6 py-4 whitespace-nowrap">
-											<div className="text-sm text-gray-900">
+											</span>
+										</div>
+										<div className="flex items-center space-x-2">
+											<span className="text-sm text-gray-500">Date:</span>
+											<span className="text-sm text-gray-900">
 												{format(new Date(game.created_at), "MMM d, yyyy")}
-											</div>
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
+											</span>
+										</div>
+									</div>
+								</div>
+							))}
+						</div>
 					</div>
 				) : (
 					<div className="p-6 text-center text-gray-500">
