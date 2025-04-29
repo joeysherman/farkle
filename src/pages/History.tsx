@@ -195,46 +195,52 @@ export default function History(): JSX.Element {
 				{isHistoryLoading ? (
 					<div className="p-6 text-center">Loading game history...</div>
 				) : historyData && historyData.length > 0 ? (
-					<div className="p-4">
-						<div className="grid grid-cols-1 gap-4">
-							{historyData.map((game) => (
-								<div
-									key={game.id}
-									className="bg-gray-50 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
-								>
-									<div className="flex flex-col space-y-2">
-										<div className="text-lg font-medium text-gray-900">
-											{game.game_room?.name || "Unnamed Game"}
+					<div className="divide-y divide-gray-100">
+						{historyData.map((game) => (
+							<div
+								key={game.id}
+								className="collapse collapse-arrow bg-white hover:bg-gray-50"
+							>
+								<input className="peer" type="checkbox" />
+								<div className="collapse-title py-4 px-6">
+									<div className="grid grid-cols-12 items-center gap-2">
+										<div className="col-span-4">
+											<span className="font-medium">
+												{game.game_room?.name || "Unnamed Game"}
+											</span>
 										</div>
-										<div className="flex items-center space-x-2">
-											<span className="text-sm text-gray-500">Winner:</span>
+										<div className="col-span-4 text-center">
 											<span
-												className={`text-sm ${
+												className={
 													game.winner_id === user?.id
-														? "font-bold text-indigo-600"
-														: "text-gray-900"
-												}`}
+														? "text-indigo-600 font-medium"
+														: "text-gray-500"
+												}
 											>
 												{game.winner?.username || "Unknown"}
 												{game.winner_id === user?.id && " (You)"}
 											</span>
 										</div>
-										<div className="flex items-center space-x-2">
-											<span className="text-sm text-gray-500">Duration:</span>
-											<span className="text-sm text-gray-900">
-												{formatDuration(game.duration)}
-											</span>
-										</div>
-										<div className="flex items-center space-x-2">
-											<span className="text-sm text-gray-500">Date:</span>
-											<span className="text-sm text-gray-900">
-												{format(new Date(game.created_at), "MMM d, yyyy")}
-											</span>
+										<div className="col-span-3 text-gray-400">
+											{format(new Date(game.created_at), "MMM d, yyyy")}
 										</div>
 									</div>
 								</div>
-							))}
-						</div>
+								<div className="collapse-content bg-gray-50 px-6">
+									<div className="py-4">
+										<div className="grid grid-cols-2 gap-4">
+											<div>
+												<div className="text-sm text-gray-500">Duration</div>
+												<div className="font-medium">
+													{formatDuration(game.duration)}
+												</div>
+											</div>
+											{/* Additional details can be added here later */}
+										</div>
+									</div>
+								</div>
+							</div>
+						))}
 					</div>
 				) : (
 					<div className="p-6 text-center text-gray-500">
