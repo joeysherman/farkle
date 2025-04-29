@@ -919,94 +919,6 @@ export function Room(): JSX.Element {
 							<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-1">
 								<div className="flex flex-col">
 									{/* Mobile Room Controls and Players List */}
-									{/* Game Actions */}
-									<div className="flex items-center justify-center">
-										{gameState &&
-											user &&
-											players &&
-											turnActions &&
-											(room?.status === "in_progress" ||
-												room?.status === "rebuttal") && (
-												<GameActions
-													gameState={gameState}
-													user={user}
-													players={players}
-													isPending={isPending || isSpinning}
-													turnActions={turnActions}
-													selectedDiceIndices={selectedDiceIndices}
-													onTurnAction={(keptDice, outcome) => {
-														const latestAction =
-															turnActions[turnActions.length - 1];
-														if (!latestAction) return;
-														let leftOverDice = [];
-														if (outcome === "continue") {
-															if (selectedDiceIndices.length > 0) {
-																leftOverDice = diceStates.filter(
-																	(dice) =>
-																		!selectedDiceIndices.includes(
-																			dice.placement - 1
-																		)
-																);
-															} else {
-																leftOverDice = diceStates.filter(
-																	(dice) => !dice.isScoringNumber
-																);
-															}
-															setDiceStates(leftOverDice);
-															startSpin();
-														} else {
-															setDiceStates([]);
-														}
-														handleTurnAction({
-															roomId: roomId,
-															outcome,
-															keptDice,
-														});
-													}}
-													onRoll={() => {
-														setDiceStates([
-															{
-																number: 6,
-																placement: 1,
-																isScoringNumber: true,
-															},
-															{
-																number: 2,
-																placement: 2,
-																isScoringNumber: false,
-															},
-															{
-																number: 3,
-																placement: 3,
-																isScoringNumber: false,
-															},
-															{
-																number: 4,
-																placement: 4,
-																isScoringNumber: false,
-															},
-															{
-																number: 5,
-																placement: 5,
-																isScoringNumber: false,
-															},
-															{
-																number: 6,
-																placement: 6,
-																isScoringNumber: true,
-															},
-														]);
-														if (!isSpinning) {
-															startSpin();
-														}
-														handleRoll();
-														setSelectedDiceIndices([]);
-													}}
-													setSelectedDiceIndices={() => {}}
-												/>
-											)}
-									</div>
-
 									<div className="md:hidden">
 										{room && user && (
 											<div className="flex flex-col gap-3">
@@ -1097,7 +1009,7 @@ export function Room(): JSX.Element {
 
 									{/* Turn Actions History */}
 									{room?.status === "in_progress" && (
-										<div className="mt-2">
+										<div className="px-1">
 											<TurnActions
 												isCurrentPlayerTurn={isCurrentPlayerTurn}
 												turnActions={turnActions}
@@ -1105,6 +1017,101 @@ export function Room(): JSX.Element {
 											/>
 										</div>
 									)}
+								</div>
+							</div>
+						</div>
+
+						{/* Absolute section at the bottom of the screen for the GameActions */}
+						<div className="absolute bottom-0 left-0 right-0 z-10 px-2">
+							<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md">
+								<div className="flex flex-col">
+									{/* Game Actions */}
+									<div className="flex items-center justify-center">
+										{gameState &&
+											user &&
+											players &&
+											turnActions &&
+											(room?.status === "in_progress" ||
+												room?.status === "rebuttal") && (
+												<GameActions
+													gameState={gameState}
+													user={user}
+													players={players}
+													isPending={isPending || isSpinning}
+													turnActions={turnActions}
+													selectedDiceIndices={selectedDiceIndices}
+													onTurnAction={(keptDice, outcome) => {
+														const latestAction =
+															turnActions[turnActions.length - 1];
+														if (!latestAction) return;
+														let leftOverDice = [];
+														if (outcome === "continue") {
+															if (selectedDiceIndices.length > 0) {
+																leftOverDice = diceStates.filter(
+																	(dice) =>
+																		!selectedDiceIndices.includes(
+																			dice.placement - 1
+																		)
+																);
+															} else {
+																leftOverDice = diceStates.filter(
+																	(dice) => !dice.isScoringNumber
+																);
+															}
+															setDiceStates(leftOverDice);
+															startSpin();
+														} else {
+															setDiceStates([]);
+														}
+														handleTurnAction({
+															roomId: roomId,
+															outcome,
+															keptDice,
+														});
+													}}
+													onRoll={() => {
+														setDiceStates([
+															{
+																number: 6,
+																placement: 1,
+																isScoringNumber: true,
+															},
+															{
+																number: 2,
+																placement: 2,
+																isScoringNumber: false,
+															},
+															{
+																number: 3,
+																placement: 3,
+																isScoringNumber: false,
+															},
+															{
+																number: 4,
+																placement: 4,
+																isScoringNumber: false,
+															},
+															{
+																number: 5,
+																placement: 5,
+																isScoringNumber: false,
+															},
+															{
+																number: 6,
+																placement: 6,
+																isScoringNumber: true,
+															},
+														]);
+														if (!isSpinning) {
+															startSpin();
+														}
+														handleRoll();
+														setSelectedDiceIndices([]);
+													}}
+													setSelectedDiceIndices={() => {}}
+												/>
+											)}
+									</div>
 								</div>
 							</div>
 						</div>

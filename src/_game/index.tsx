@@ -4,6 +4,11 @@ import {
 	OrbitControls,
 	CameraControls,
 	PerspectiveCamera,
+	OrthographicCamera,
+	Stats,
+	GizmoHelper,
+	GizmoViewport,
+	Grid,
 } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
@@ -17,6 +22,7 @@ import { BoxingRing } from "./BoxingRing";
 import { ARENA_SIZE } from "./constants";
 import { Model as DiceModel } from "./modals/DiceModel";
 import { DiceScene } from "./DiceScene";
+import { DebugPanel, CameraDebug } from "./DebugPanel";
 
 function Box(props) {
 	const ref = useRef();
@@ -59,6 +65,19 @@ export const GameScene = ({
 
 	return (
 		<div className="absolute bottom-0 w-full h-3/4 md:h-full">
+			<DebugPanel
+				orbitControlsRef={orbitControlsRef}
+				onAutoRotateChange={(value) => {
+					if (orbitControlsRef.current) {
+						orbitControlsRef.current.autoRotate = value;
+					}
+				}}
+				onAutoRotateSpeedChange={(value) => {
+					if (orbitControlsRef.current) {
+						orbitControlsRef.current.autoRotateSpeed = value;
+					}
+				}}
+			/>
 			<Canvas
 
 			// shadows
@@ -78,12 +97,39 @@ export const GameScene = ({
 			// 	height: "100%",
 			// }}
 			>
-				<PerspectiveCamera
+				<CameraDebug orbitControlsRef={orbitControlsRef} />
+				<Stats
+					className="stats"
+					showPanel={0} // 0: fps, 1: ms, 2: mb, 3+: custom
+					position={{ top: "60px", right: "0px" }}
+				/>
+				<Grid
+					args={[30, 30]}
+					position={[0, -0.01, 0]}
+					cellSize={1}
+					cellThickness={0.5}
+					cellColor="#6f6f6f"
+					sectionSize={3}
+					sectionThickness={1.5}
+					sectionColor="#9d4b4b"
+					fadeDistance={30}
+					fadeStrength={1}
+					followCamera={false}
+					infiniteGrid
+				/>
+				{/* <PerspectiveCamera
 					makeDefault
 					position={[-ARENA_SIZE * 3.5, ARENA_SIZE * 3.5, ARENA_SIZE * 1]}
 					fov={30}
-					near={5}
-					far={1000}
+					//aspect={window.innerWidth / window.innerHeight}
+					//aspect={0.5}
+					zoom={0.5}
+				/> */}
+				<PerspectiveCamera
+					makeDefault
+					position={[-14.58, 27.71, 6.6]}
+					rotation={[-1.34, -0.47, -1.09]}
+					fov={45}
 				/>
 				<ambientLight intensity={0.5} />
 				<pointLight position={[-50, 100, -50]} />
@@ -122,18 +168,29 @@ export const GameScene = ({
 				</Selection>
 				<OrbitControls
 					ref={orbitControlsRef}
+					autoRotate
+					autoRotateSpeed={0.5}
 					enableDamping
 					dampingFactor={0.05}
 					enablePan
 					enableZoom
 					minPolarAngle={Math.PI / 6}
 					maxPolarAngle={Math.PI / 2 - 0.1}
-					minDistance={ARENA_SIZE * 0.2}
-					maxDistance={ARENA_SIZE * 3}
+					// Convert zoom values to distances (inverse relationship)
+					// Lower zoom (9) = Further distance
+					// Higher zoom (20.89) = Closer distance
+					maxDistance={ARENA_SIZE * (20.89 / 9)} // For min zoom of 9
+					minDistance={ARENA_SIZE * (9 / 20.89)} // For max zoom of 20.89
 					rotateSpeed={0.5}
 					zoomSpeed={0.75}
-					//target={[0, 0, 0]}
+					target={[0, 0, 0]}
 				/>
+				<GizmoHelper alignment="bottom-right" margin={[80, 80]}>
+					<GizmoViewport
+						axisColors={["red", "green", "blue"]}
+						labelColor="black"
+					/>
+				</GizmoHelper>
 			</Canvas>
 		</div>
 	);
