@@ -136,13 +136,17 @@ export default function History(): JSX.Element {
 		: "0";
 
 	return (
-		<div className="container mx-auto px-4 py-8">
-			<h1 className="text-3xl font-bold mb-8">Game History</h1>
+		<div className="container mx-auto px-4 py-4">
+			<h1 className="text-2xl md:text-3xl font-bold mb-4 pl-4 text-gray-900">
+				Game History
+			</h1>
 
 			{/* User Stats Summary */}
 			{userStats && (
 				<div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-8">
-					<h2 className="text-2xl font-bold mb-4 sm:mb-6">Your Statistics</h2>
+					<h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6">
+						Your Statistics
+					</h2>
 					<div className="grid grid-cols-2 gap-3 sm:gap-4">
 						{/* Primary Stats */}
 						<div className="col-span-2 bg-indigo-50 rounded-lg p-4 sm:p-6">
