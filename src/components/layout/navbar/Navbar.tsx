@@ -157,14 +157,15 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 														</Link>
 													)}
 												</MenuItem>
+												<div className="my-1 h-px bg-gray-200"></div>
 												<MenuItem>
 													{({ active }): JSX.Element => (
 														<button
 															className={`${
 																active
-																	? "bg-indigo-500 text-white"
-																	: "text-gray-900"
-															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+																	? "bg-red-500 text-white"
+																	: "text-red-600"
+															} group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium`}
 															onClick={handleSignOut}
 														>
 															Sign out
