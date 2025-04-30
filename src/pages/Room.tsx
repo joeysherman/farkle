@@ -302,7 +302,7 @@ export function Room(): JSX.Element {
 				console.error("Room fetch error:", roomError);
 				throw new Error("Failed to fetch room data");
 			}
-
+			debugger;
 			setRoom(roomData);
 
 			// Fetch updated players list
@@ -375,7 +375,7 @@ export function Room(): JSX.Element {
 				setError("Room not found");
 				return;
 			}
-
+			debugger;
 			setRoom(roomData as GameRoom);
 
 			// Show settings dialog if user is the creator and table_model is not set
@@ -709,7 +709,7 @@ export function Room(): JSX.Element {
 					(payload) => {
 						// find the player in the players array that has the same id
 						// as the payload.new.id and replace the data with the payload.new
-
+						debugger;
 						setRoom(payload.new as GameRoom);
 					}
 				)
@@ -848,6 +848,7 @@ export function Room(): JSX.Element {
 
 	// Show invite modal for users who need to join
 	if (showInviteModal) {
+		debugger;
 		return (
 			<div className="min-h-screen bg-gray-50">
 				<div className="flex items-center justify-center h-[calc(100vh-64px)]">

@@ -248,13 +248,8 @@ DECLARE
   code char(6);
   valid boolean;
 BEGIN
-  LOOP
-    code := lpad(floor(random() * 1000000)::text, 6, '0');
-    SELECT NOT EXISTS (
-      SELECT 1 FROM game_rooms WHERE invite_code = code
-    ) INTO valid;
-    EXIT WHEN valid;
-  END LOOP;
+  -- generate a random 6-digit code
+  code := lpad(floor(random() * 1000000)::text, 6, '0');
   RETURN code;
 END;
 $$ LANGUAGE plpgsql;
