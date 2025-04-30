@@ -1483,6 +1483,252 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   body text not null
 );
 
+-- Create friend_status enum type
+DO $$ BEGIN
+  CREATE TYPE friend_status AS ENUM ('pending', 'accepted', 'blocked');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+-- Create friends table
+CREATE TABLE IF NOT EXISTS public.friends (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  friend_id uuid references auth.users(id) on delete cascade not null,
+  status friend_status default 'accepted' not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(user_id, friend_id)
+);
+
+-- Set up RLS for friends
+ALTER TABLE public.friends ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own friends"
+  ON public.friends FOR SELECT
+  USING (auth.uid() = user_id OR auth.uid() = friend_id);
+
+CREATE POLICY "Users can add friends"
+  ON public.friends FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own friend relationships"
+  ON public.friends FOR UPDATE
+  USING (auth.uid() = user_id OR auth.uid() = friend_id);
+
+CREATE POLICY "Users can delete their own friend relationships"
+  ON public.friends FOR DELETE
+  USING (auth.uid() = user_id OR auth.uid() = friend_id);
+
+-- Create friend_invites table
+CREATE TABLE IF NOT EXISTS public.friend_invites (
+  id uuid default gen_random_uuid() primary key,
+  sender_id uuid references auth.users(id) on delete cascade not null,
+  receiver_id uuid references auth.users(id) on delete cascade not null,
+  status friend_status default 'pending' not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(sender_id, receiver_id)
+);
+
+-- Set up RLS for friend_invites
+ALTER TABLE public.friend_invites ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own friend invites"
+  ON public.friend_invites FOR SELECT
+  USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+
+CREATE POLICY "Users can send friend invites"
+  ON public.friend_invites FOR INSERT
+  WITH CHECK (auth.uid() = sender_id);
+
+CREATE POLICY "Users can update their own friend invites"
+  ON public.friend_invites FOR UPDATE
+  USING (auth.uid() = receiver_id);
+
+CREATE POLICY "Users can delete their own friend invites"
+  ON public.friend_invites FOR DELETE
+  USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+
+-- Add triggers for updated_at
+CREATE TRIGGER update_friends_updated_at
+  BEFORE UPDATE ON public.friends
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_friend_invites_updated_at
+  BEFORE UPDATE ON public.friend_invites
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Add to realtime publication
+ALTER PUBLICATION supabase_realtime ADD TABLE public.friends;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.friend_invites;
+
+-- Function to send a friend invite
+CREATE OR REPLACE FUNCTION send_friend_invite(p_receiver_id UUID)
+RETURNS UUID AS $$
+DECLARE
+  v_invite_id UUID;
+BEGIN
+  -- Check if already friends
+  IF EXISTS (
+    SELECT 1 FROM friends
+    WHERE (user_id = auth.uid() AND friend_id = p_receiver_id)
+    OR (user_id = p_receiver_id AND friend_id = auth.uid())
+  ) THEN
+    RAISE EXCEPTION 'Already friends with this user';
+  END IF;
+
+  -- Check if invite already exists
+  IF EXISTS (
+    SELECT 1 FROM friend_invites
+    WHERE (sender_id = auth.uid() AND receiver_id = p_receiver_id)
+    OR (sender_id = p_receiver_id AND receiver_id = auth.uid())
+  ) THEN
+    RAISE EXCEPTION 'Friend invite already exists';
+  END IF;
+
+  -- Create the invite
+  INSERT INTO friend_invites (
+    sender_id,
+    receiver_id,
+    status
+  ) VALUES (
+    auth.uid(),
+    p_receiver_id,
+    'pending'
+  ) RETURNING id INTO v_invite_id;
+
+  -- Create notification for receiver
+  INSERT INTO notifications (
+    user_id,
+    body
+  ) VALUES (
+    p_receiver_id,
+    'You have a new friend request'
+  );
+
+  RETURN v_invite_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to accept a friend invite
+CREATE OR REPLACE FUNCTION accept_friend_invite(p_invite_id UUID)
+RETURNS void AS $$
+DECLARE
+  v_sender_id UUID;
+  v_receiver_id UUID;
+BEGIN
+  -- Get the invite details
+  SELECT sender_id, receiver_id INTO v_sender_id, v_receiver_id
+  FROM friend_invites
+  WHERE id = p_invite_id
+  AND receiver_id = auth.uid()
+  AND status = 'pending';
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invalid invite or not authorized';
+  END IF;
+
+  -- Update the invite status
+  UPDATE friend_invites
+  SET status = 'accepted', updated_at = now()
+  WHERE id = p_invite_id;
+
+  -- Create friend relationship (bidirectional)
+  INSERT INTO friends (user_id, friend_id, status)
+  VALUES 
+    (v_sender_id, v_receiver_id, 'accepted'),
+    (v_receiver_id, v_sender_id, 'accepted');
+
+  -- Create notification for sender
+  INSERT INTO notifications (
+    user_id,
+    body
+  ) VALUES (
+    v_sender_id,
+    'Your friend request was accepted'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to reject a friend invite
+CREATE OR REPLACE FUNCTION reject_friend_invite(p_invite_id UUID)
+RETURNS void AS $$
+DECLARE
+  v_sender_id UUID;
+BEGIN
+  -- Get the sender ID
+  SELECT sender_id INTO v_sender_id
+  FROM friend_invites
+  WHERE id = p_invite_id
+  AND receiver_id = auth.uid()
+  AND status = 'pending';
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invalid invite or not authorized';
+  END IF;
+
+  -- Delete the invite
+  DELETE FROM friend_invites
+  WHERE id = p_invite_id;
+
+  -- Create notification for sender
+  INSERT INTO notifications (
+    user_id,
+    body
+  ) VALUES (
+    v_sender_id,
+    'Your friend request was rejected'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to remove a friend
+CREATE OR REPLACE FUNCTION remove_friend(p_friend_id UUID)
+RETURNS void AS $$
+BEGIN
+  -- Delete the friend relationship (bidirectional)
+  DELETE FROM friends
+  WHERE (user_id = auth.uid() AND friend_id = p_friend_id)
+  OR (user_id = p_friend_id AND friend_id = auth.uid());
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to block a user
+CREATE OR REPLACE FUNCTION block_user(p_user_id UUID)
+RETURNS void AS $$
+BEGIN
+  -- Delete any existing friend relationships
+  DELETE FROM friends
+  WHERE (user_id = auth.uid() AND friend_id = p_user_id)
+  OR (user_id = p_user_id AND friend_id = auth.uid());
+
+  -- Delete any existing friend invites
+  DELETE FROM friend_invites
+  WHERE (sender_id = auth.uid() AND receiver_id = p_user_id)
+  OR (sender_id = p_user_id AND receiver_id = auth.uid());
+
+  -- Create blocked relationship (bidirectional)
+  INSERT INTO friends (user_id, friend_id, status)
+  VALUES 
+    (auth.uid(), p_user_id, 'blocked'),
+    (p_user_id, auth.uid(), 'blocked');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to unblock a user
+CREATE OR REPLACE FUNCTION unblock_user(p_user_id UUID)
+RETURNS void AS $$
+BEGIN
+  -- Delete the blocked relationship (bidirectional)
+  DELETE FROM friends
+  WHERE (user_id = auth.uid() AND friend_id = p_user_id)
+  OR (user_id = p_user_id AND friend_id = auth.uid());
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Function to update room settings
 CREATE OR REPLACE FUNCTION update_room_settings(p_room_id UUID, p_table_model TEXT)
 RETURNS void AS $$

@@ -7,6 +7,8 @@ DROP TABLE IF EXISTS public.game_players CASCADE;
 DROP TABLE IF EXISTS public.game_rooms CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
 DROP TABLE IF EXISTS public.notifications CASCADE;
+DROP TABLE IF EXISTS public.friends CASCADE;
+DROP TABLE IF EXISTS public.friend_invites CASCADE;
 
 -- Drop all functions
 DROP FUNCTION IF EXISTS end_game(UUID);
@@ -30,11 +32,18 @@ DROP FUNCTION IF EXISTS remove_first_occurrence(INTEGER[], INTEGER[]);
 DROP FUNCTION IF EXISTS select_dice(UUID, INTEGER[]);
 DROP FUNCTION IF EXISTS update_current_players();
 DROP FUNCTION IF EXISTS update_room_settings(UUID, TEXT);
+DROP FUNCTION IF EXISTS send_friend_invite(UUID);
+DROP FUNCTION IF EXISTS accept_friend_invite(UUID);
+DROP FUNCTION IF EXISTS reject_friend_invite(UUID);
+DROP FUNCTION IF EXISTS remove_friend(UUID);
+DROP FUNCTION IF EXISTS block_user(UUID);
+DROP FUNCTION IF EXISTS unblock_user(UUID);
 
 -- Drop types (after functions that depend on them)
 DROP TYPE IF EXISTS turn_score_result CASCADE;
 DROP TYPE IF EXISTS turn_action_outcome CASCADE;
 DROP TYPE IF EXISTS game_status CASCADE;
+DROP TYPE IF EXISTS friend_status CASCADE;
 
 -- Drop publication
 DROP PUBLICATION IF EXISTS supabase_realtime;
