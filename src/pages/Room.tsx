@@ -869,7 +869,7 @@ export function Room(): JSX.Element {
 	}
 
 	return (
-		<main className="max-w-[1600px] mx-auto h-[calc(100vh-96px)] sm:h-[calc(100vh-64px)]">
+		<main className="max-w-[1600px] mx-auto h-[calc(100dvh-104px)] sm:h-[calc(100vh-64px)]">
 			{showSettingsDialog && (
 				<RoomSettingsDialog
 					roomId={roomId}
