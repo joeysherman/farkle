@@ -869,7 +869,7 @@ export function Room(): JSX.Element {
 	}
 
 	return (
-		<main className="max-w-[1600px] mx-auto h-[calc(100vh-48px)] sm:h-[calc(100vh-64px)]">
+		<main className="max-w-[1600px] mx-auto h-[calc(100dvh-48px)] sm:h-[calc(100dvh-64px)]">
 			{showSettingsDialog && (
 				<RoomSettingsDialog
 					roomId={roomId}
@@ -929,7 +929,7 @@ export function Room(): JSX.Element {
 				</div>
 
 				{/* Right Column - Game Canvas */}
-				<div className="flex-1 flex flex-col h-[calc(100vh-84px)] pb-20 md:pb-0 md:h-full md:w-3/4">
+				<div className="flex-1 flex flex-col h-[calc(100dvh-84px)] pb-16 md:pb-0 md:h-full md:w-3/4">
 					<div className="flex-1 relative">
 						{/* Game Controls Overlay */}
 						<div className="absolute top-0 left-0 right-0 z-10 p-2">
