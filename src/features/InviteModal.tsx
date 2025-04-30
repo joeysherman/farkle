@@ -59,7 +59,8 @@ export function InviteModal({
 	const [isValid, setIsValid] = useState(false);
 	const [countdown, setCountdown] = useState(5);
 	const [codeCopied, setCodeCopied] = useState(false);
-
+	console.log("code", code);
+	debugger;
 	// Handle ESC key press to close modal
 	useEffect(() => {
 		const handleEscKey = (event: KeyboardEvent): void => {
@@ -115,6 +116,7 @@ export function InviteModal({
 		// Only allow digits and limit to 6 characters
 		const digitsOnly = value.replace(/\D/g, "").slice(0, 6);
 		console.log("Digits only:", digitsOnly);
+		debugger;
 		setCode(digitsOnly);
 		setIsValid(digitsOnly.length === 6);
 	};
