@@ -839,7 +839,7 @@ export function Room(): JSX.Element {
 	if (loading) {
 		return (
 			<div className="min-h-screen bg-gray-50">
-				<div className="flex items-center justify-center h-[calc(100vh-64px)]">
+				<div className="flex items-center justify-center h-[calc(100dvh-64px)]">
 					<div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin"></div>
 				</div>
 			</div>
@@ -851,7 +851,7 @@ export function Room(): JSX.Element {
 		debugger;
 		return (
 			<div className="min-h-screen bg-gray-50">
-				<div className="flex items-center justify-center h-[calc(100vh-64px)]">
+				<div className="flex items-center justify-center h-[calc(100dvh-64px)]">
 					<InviteModal
 						room={room}
 						user={user}
@@ -869,7 +869,7 @@ export function Room(): JSX.Element {
 	}
 
 	return (
-		<main className="max-w-[1600px] mx-auto h-[calc(100vh-104px)] sm:h-[calc(100vh-64px)] overflow-hidden">
+		<main className="max-w-[1600px] mx-auto h-[calc(100dvh-48px)] sm:h-[calc(100dvh-64px)] overflow-hidden">
 			{showSettingsDialog && (
 				<RoomSettingsDialog
 					roomId={roomId}
@@ -929,7 +929,7 @@ export function Room(): JSX.Element {
 				</div>
 
 				{/* Right Column - Game Canvas */}
-				<div className="flex-1 flex flex-col h-[calc(100vh-104px)] md:h-full md:w-3/4">
+				<div className="flex-1 flex flex-col h-[calc(100dvh-104px)] md:h-full md:w-3/4">
 					<div className="flex-1 relative">
 						{/* Game Controls Overlay */}
 						<div className="absolute top-0 left-0 right-0 z-10 p-2">
@@ -1039,7 +1039,7 @@ export function Room(): JSX.Element {
 						</div>
 
 						{/* Absolute section at the bottom of the screen for the GameActions */}
-						<div className="absolute bottom-0 left-0 right-0 z-10 px-2">
+						<div className="absolute bottom-4 left-0 right-0 z-10">
 							<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md">
 								<div className="flex flex-col">
 									{/* Game Actions */}
