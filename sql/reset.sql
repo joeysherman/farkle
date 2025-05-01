@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS public.turn_actions CASCADE;
 DROP TABLE IF EXISTS public.game_turns CASCADE;
 DROP TABLE IF EXISTS public.game_states CASCADE;
 DROP TABLE IF EXISTS public.game_players CASCADE;
+DROP TABLE IF EXISTS public.game_invites CASCADE;
 DROP TABLE IF EXISTS public.game_rooms CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
 DROP TABLE IF EXISTS public.notifications CASCADE;
@@ -38,6 +39,8 @@ DROP FUNCTION IF EXISTS reject_friend_invite(UUID);
 DROP FUNCTION IF EXISTS remove_friend(UUID);
 DROP FUNCTION IF EXISTS block_user(UUID);
 DROP FUNCTION IF EXISTS unblock_user(UUID);
+DROP FUNCTION IF EXISTS send_game_invite(UUID, UUID);
+DROP FUNCTION IF EXISTS respond_to_game_invite(UUID, BOOLEAN);
 
 -- Drop types (after functions that depend on them)
 DROP TYPE IF EXISTS turn_score_result CASCADE;

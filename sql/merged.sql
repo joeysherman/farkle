@@ -1789,4 +1789,131 @@ BEGIN
   END CASE;
       
 END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create game_invites table
+CREATE TABLE IF NOT EXISTS public.game_invites (
+  id uuid default gen_random_uuid() primary key,
+  game_id uuid references public.game_rooms(id) on delete cascade,
+  sender_id uuid references auth.users(id) on delete cascade,
+  receiver_id uuid references auth.users(id) on delete cascade,
+  status text default 'pending' check (status in ('pending', 'accepted', 'declined')),
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(game_id, receiver_id)
+);
+
+-- Set up RLS for game_invites
+ALTER TABLE public.game_invites ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own game invites"
+  ON public.game_invites FOR SELECT
+  USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+
+CREATE POLICY "Users can send game invites"
+  ON public.game_invites FOR INSERT
+  WITH CHECK (auth.uid() = sender_id);
+
+CREATE POLICY "Users can update their received game invites"
+  ON public.game_invites FOR UPDATE
+  USING (auth.uid() = receiver_id);
+
+-- Add trigger for updated_at
+CREATE TRIGGER update_game_invites_updated_at
+  BEFORE UPDATE ON public.game_invites
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Add to realtime publication
+ALTER PUBLICATION supabase_realtime ADD TABLE public.game_invites;
+
+-- Function to send a game invite
+CREATE OR REPLACE FUNCTION send_game_invite(p_game_id UUID, p_receiver_id UUID)
+RETURNS UUID AS $$
+DECLARE
+  v_invite_id UUID;
+BEGIN
+  -- Check if user is in the game
+  IF NOT EXISTS (
+    SELECT 1 FROM game_rooms
+    WHERE id = p_game_id
+    AND created_by = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Only room creator can send invites';
+  END IF;
+
+  -- Check if invite already exists
+  IF EXISTS (
+    SELECT 1 FROM game_invites
+    WHERE game_id = p_game_id
+    AND receiver_id = p_receiver_id
+    AND status = 'pending'
+  ) THEN
+    RAISE EXCEPTION 'Invite already sent to this user';
+  END IF;
+
+  -- Create the invite
+  INSERT INTO game_invites (
+    game_id,
+    sender_id,
+    receiver_id
+  ) VALUES (
+    p_game_id,
+    auth.uid(),
+    p_receiver_id
+  ) RETURNING id INTO v_invite_id;
+
+  -- Create notification for receiver
+  INSERT INTO notifications (
+    user_id,
+    body
+  ) VALUES (
+    p_receiver_id,
+    'You have been invited to join a game'
+  );
+
+  RETURN v_invite_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to respond to a game invite
+CREATE OR REPLACE FUNCTION respond_to_game_invite(p_invite_id UUID, p_accept BOOLEAN)
+RETURNS void AS $$
+DECLARE
+  v_game_id UUID;
+  v_sender_id UUID;
+BEGIN
+  -- Get the invite details
+  SELECT game_id, sender_id INTO v_game_id, v_sender_id
+  FROM game_invites
+  WHERE id = p_invite_id
+  AND receiver_id = auth.uid()
+  AND status = 'pending';
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invalid invite or not authorized';
+  END IF;
+
+  -- Update the invite status
+  UPDATE game_invites
+  SET status = CASE WHEN p_accept THEN 'accepted' ELSE 'declined' END
+  WHERE id = p_invite_id;
+
+  -- If accepted, join the game
+  IF p_accept THEN
+    PERFORM join_game(v_game_id, (SELECT invite_code FROM game_rooms WHERE id = v_game_id));
+  END IF;
+
+  -- Create notification for sender
+  INSERT INTO notifications (
+    user_id,
+    body
+  ) VALUES (
+    v_sender_id,
+    CASE WHEN p_accept 
+      THEN 'Your game invite was accepted'
+      ELSE 'Your game invite was declined'
+    END
+  );
+END;
 $$ LANGUAGE plpgsql SECURITY DEFINER; 

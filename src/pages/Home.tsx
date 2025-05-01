@@ -5,6 +5,7 @@ import { Navbar } from "../components/layout/navbar/Navbar";
 import { supabase } from "../lib/supabaseClient";
 import { nanoid } from "nanoid";
 import { generateRoomName } from "../utils/roomNames";
+import { GameInvites } from "../features/GameInvites";
 
 import type { User } from "@supabase/supabase-js";
 import { useAuth } from "../contexts/AuthContext";
@@ -164,7 +165,6 @@ export const Home = (): FunctionComponent => {
 			</div>
 
 			{/* Current Rooms Section */}
-
 			<div className="mb-8">
 				<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
 					Your Current Games
@@ -266,6 +266,18 @@ export const Home = (): FunctionComponent => {
 							</div>
 						</div>
 					)}
+				</div>
+			</div>
+
+			{/* Game Invites Section */}
+			<div className="mb-8">
+				<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
+					Game Invites
+				</h2>
+				<div className="bg-white shadow overflow-hidden sm:rounded-lg">
+					<div className="px-4 py-5 sm:p-6">
+						<GameInvites />
+					</div>
 				</div>
 			</div>
 

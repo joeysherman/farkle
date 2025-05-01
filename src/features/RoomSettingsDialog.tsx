@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { supabase } from "../lib/supabaseClient";
@@ -6,6 +6,13 @@ import { BoxingRing } from "../_game/BoxingRing";
 import { Coliseum } from "../_game/Coliseum";
 import { PokerTable } from "../_game/PokerTable";
 import { PerspectiveCamera } from "@react-three/drei";
+
+interface Friend {
+	id: string;
+	username: string;
+	avatar_name: string;
+	isInvited?: boolean;
+}
 
 interface RoomSettingsDialogProps {
 	roomId: string;
@@ -110,7 +117,62 @@ export function RoomSettingsDialog({
 		"boxing_ring" | "coliseum" | "poker_table"
 	>("boxing_ring");
 	const [isSaving, setIsSaving] = useState(false);
-	debugger;
+	const [friends, setFriends] = useState<Friend[]>([]);
+	const [isLoading, setIsLoading] = useState(false);
+	const [invitedFriends, setInvitedFriends] = useState<Set<string>>(new Set());
+
+	useEffect(() => {
+		if (currentStep === 2) {
+			loadFriends();
+		}
+	}, [currentStep]);
+
+	const loadFriends = async (): Promise<void> => {
+		try {
+			setIsLoading(true);
+			const { data: friendsData, error: friendsError } = await supabase
+				.from("friends")
+				.select("friend_id")
+				.eq("user_id", (await supabase.auth.getUser()).data.user?.id)
+				.eq("status", "accepted");
+
+			if (friendsError) throw friendsError;
+
+			const friendIds = friendsData.map((f) => f.friend_id);
+
+			if (friendIds.length > 0) {
+				const { data: profilesData, error: profilesError } = await supabase
+					.from("profiles")
+					.select("id, username, avatar_name")
+					.in("id", friendIds);
+
+				if (profilesError) throw profilesError;
+
+				setFriends(profilesData || []);
+			}
+		} catch (error) {
+			console.error("Error loading friends:", error);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	const handleInviteFriend = async (friendId: string): Promise<void> => {
+		try {
+			const { error } = await supabase.rpc("send_game_invite", {
+				p_game_id: roomId,
+				p_receiver_id: friendId,
+			});
+
+			if (error) throw error;
+
+			// Update local state to show friend as invited
+			setInvitedFriends((prev) => new Set([...prev, friendId]));
+		} catch (error) {
+			console.error("Error inviting friend:", error);
+		}
+	};
+
 	const handleSave = async (): Promise<void> => {
 		try {
 			setIsSaving(true);
@@ -197,8 +259,55 @@ export function RoomSettingsDialog({
 				);
 			case 2:
 				return (
-					<div className="p-4 text-center text-gray-500">
-						Step 2 content will go here
+					<div className="space-y-4">
+						<div className="text-sm text-gray-500">
+							Invite your friends to join the game
+						</div>
+						{isLoading ? (
+							<div className="flex items-center justify-center py-8">
+								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+							</div>
+						) : friends.length === 0 ? (
+							<div className="text-center py-8 text-gray-500">
+								No friends found. Add some friends to invite them to your game!
+							</div>
+						) : (
+							<div className="grid grid-cols-1 gap-3">
+								{friends.map((friend) => (
+									<div
+										key={friend.id}
+										className="flex items-center justify-between p-4 bg-white border rounded-lg"
+									>
+										<div className="flex items-center space-x-3">
+											<div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+												<span className="text-lg font-medium text-gray-600">
+													{friend.username[0].toUpperCase()}
+												</span>
+											</div>
+											<div>
+												<div className="font-medium">{friend.username}</div>
+												<div className="text-sm text-gray-500">
+													{friend.avatar_name}
+												</div>
+											</div>
+										</div>
+										<button
+											className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+												invitedFriends.has(friend.id)
+													? "bg-gray-100 text-gray-400 cursor-not-allowed"
+													: "bg-indigo-600 text-white hover:bg-indigo-700"
+											}`}
+											onClick={(): Promise<void> =>
+												handleInviteFriend(friend.id)
+											}
+											disabled={invitedFriends.has(friend.id)}
+										>
+											{invitedFriends.has(friend.id) ? "Invited" : "Invite"}
+										</button>
+									</div>
+								))}
+							</div>
+						)}
 					</div>
 				);
 			case 3:
@@ -217,7 +326,7 @@ export function RoomSettingsDialog({
 			case 1:
 				return "Select game table";
 			case 2:
-				return "Step 2 title";
+				return "Invite friends";
 			case 3:
 				return "Step 3 title";
 			default:
