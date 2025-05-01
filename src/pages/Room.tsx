@@ -1039,7 +1039,7 @@ export function Room(): JSX.Element {
 						</div>
 
 						{/* Absolute section at the bottom of the screen for the GameActions */}
-						<div className="absolute bottom-8 left-0 right-0 z-10">
+						<div className="absolute bottom-8 left-0 right-0 z-10 px-4">
 							<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md">
 								<div className="flex flex-col">
 									{/* Game Actions */}
