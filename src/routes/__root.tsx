@@ -21,7 +21,7 @@ function RootContent(): JSX.Element {
 	}
 
 	return (
-		<div className="min-h-dvh bg-gray-100 overflow-hidden bg-red-500">
+		<div className="min-h-dvh bg-gray-100 overflow-hidden">
 			<Navbar />
 			<div className="pt-12 sm:pt-16">
 				<Outlet />
