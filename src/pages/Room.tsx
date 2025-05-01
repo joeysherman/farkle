@@ -929,7 +929,7 @@ export function Room(): JSX.Element {
 				</div>
 
 				{/* Right Column - Game Canvas */}
-				<div className="flex-1 flex flex-col h-[calc(100dvh-84px)] pb-16 md:pb-0 md:h-full md:w-3/4">
+				<div className="flex-1 flex flex-col h-[calc(100vh-104px)] md:h-full md:w-3/4">
 					<div className="flex-1 relative">
 						{/* Game Controls Overlay */}
 						<div className="absolute top-0 left-0 right-0 z-10 p-2">
