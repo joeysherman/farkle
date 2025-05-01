@@ -12,6 +12,7 @@ interface Friend {
 	username: string;
 	avatar_name: string;
 	isInvited?: boolean;
+	inviteStatus?: "pending" | "accepted" | "declined";
 }
 
 interface RoomSettingsDialogProps {
@@ -130,10 +131,14 @@ export function RoomSettingsDialog({
 	const loadFriends = async (): Promise<void> => {
 		try {
 			setIsLoading(true);
+			const { data: user } = await supabase.auth.getUser();
+			if (!user.user) return;
+
+			// Get friends list
 			const { data: friendsData, error: friendsError } = await supabase
 				.from("friends")
 				.select("friend_id")
-				.eq("user_id", (await supabase.auth.getUser()).data.user?.id)
+				.eq("user_id", user.user.id)
 				.eq("status", "accepted");
 
 			if (friendsError) throw friendsError;
@@ -141,6 +146,22 @@ export function RoomSettingsDialog({
 			const friendIds = friendsData.map((f) => f.friend_id);
 
 			if (friendIds.length > 0) {
+				// Get existing invites for this room
+				const { data: existingInvites, error: invitesError } = await supabase
+					.from("game_invites")
+					.select("receiver_id, status")
+					.eq("game_id", roomId)
+					.eq("sender_id", user.user.id)
+					.in("receiver_id", friendIds);
+
+				if (invitesError) throw invitesError;
+
+				// Create a map of friend IDs to their invite status
+				const inviteStatusMap = new Map(
+					existingInvites?.map((invite) => [invite.receiver_id, invite.status])
+				);
+
+				// Get friend profiles
 				const { data: profilesData, error: profilesError } = await supabase
 					.from("profiles")
 					.select("id, username, avatar_name")
@@ -148,7 +169,24 @@ export function RoomSettingsDialog({
 
 				if (profilesError) throw profilesError;
 
-				setFriends(profilesData || []);
+				// Combine profile data with invite status
+				const friendsWithInviteStatus = (profilesData || []).map((profile) => ({
+					...profile,
+					inviteStatus: inviteStatusMap.get(
+						profile.id
+					) as Friend["inviteStatus"],
+					isInvited: inviteStatusMap.has(profile.id),
+				}));
+
+				setFriends(friendsWithInviteStatus);
+
+				// Update invited friends set
+				const newInvitedFriends = new Set(
+					existingInvites
+						?.filter((invite) => invite.status === "pending")
+						.map((invite) => invite.receiver_id)
+				);
+				setInvitedFriends(newInvitedFriends);
 			}
 		} catch (error) {
 			console.error("Error loading friends:", error);
@@ -293,16 +331,26 @@ export function RoomSettingsDialog({
 										</div>
 										<button
 											className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-												invitedFriends.has(friend.id)
+												friend.inviteStatus === "pending"
 													? "bg-gray-100 text-gray-400 cursor-not-allowed"
-													: "bg-indigo-600 text-white hover:bg-indigo-700"
+													: friend.inviteStatus === "accepted"
+														? "bg-green-100 text-green-700 cursor-not-allowed"
+														: friend.inviteStatus === "declined"
+															? "bg-red-100 text-red-700 cursor-not-allowed"
+															: "bg-indigo-600 text-white hover:bg-indigo-700"
 											}`}
 											onClick={(): Promise<void> =>
 												handleInviteFriend(friend.id)
 											}
-											disabled={invitedFriends.has(friend.id)}
+											disabled={friend.inviteStatus !== undefined}
 										>
-											{invitedFriends.has(friend.id) ? "Invited" : "Invite"}
+											{friend.inviteStatus === "pending"
+												? "Invite Pending"
+												: friend.inviteStatus === "accepted"
+													? "Already Joined"
+													: friend.inviteStatus === "declined"
+														? "Invite Declined"
+														: "Invite"}
 										</button>
 									</div>
 								))}
