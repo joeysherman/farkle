@@ -138,82 +138,97 @@ export function RoomSettingsDialog({
 	};
 
 	return (
-		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-			<div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4">
-				<h2 className="text-2xl font-bold text-gray-900 mb-4">Room Settings</h2>
-
-				<div className="mb-6">
-					<label className="block text-sm font-medium text-gray-700 mb-2">
-						Game Table
-					</label>
-					<div className="grid grid-cols-3 gap-4">
+		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 md:p-6">
+			<div className="bg-white rounded-lg w-full h-full md:h-auto md:max-h-[90vh] md:max-w-4xl overflow-y-auto flex flex-col">
+				<div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 md:px-6 z-10">
+					<div className="flex items-center justify-between">
+						<h2 className="text-xl md:text-2xl font-bold text-gray-900">
+							Select game table
+						</h2>
 						<button
-							className={`p-4 rounded-lg border-2 transition-all ${
-								selectedModel === "boxing_ring"
-									? "border-indigo-500 bg-indigo-50"
-									: "border-gray-200 hover:border-indigo-200"
-							}`}
-							onClick={(): void => {
-								handleModelSelect("boxing_ring");
-							}}
+							onClick={onClose}
+							className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+							aria-label="Close dialog"
 						>
-							<div className="aspect-video bg-gray-100 rounded mb-2 overflow-hidden">
-								<ModelPreview model="boxing_ring" />
-							</div>
-							<p className="text-sm font-medium text-gray-900">Boxing Ring</p>
-							<p className="text-xs text-gray-500 mt-1">
-								A classic boxing ring setting
-							</p>
-						</button>
-
-						<button
-							className={`p-4 rounded-lg border-2 transition-all ${
-								selectedModel === "coliseum"
-									? "border-indigo-500 bg-indigo-50"
-									: "border-gray-200 hover:border-indigo-200"
-							}`}
-							onClick={(): void => {
-								handleModelSelect("coliseum");
-							}}
-						>
-							<div className="aspect-video bg-gray-100 rounded mb-2 overflow-hidden">
-								<ModelPreview model="coliseum" />
-							</div>
-							<p className="text-sm font-medium text-gray-900">Coliseum</p>
-							<p className="text-xs text-gray-500 mt-1">
-								An epic Roman coliseum arena
-							</p>
-						</button>
-
-						<button
-							className={`p-4 rounded-lg border-2 transition-all ${
-								selectedModel === "poker_table"
-									? "border-indigo-500 bg-indigo-50"
-									: "border-gray-200 hover:border-indigo-200"
-							}`}
-							onClick={(): void => {
-								handleModelSelect("poker_table");
-							}}
-						>
-							<div className="aspect-video bg-gray-100 rounded mb-2 overflow-hidden">
-								<ModelPreview model="poker_table" />
-							</div>
-							<p className="text-sm font-medium text-gray-900">Poker Table</p>
-							<p className="text-xs text-gray-500 mt-1">
-								A classic casino poker table
-							</p>
+							<svg
+								className="w-5 h-5 text-gray-500"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M6 18L18 6M6 6l12 12"
+								/>
+							</svg>
 						</button>
 					</div>
 				</div>
 
-				<div className="flex justify-end gap-3">
-					<button
-						className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50"
-						disabled={isSaving}
-						onClick={handleSave}
-					>
-						{isSaving ? "Saving..." : "Select"}
-					</button>
+				<div className="flex-1 overflow-y-auto">
+					<div className="p-4 md:p-6">
+						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+							{[
+								{
+									id: "boxing_ring",
+									title: "Boxing Ring",
+									description: "A classic boxing ring setting",
+								},
+								{
+									id: "coliseum",
+									title: "Coliseum",
+									description: "An epic Roman coliseum arena",
+								},
+								{
+									id: "poker_table",
+									title: "Poker Table",
+									description: "A classic casino poker table",
+								},
+							].map((option) => (
+								<button
+									key={option.id}
+									className={`group p-4 rounded-lg border-2 transition-all active:scale-95 ${
+										selectedModel === option.id
+											? "border-indigo-500 bg-indigo-50"
+											: "border-gray-200 hover:border-indigo-200"
+									}`}
+									onClick={(): void => {
+										handleModelSelect(
+											option.id as "boxing_ring" | "coliseum" | "poker_table"
+										);
+									}}
+								>
+									<div className="aspect-[4/3] bg-gray-100 rounded-lg mb-3 overflow-hidden shadow-sm group-hover:shadow transition-shadow">
+										<ModelPreview
+											model={
+												option.id as "boxing_ring" | "coliseum" | "poker_table"
+											}
+										/>
+									</div>
+									<p className="text-base font-medium text-gray-900">
+										{option.title}
+									</p>
+									<p className="text-sm text-gray-500 mt-1">
+										{option.description}
+									</p>
+								</button>
+							))}
+						</div>
+					</div>
+				</div>
+
+				<div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 md:p-6">
+					<div className="flex justify-end gap-3">
+						<button
+							className="w-full sm:w-auto px-6 py-3 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+							disabled={isSaving}
+							onClick={handleSave}
+						>
+							{isSaving ? "Saving..." : "Select"}
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
