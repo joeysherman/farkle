@@ -134,7 +134,7 @@ export const Home = (): FunctionComponent => {
 			const { error, data } = await supabase.rpc("end_game", {
 				p_game_id: roomId,
 			});
-			debugger;
+
 			setCurrentRooms(currentRooms?.filter((room) => room.id !== roomId));
 
 			if (error) {

@@ -2,7 +2,13 @@
 DO $$ 
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'game_status') THEN
-    CREATE TYPE game_status AS ENUM ('settings', 'waiting', 'in_progress', 'rebuttal', 'completed');
+    CREATE TYPE game_status AS ENUM (
+      'settings',
+      'waiting',
+      'in_progress',
+      'rebuttal',
+      'completed'
+    );
   END IF;
 END $$;
 
@@ -68,7 +74,8 @@ CREATE TABLE IF NOT EXISTS public.game_rooms (
   id uuid default gen_random_uuid() primary key,
   name text not null,
   created_by uuid references public.profiles(id),
-  status game_status default 'waiting'::game_status not null,
+  status game_status default 'settings'::game_status not null,
+  settings_step int default 1,
   max_players int default 4,
   current_players int default 0,
   winner_id uuid references public.profiles(id),
@@ -1725,32 +1732,61 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to update room settings
-CREATE OR REPLACE FUNCTION update_room_settings(p_room_id UUID, p_table_model TEXT)
-RETURNS void AS $$
+CREATE OR REPLACE FUNCTION update_room_settings(p_room_id UUID, p_value TEXT)
+RETURNS TEXT AS $$
+DECLARE
+  v_current_step INT;
+  v_current_status game_status;
+  v_next_status game_status;
 BEGIN
-  -- Verify user is room creator
+  -- Get current settings step and status
+   SELECT settings_step, status INTO v_current_step, v_current_status
+  FROM game_rooms
+  WHERE id = p_room_id;
+
+  -- if the status is not settings, raise an exception
+  IF v_current_status != 'settings' THEN
+    RAISE EXCEPTION 'Room settings can only be updated during setup';
+    RETURN 'Room settings can only be updated during setup';
+  END IF;
+
+    -- Verify user is room creator
   IF NOT EXISTS (
     SELECT 1 FROM game_rooms
     WHERE id = p_room_id
     AND created_by = auth.uid()
   ) THEN
     RAISE EXCEPTION 'Only room creator can update settings';
+    RETURN 'Only room creator can update settings';
   END IF;
 
-  -- Verify room is in settings status
-  IF NOT EXISTS (
-    SELECT 1 FROM game_rooms
-    WHERE id = p_room_id
-    AND status = 'settings'
-  ) THEN
-    RAISE EXCEPTION 'Room settings can only be updated when in settings status';
-  END IF;
 
-  -- Update room settings
-  UPDATE game_rooms
-  SET 
-    table_model = p_table_model,
-    status = 'waiting'
-  WHERE id = p_room_id;
+  -- Determine what to do based on the current step
+  CASE v_current_step
+    WHEN 1 THEN
+      -- update the table model
+      -- and set the settings step to 2
+      UPDATE game_rooms
+      SET table_model = p_value, settings_step = 2
+      WHERE id = p_room_id;
+      RETURN 'Table model updated';
+    WHEN 2 THEN
+      -- set the settings step to 3
+      UPDATE game_rooms
+      SET settings_step = 3
+      WHERE id = p_room_id;
+      RETURN 'Room name updated';
+    WHEN 3 THEN
+      -- set the status to waiting
+      -- set the settings step to -1
+      UPDATE game_rooms
+      SET status = 'waiting', settings_step = -1
+      WHERE id = p_room_id;
+      RETURN 'Room settings complete';
+    ELSE
+      RAISE EXCEPTION 'Invalid step';
+      RETURN 'Invalid step';
+  END CASE;
+      
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER; 

@@ -149,7 +149,6 @@ export function Room(): JSX.Element {
 	const [showInviteModal, setShowInviteModal] = useState(false);
 
 	const [localUsername, setLocalUsername] = useState("");
-	const [countdown, setCountdown] = useState(5);
 
 	// Function to start dice spin
 	const startSpin = (): void => {
@@ -302,7 +301,7 @@ export function Room(): JSX.Element {
 				console.error("Room fetch error:", roomError);
 				throw new Error("Failed to fetch room data");
 			}
-			debugger;
+
 			setRoom(roomData);
 
 			// Fetch updated players list
@@ -375,11 +374,16 @@ export function Room(): JSX.Element {
 				setError("Room not found");
 				return;
 			}
-			debugger;
+
 			setRoom(roomData as GameRoom);
 
 			// Show settings dialog if user is the creator and table_model is not set
-			if (roomData.created_by === user?.id && roomData?.status === "settings") {
+			if (
+				roomData.created_by === user?.id &&
+				roomData?.status.includes("settings")
+			) {
+				// extract the number at the end of the array
+
 				setShowSettingsDialog(true);
 			}
 		};
@@ -709,7 +713,7 @@ export function Room(): JSX.Element {
 					(payload) => {
 						// find the player in the players array that has the same id
 						// as the payload.new.id and replace the data with the payload.new
-						debugger;
+
 						setRoom(payload.new as GameRoom);
 					}
 				)
@@ -848,7 +852,6 @@ export function Room(): JSX.Element {
 
 	// Show invite modal for users who need to join
 	if (showInviteModal) {
-		debugger;
 		return (
 			<div className="min-h-screen bg-gray-50">
 				<div className="flex items-center justify-center h-[calc(100dvh-64px)]">
@@ -874,6 +877,7 @@ export function Room(): JSX.Element {
 				<RoomSettingsDialog
 					roomId={roomId}
 					onClose={() => setShowSettingsDialog(false)}
+					currentStep={room?.settings_step}
 				/>
 			)}
 			<div className="flex flex-col md:flex-row md:space-x-4 h-full">
