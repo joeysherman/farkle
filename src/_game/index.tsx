@@ -47,12 +47,12 @@ const cameraPresets = {
 			z: 0,
 		},
 		fov: 45,
-		distance: 70,
+		distance: 50,
 		zoom: 1,
 		// Allow zooming out a bit more and zooming in slightly less
-		maxDistance: 85, // Increased from 74.28 to allow zooming out more
-		minDistance: 55, // Decreased from 74.28 to allow zooming in more
-		zoomSpeed: 0.15,
+		maxDistance: 80, // Increased from 74.28 to allow zooming out more
+		minDistance: 40, // Decreased from 74.28 to allow zooming in more
+		zoomSpeed: 0.5,
 	},
 	desktop: {
 		position: {
@@ -129,7 +129,7 @@ export const GameScene = ({
 	}, []);
 
 	return (
-		<div className="absolute bottom-0 w-full h-3/4 md:h-full">
+		<div className="absolute bottom-0 w-full h-full">
 			{isDev && (
 				<DebugPanel
 					orbitControlsRef={orbitControlsRef}
@@ -216,6 +216,7 @@ export const GameScene = ({
 						cameraPreset.rotation.z,
 					]}
 					fov={cameraPreset.fov}
+					distance={cameraPreset.distance}
 				/>
 				<ambientLight intensity={0.5} />
 				<pointLight position={[-50, 100, -50]} />

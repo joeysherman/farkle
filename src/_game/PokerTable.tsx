@@ -16,6 +16,7 @@ function PokerTableModel(): JSX.Element {
 		<primitive
 			castShadow
 			object={scene}
+			//position={[0, 0, 0]}
 			position={[0, -23, 0]}
 			receiveShadow
 			rotation={[0, 0, 0]}
