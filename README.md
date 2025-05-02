@@ -18,7 +18,7 @@ A modern, interactive implementation of the classic dice game Farkle, built with
 
 Farkle is a classic dice game that combines luck and strategy. Players roll six dice and must decide which combinations to keep and which to re-roll to maximize their score. The game features:
 
-- Realistic 3D dice physics using React Three Fiber
+- 3D dice physics using React Three Fiber
 - Multiplayer support with real-time updates
 - Beautiful animations and visual effects
 - Score tracking and statistics
@@ -55,7 +55,7 @@ Farkle is a classic dice game that combines luck and strategy. Players roll six 
 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/farkle.git
+git clone https://github.com/joeysherman/farkle.git
 cd farkle
 ```
 
@@ -138,14 +138,6 @@ Contributions are welcome! Whether you're fixing bugs, adding features, or impro
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👤 Author
-
-**Your Name**
-
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your Name](https://linkedin.com/in/yourprofile)
-- Portfolio: [Your Portfolio](https://yourportfolio.com)
 
 ## 🙏 Acknowledgments
 

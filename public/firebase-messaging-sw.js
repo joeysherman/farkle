@@ -37,6 +37,6 @@ messaging.onBackgroundMessage((payload) => {
 		body: payload.notification.body + " test",
 		icon: "/icons/icon-192x192.svg",
 	};
-
+	debugger;
 	self.registration.showNotification(notificationTitle, notificationOptions);
 });

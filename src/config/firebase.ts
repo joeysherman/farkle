@@ -25,8 +25,13 @@ const messaging = getMessaging(app);
 
 export const requestNotificationPermission = async (): Promise<string | null> => {
   try {
+    // fix cannot find variable Notification on mobile browser
+    if (!('Notification' in window)) {
+      throw new Error('Notification API not supported');
+    }
+    // request permission
     const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
+    if (permission === "granted") {
       const token = await getToken(messaging, {
         vapidKey: import.meta.env['VITE_FIREBASE_VAPID_KEY'],
       });
@@ -42,6 +47,7 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
 export const onMessageListener = (): Promise<any> =>
   new Promise((resolve) => {
     onMessage(messaging, (payload) => {
+      debugger;
       resolve(payload);
     });
   });

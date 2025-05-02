@@ -127,6 +127,7 @@ export const Profile = (): FunctionComponent => {
 			setIsEditing(false);
 		} catch (error) {
 			console.error("Error updating username:", error);
+
 			setError(
 				error instanceof Error ? error.message : "Failed to update username"
 			);
