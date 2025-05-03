@@ -1,10 +1,9 @@
 import type { User } from "@supabase/supabase-js";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { FunctionComponent } from "../common/types";
 import { AvatarSelector, type AvatarName } from "../components/AvatarSelector";
-import { Stepper } from "../components/Stepper";
 import { supabase } from "../lib/supabaseClient";
 
 type OnboardingStep = "personalInfo" | "accountInfo" | "confirmation";
@@ -53,6 +52,9 @@ export const Onboarding = (): FunctionComponent => {
 		username: "",
 		avatarName: "default",
 	});
+	const [usernameAvailable, setUsernameAvailable] = useState(false);
+	const [checkingUsername, setCheckingUsername] = useState(false);
+	const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
 	const slideVariants = {
 		enter: (direction: number) => ({
@@ -132,6 +134,43 @@ export const Onboarding = (): FunctionComponent => {
 	useEffect(() => {
 		setPage([STEPS.findIndex((step) => step.id === currentStep), 0]);
 	}, [currentStep]);
+
+	useEffect(() => {
+		if (currentStep !== "personalInfo") return;
+		if (!state.username.trim()) {
+			setUsernameAvailable(false);
+			setCheckingUsername(false);
+			return;
+		}
+		if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+		debounceTimeout.current = setTimeout(async () => {
+			setCheckingUsername(true);
+			// Check username availability
+			const { data, error } = await supabase
+				.from("profiles")
+				.select("id")
+				.eq("username", state.username.trim())
+				.maybeSingle();
+			if (!error && data) {
+				setUsernameAvailable(false);
+				setError("Username is already taken");
+			} else {
+				setUsernameAvailable(true);
+				if (error) {
+					setError("Error checking username");
+				} else if (error === null && !data && error !== null) {
+					setError("");
+				} else if (error === null && !data) {
+					setError("");
+				}
+			}
+			setCheckingUsername(false);
+		}, 500);
+		return () => {
+			if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [state.username, currentStep]);
 
 	const updateProfile = async (
 		updates: Partial<{
@@ -230,18 +269,28 @@ export const Onboarding = (): FunctionComponent => {
 	}
 
 	return (
-		<div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+		<div className="min-h-screen bg-gray-100 p-4 sm:px-6 lg:px-8">
 			<div className="max-w-3xl mx-auto">
 				<div className="bg-white shadow sm:rounded-lg overflow-hidden">
 					<div className="px-4 py-5 sm:p-6">
-						{/* Progress Steps */}
-						<div className="mb-8">
-							<Stepper
-								currentStep={STEPS.findIndex((step) => step.id === currentStep)}
-								steps={stepperSteps}
-							/>
-						</div>
-
+						{/* Responsive daisyUI Steps */}
+						<ul className="steps steps-horizontal w-full mb-8">
+							<li
+								className={`step${currentStep === "personalInfo" ? " step-primary" : currentStep !== "personalInfo" ? " step-primary" : ""}`}
+							>
+								Username
+							</li>
+							<li
+								className={`step${currentStep === "accountInfo" || currentStep === "confirmation" ? " step-primary" : ""}`}
+							>
+								Avatar
+							</li>
+							<li
+								className={`step${currentStep === "confirmation" ? " step-primary" : ""}`}
+							>
+								Tutorial
+							</li>
+						</ul>
 						{/* Step Content */}
 						<div className="relative min-h-[400px] overflow-hidden">
 							<AnimatePresence initial={false} mode="wait" custom={direction}>
@@ -260,12 +309,16 @@ export const Onboarding = (): FunctionComponent => {
 								>
 									{currentStep === "personalInfo" && (
 										<div className="space-y-4">
-											<h3 className="text-2xl font-semibold text-gray-900">
-												Enter your personal information
+											<h3 className="text-2xl font-bold text-gray-900 mb-2">
+												What should we call you?
 											</h3>
 											<input
-												className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-												placeholder="Enter username"
+												ref={(input) => {
+													if (currentStep === "personalInfo" && input)
+														input.focus();
+												}}
+												className={`input input-bordered input-lg w-full${error ? " input-error" : ""}`}
+												placeholder="John Doe"
 												type="text"
 												value={state.username}
 												onChange={(event) => {
@@ -273,17 +326,56 @@ export const Onboarding = (): FunctionComponent => {
 														...previous,
 														username: event.target.value,
 													}));
+													if (error) setError("");
 												}}
 												onKeyDown={(event) => {
-													if (event.key === "Enter" && !error) {
+													if (
+														event.key === "Enter" &&
+														!error &&
+														state.username.trim() &&
+														usernameAvailable &&
+														!checkingUsername
+													) {
 														event.preventDefault();
 														void handleNext();
 													}
 												}}
 											/>
+											{checkingUsername && state.username.trim() && (
+												<div className="flex items-center text-info text-base mt-1 text-left gap-1">
+													<span className="loading loading-spinner loading-xs"></span>
+													Checking username...
+												</div>
+											)}
+											{!checkingUsername && error && (
+												<div className="text-error text-base mt-1 text-left">
+													{error}
+												</div>
+											)}
+											{!checkingUsername &&
+												!error &&
+												state.username.trim() &&
+												usernameAvailable && (
+													<div className="flex items-center text-success text-base mt-1 text-left gap-1">
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															className="h-5 w-5 inline-block"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke="currentColor"
+															strokeWidth={2}
+														>
+															<path
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																d="M5 13l4 4L19 7"
+															/>
+														</svg>
+														Username is available
+													</div>
+												)}
 										</div>
 									)}
-
 									{currentStep === "accountInfo" && (
 										<div className="space-y-4">
 											<h3 className="text-2xl font-semibold text-gray-900">
@@ -311,7 +403,6 @@ export const Onboarding = (): FunctionComponent => {
 											</div>
 										</div>
 									)}
-
 									{currentStep === "confirmation" && (
 										<div className="space-y-4">
 											<h3 className="text-2xl font-semibold text-gray-900">
@@ -325,15 +416,11 @@ export const Onboarding = (): FunctionComponent => {
 									)}
 								</motion.div>
 							</AnimatePresence>
-
-							{error && (
-								<div className="mt-4 text-sm text-red-600">{error}</div>
-							)}
 						</div>
 						<div className="bottom-0 left-0 right-0 mt-6 flex justify-between px-4">
 							{currentStep !== "personalInfo" && (
 								<button
-									className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+									className="btn btn-outline"
 									onClick={() => {
 										paginate(-1);
 										void handleBack();
@@ -343,13 +430,17 @@ export const Onboarding = (): FunctionComponent => {
 								</button>
 							)}
 							<button
-								className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-									currentStep === "personalInfo" ? "ml-auto" : ""
-								}`}
+								className={`btn btn-primary${currentStep === "personalInfo" ? " ml-auto" : ""}`}
 								onClick={() => {
 									paginate(1);
 									void handleNext();
 								}}
+								disabled={
+									currentStep === "personalInfo" &&
+									(!state.username.trim() ||
+										!usernameAvailable ||
+										checkingUsername)
+								}
 							>
 								{currentStep === "confirmation" ? "Finish" : "Next"}
 							</button>

@@ -52,6 +52,7 @@ export function AuthProvider({
 						.eq("id", authUser.id)
 						.single();
 
+					debugger;
 					if (!profile && isMounted) {
 						setIsAuthChecking(false);
 						setUser(authUser);
