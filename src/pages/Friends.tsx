@@ -1,6 +1,6 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import type { FunctionComponent } from "../common/types";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabaseClient";
@@ -45,7 +45,6 @@ interface SearchResult {
 }
 
 export const Friends = (): FunctionComponent => {
-	const queryClient = useQueryClient();
 	const navigate = useNavigate();
 	const { user } = useAuth();
 	const [loading, setLoading] = useState(true);
@@ -54,7 +53,7 @@ export const Friends = (): FunctionComponent => {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
-	const [error, setError] = useState("");
+
 	const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(
 		null
 	);
@@ -135,7 +134,7 @@ export const Friends = (): FunctionComponent => {
 			setFriends(friendsWithProfiles);
 		} catch (error) {
 			console.error("Error fetching friends:", error);
-			setError("Failed to load friends");
+			toast.error("Failed to load friends");
 		} finally {
 			setLoading(false);
 		}
@@ -216,7 +215,7 @@ export const Friends = (): FunctionComponent => {
 			setInvites(invitesWithProfiles);
 		} catch (error) {
 			console.error("Error fetching invites:", error);
-			setError("Failed to load friend invites");
+			toast.error("Failed to load friend invites");
 		}
 	};
 
@@ -280,7 +279,7 @@ export const Friends = (): FunctionComponent => {
 			setSearchResults(results);
 		} catch (error) {
 			console.error("Error searching users:", error);
-			setError("Failed to search users");
+			toast.error("Failed to search users");
 		} finally {
 			setIsSearching(false);
 		}
@@ -329,9 +328,10 @@ export const Friends = (): FunctionComponent => {
 						: result
 				)
 			);
+			toast.success("Friend request sent successfully!");
 		} catch (error) {
 			console.error("Error sending friend invite:", error);
-			setError("Failed to send friend invite");
+			toast.error("Failed to send friend request");
 		}
 	};
 
@@ -346,9 +346,10 @@ export const Friends = (): FunctionComponent => {
 			// Refresh friends and invites
 			await fetchFriends();
 			await fetchInvites();
+			toast.success("Friend request accepted!");
 		} catch (error) {
 			console.error("Error accepting friend invite:", error);
-			setError("Failed to accept friend invite");
+			toast.error("Failed to accept friend request");
 		}
 	};
 
@@ -362,9 +363,10 @@ export const Friends = (): FunctionComponent => {
 
 			// Refresh invites
 			await fetchInvites();
+			toast.success("Friend request rejected");
 		} catch (error) {
 			console.error("Error rejecting friend invite:", error);
-			setError("Failed to reject friend invite");
+			toast.error("Failed to reject friend request");
 		}
 	};
 
@@ -378,9 +380,10 @@ export const Friends = (): FunctionComponent => {
 
 			// Refresh friends
 			await fetchFriends();
+			toast.success("Friend removed successfully");
 		} catch (error) {
 			console.error("Error removing friend:", error);
-			setError("Failed to remove friend");
+			toast.error("Failed to remove friend");
 		}
 	};
 
@@ -654,12 +657,6 @@ export const Friends = (): FunctionComponent => {
 								</div>
 							</div>
 						)}
-					</div>
-				)}
-
-				{error && (
-					<div className="mt-4 p-4 bg-red-50 rounded-lg border border-red-200">
-						<p className="text-sm text-red-600">{error}</p>
 					</div>
 				)}
 			</div>

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useMatch, useNavigate } from "@tanstack/react-router";
 import { supabase } from "../../../lib/supabaseClient";
 import { useAuth } from "../../../contexts/AuthContext";
 import type { User, RealtimeChannel } from "@supabase/supabase-js";
@@ -81,6 +81,10 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	const { user, isAuthChecking: isUserLoading, signOut } = useAuth();
 	const friendInvitesSubscriptionRef = useRef<RealtimeChannel | null>(null);
 
+	const isProfileActive = useMatch({ from: "/profile", shouldThrow: false });
+	const isFriendsActive = useMatch({ from: "/friends", shouldThrow: false });
+	const isHistoryActive = useMatch({ from: "/history", shouldThrow: false });
+
 	const { data: profileData, isLoading: isProfileLoading } = useProfileData(
 		user?.id ?? ""
 	);
@@ -105,8 +109,25 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 						table: "friend_invites",
 						filter: `receiver_id=eq.${user.id}`,
 					},
-					() => {
+					(payload) => {
 						// Refetch friend invites when there's an update
+						console.log("payload update", payload);
+						debugger;
+						void refetchFriendInvites();
+					}
+				)
+				.on(
+					"postgres_changes",
+					{
+						event: "INSERT",
+						schema: "public",
+						table: "friend_invites",
+						filter: `receiver_id=eq.${user.id}`,
+					},
+					(payload) => {
+						// Refetch friend invites when there's an update
+						console.log("payload insert", payload);
+						debugger;
 						void refetchFriendInvites();
 					}
 				)
@@ -136,8 +157,8 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 					<div className="flex items-center">
 						<div className="flex-shrink-0 flex items-center">
 							<Link
-								to="/"
 								className="text-base sm:text-xl font-bold text-indigo-600"
+								to="/"
 							>
 								Farkle Online
 							</Link>
@@ -178,10 +199,10 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 										<MenuItems className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
 											<div className="px-1 py-1">
 												<MenuItem>
-													{({ active }): JSX.Element => (
+													{({ active: isActive }): JSX.Element => (
 														<Link
 															className={`${
-																active
+																isActive || isProfileActive
 																	? "bg-indigo-500 text-white"
 																	: "text-gray-900"
 															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
@@ -192,14 +213,14 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 													)}
 												</MenuItem>
 												<MenuItem>
-													{({ active }): JSX.Element => (
+													{({ active: isActive }): JSX.Element => (
 														<Link
-															to="/friends"
 															className={`${
-																active
+																isActive || isFriendsActive
 																	? "bg-indigo-500 text-white"
 																	: "text-gray-900"
 															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+															to="/friends"
 														>
 															<span className="flex-1">Friends</span>
 															{pendingInvitesCount > 0 && (
@@ -211,10 +232,10 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 													)}
 												</MenuItem>
 												<MenuItem>
-													{({ active }): JSX.Element => (
+													{({ active: isActive }): JSX.Element => (
 														<Link
 															className={`${
-																active
+																isActive || isHistoryActive
 																	? "bg-indigo-500 text-white"
 																	: "text-gray-900"
 															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
@@ -226,10 +247,10 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 												</MenuItem>
 												<div className="my-1 h-px bg-gray-200"></div>
 												<MenuItem>
-													{({ active }): JSX.Element => (
+													{({ active: isActive }): JSX.Element => (
 														<button
 															className={`${
-																active
+																isActive
 																	? "bg-red-500 text-white"
 																	: "text-red-600"
 															} group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium`}
