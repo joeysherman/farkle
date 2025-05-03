@@ -1,12 +1,9 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { supabase } from "../lib/supabaseClient";
-import { Navbar } from "../components/layout/navbar/Navbar";
-import { Toaster } from "react-hot-toast";
-import type { User } from "@supabase/supabase-js";
-import type { FunctionComponent } from "../common/types";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import type { FunctionComponent } from "../common/types";
 import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabaseClient";
 
 interface Friend {
 	id: string;

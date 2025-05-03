@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { supabase } from "../lib/supabaseClient";
-import { Navbar } from "../components/layout/navbar/Navbar";
+import { useEffect, useState } from "react";
 import { AvatarSelector, type AvatarName } from "../components/AvatarSelector";
-import { Toaster } from "react-hot-toast";
+import { supabase } from "../lib/supabaseClient";
+
 import type { User } from "@supabase/supabase-js";
-import type { FunctionComponent } from "../common/types";
 import { useQueryClient } from "@tanstack/react-query";
+import type { FunctionComponent } from "../common/types";
 import { useNotifications } from "../contexts/NotificationContext";
 
 const AVAILABLE_AVATARS = [
@@ -195,7 +194,6 @@ export const Profile = (): FunctionComponent => {
 
 	return (
 		<div className="min-h-screen bg-gray-100">
-			<Toaster position="bottom-center" />
 			<div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
 				<div className="bg-white shadow sm:rounded-lg">
 					<div className="px-4 py-5 sm:p-6">

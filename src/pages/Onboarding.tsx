@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { supabase } from "../lib/supabaseClient";
-import { Stepper } from "../components/Stepper";
-import { AvatarSelector, type AvatarName } from "../components/AvatarSelector";
-import { Toaster } from "react-hot-toast";
 import type { User } from "@supabase/supabase-js";
+import { useNavigate } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import type { FunctionComponent } from "../common/types";
-import { motion, AnimatePresence } from "framer-motion";
+import { AvatarSelector, type AvatarName } from "../components/AvatarSelector";
+import { Stepper } from "../components/Stepper";
+import { supabase } from "../lib/supabaseClient";
 
 type OnboardingStep = "personalInfo" | "accountInfo" | "confirmation";
 
@@ -232,7 +231,6 @@ export const Onboarding = (): FunctionComponent => {
 
 	return (
 		<div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-			<Toaster position="bottom-center" />
 			<div className="max-w-3xl mx-auto">
 				<div className="bg-white shadow sm:rounded-lg overflow-hidden">
 					<div className="px-4 py-5 sm:p-6">

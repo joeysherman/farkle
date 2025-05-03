@@ -1,8 +1,8 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "../../../lib/supabaseClient";
 import { useAuth } from "../../../contexts/AuthContext";
-import type { User } from "@supabase/supabase-js";
+import type { User, RealtimeChannel } from "@supabase/supabase-js";
 import {
 	Menu,
 	MenuButton,
@@ -79,14 +79,47 @@ const useFriendInvites = (userId: string) => {
 export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	const navigate = useNavigate();
 	const { user, isAuthChecking: isUserLoading, signOut } = useAuth();
+	const friendInvitesSubscriptionRef = useRef<RealtimeChannel | null>(null);
 
 	const { data: profileData, isLoading: isProfileLoading } = useProfileData(
 		user?.id ?? ""
 	);
-	const { data: friendInvites = [], isLoading: isInvitesLoading } =
-		useFriendInvites(user?.id ?? "");
+	const {
+		data: friendInvites = [],
+		isLoading: isInvitesLoading,
+		refetch: refetchFriendInvites,
+	} = useFriendInvites(user?.id ?? "");
 	const loading = isUserLoading || isProfileLoading || isInvitesLoading;
 	const pendingInvitesCount = friendInvites.length;
+
+	// Set up subscription for friend invite updates
+	useEffect(() => {
+		if (user?.id && !friendInvitesSubscriptionRef.current) {
+			friendInvitesSubscriptionRef.current = supabase
+				.channel("friend_invites_changes")
+				.on(
+					"postgres_changes",
+					{
+						event: "UPDATE",
+						schema: "public",
+						table: "friend_invites",
+						filter: `receiver_id=eq.${user.id}`,
+					},
+					() => {
+						// Refetch friend invites when there's an update
+						void refetchFriendInvites();
+					}
+				)
+				.subscribe();
+
+			return () => {
+				if (friendInvitesSubscriptionRef.current) {
+					void friendInvitesSubscriptionRef.current.unsubscribe();
+					friendInvitesSubscriptionRef.current = null;
+				}
+			};
+		}
+	}, [user?.id, refetchFriendInvites]);
 
 	const handleSignOut = async (): Promise<void> => {
 		try {
