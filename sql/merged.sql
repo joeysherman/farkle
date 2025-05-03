@@ -1487,7 +1487,7 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 
 -- Create friend_status enum type
 DO $$ BEGIN
-  CREATE TYPE friend_status AS ENUM ('pending', 'accepted', 'blocked');
+  CREATE TYPE friend_status AS ENUM ('pending', 'accepted', 'blocked', 'removed');
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
@@ -1582,11 +1582,12 @@ BEGIN
     RAISE EXCEPTION 'Already friends with this user';
   END IF;
 
-  -- Check if invite already exists
+  -- Check if invite already exists and is pending
   IF EXISTS (
     SELECT 1 FROM friend_invites
     WHERE (sender_id = auth.uid() AND receiver_id = p_receiver_id)
     OR (sender_id = p_receiver_id AND receiver_id = auth.uid())
+    AND status = 'pending'
   ) THEN
     RAISE EXCEPTION 'Friend invite already exists';
   END IF;
@@ -1672,8 +1673,9 @@ BEGIN
     RAISE EXCEPTION 'Invalid invite or not authorized';
   END IF;
 
-  -- Delete the invite
-  DELETE FROM friend_invites
+  -- Change the status to rejected
+  UPDATE friend_invites
+  SET status = 'rejected'
   WHERE id = p_invite_id;
 
   -- Create notification for sender
@@ -1691,8 +1693,28 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION remove_friend(p_friend_id UUID)
 RETURNS void AS $$
 BEGIN
-  -- Delete the friend relationship (bidirectional)
-  DELETE FROM friends
+  -- Check if friend exists
+  IF NOT EXISTS (
+    SELECT 1 FROM friends
+    WHERE (user_id = auth.uid() AND friend_id = p_friend_id)
+    OR (user_id = p_friend_id AND friend_id = auth.uid())
+  ) THEN
+    RAISE EXCEPTION 'Friend does not exist';
+  END IF;
+  
+  -- Check if the friend is already removed
+  IF EXISTS (
+    SELECT 1 FROM friends
+    WHERE (user_id = auth.uid() AND friend_id = p_friend_id)
+    OR (user_id = p_friend_id AND friend_id = auth.uid())
+    AND status = 'removed'
+  ) THEN
+    RAISE EXCEPTION 'Friend is already removed';
+  END IF;
+
+  -- Change the friend status to removed
+  UPDATE friends
+  SET status = 'removed'
   WHERE (user_id = auth.uid() AND friend_id = p_friend_id)
   OR (user_id = p_friend_id AND friend_id = auth.uid());
 END;

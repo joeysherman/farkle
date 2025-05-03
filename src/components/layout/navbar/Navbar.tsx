@@ -131,10 +131,12 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 						void refetchFriendInvites();
 					}
 				)
+
 				.subscribe();
 
 			return () => {
 				if (friendInvitesSubscriptionRef.current) {
+					console.log("unsubscribing from friend invites");
 					void friendInvitesSubscriptionRef.current.unsubscribe();
 					friendInvitesSubscriptionRef.current = null;
 				}
