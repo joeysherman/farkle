@@ -58,6 +58,9 @@ export const Friends = (): FunctionComponent => {
 	const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
 	const [error, setError] = useState("");
+	const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(
+		null
+	);
 
 	useEffect(() => {
 		const checkAuth = async (): Promise<void> => {
@@ -74,6 +77,14 @@ export const Friends = (): FunctionComponent => {
 
 		void checkAuth();
 	}, [navigate]);
+
+	useEffect(() => {
+		return () => {
+			if (debounceTimer) {
+				clearTimeout(debounceTimer);
+			}
+		};
+	}, [debounceTimer]);
 
 	const fetchFriends = async (): Promise<void> => {
 		try {
@@ -278,9 +289,31 @@ export const Friends = (): FunctionComponent => {
 		}
 	};
 
-	const handleSearch = (e: React.FormEvent): void => {
-		e.preventDefault();
-		void searchUsers();
+	const handleSearchInput = (
+		event: React.ChangeEvent<HTMLInputElement>
+	): void => {
+		const value = event.target.value;
+		setSearchQuery(value);
+
+		if (debounceTimer) {
+			clearTimeout(debounceTimer);
+		}
+
+		if (value.trim()) {
+			const timer = setTimeout(() => {
+				void searchUsers();
+			}, 500);
+			setDebounceTimer(timer);
+		} else {
+			setSearchResults([]);
+		}
+	};
+
+	const handleSearch = (event: React.FormEvent): void => {
+		event.preventDefault();
+		if (searchQuery.trim()) {
+			void searchUsers();
+		}
 	};
 
 	const sendFriendInvite = async (userId: string): Promise<void> => {
@@ -389,12 +422,10 @@ export const Friends = (): FunctionComponent => {
 								placeholder="Search by username"
 								type="text"
 								value={searchQuery}
-								onChange={(event) => {
-									setSearchQuery(event.target.value);
-								}}
+								onChange={handleSearchInput}
 							/>
 							<button
-								className="px-4 sm:px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+								className="w-32 px-4 sm:px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors flex items-center justify-center"
 								type="submit"
 								disabled={isSearching}
 							>

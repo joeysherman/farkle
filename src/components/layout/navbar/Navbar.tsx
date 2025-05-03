@@ -24,6 +24,13 @@ interface GameInfo {
 	maxPlayers: number;
 }
 
+interface FriendInvite {
+	id: string;
+	sender_id: string;
+	receiver_id: string;
+	status: string;
+}
+
 const useUserData = () => {
 	return useQuery({
 		queryKey: ["currentUser"],
@@ -53,6 +60,22 @@ const useProfileData = (userId: string) => {
 	});
 };
 
+const useFriendInvites = (userId: string) => {
+	return useQuery({
+		enabled: !!userId,
+		queryKey: ["user", "friend_invites", userId],
+		queryFn: async () => {
+			const { data: invites } = await supabase
+				.from("friend_invites")
+				.select("*")
+				.eq("receiver_id", userId)
+				.eq("status", "pending");
+
+			return invites as Array<FriendInvite>;
+		},
+	});
+};
+
 export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	const navigate = useNavigate();
 	const { user, isAuthChecking: isUserLoading, signOut } = useAuth();
@@ -60,7 +83,10 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	const { data: profileData, isLoading: isProfileLoading } = useProfileData(
 		user?.id ?? ""
 	);
-	const loading = isUserLoading || isProfileLoading;
+	const { data: friendInvites = [], isLoading: isInvitesLoading } =
+		useFriendInvites(user?.id ?? "");
+	const loading = isUserLoading || isProfileLoading || isInvitesLoading;
+	const pendingInvitesCount = friendInvites.length;
 
 	const handleSignOut = async (): Promise<void> => {
 		try {
@@ -97,12 +123,15 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 						{!loading && user && (
 							<div className="flex items-center">
 								<Menu as="div" className="relative inline-block text-left">
-									<MenuButton className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+									<MenuButton className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 relative">
 										<img
 											alt="User avatar"
 											className="w-6 h-6 sm:w-8 sm:h-8 rounded-full"
 											src={`/avatars/${profileData?.avatar_name || "default"}.svg`}
 										/>
+										{pendingInvitesCount > 0 && (
+											<span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-500 border-2 border-white"></span>
+										)}
 									</MenuButton>
 									<Transition
 										as={Fragment}
@@ -132,14 +161,19 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 												<MenuItem>
 													{({ active }): JSX.Element => (
 														<Link
+															to="/friends"
 															className={`${
 																active
 																	? "bg-indigo-500 text-white"
 																	: "text-gray-900"
 															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-															to="/friends"
 														>
-															Friends
+															<span className="flex-1">Friends</span>
+															{pendingInvitesCount > 0 && (
+																<span className="ml-2 inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-medium">
+																	{pendingInvitesCount}
+																</span>
+															)}
 														</Link>
 													)}
 												</MenuItem>
