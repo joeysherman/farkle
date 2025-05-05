@@ -5,7 +5,7 @@ import type { FunctionComponent } from "../common/types";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-
+import { useFriendInvites } from "../components/layout/navbar/Navbar";
 interface Friend {
 	id: string;
 	user_id: string;
@@ -58,6 +58,12 @@ export const Friends = (): FunctionComponent => {
 	const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(
 		null
 	);
+
+	const {
+		data: friendInvites = [],
+		isLoading: isInvitesLoading,
+		refetch: refetchFriendInvites,
+	} = useFriendInvites(user?.id ?? "");
 	const friendsSubscriptionRef = useRef<RealtimeChannel | null>(null);
 	const friendInvitesSubscriptionRef = useRef<RealtimeChannel | null>(null);
 
@@ -78,52 +84,94 @@ export const Friends = (): FunctionComponent => {
 	}, [navigate]);
 
 	// Set up subscriptions for realtime updates
-	useEffect(() => {
-		if (user?.id) {
-			// Subscribe to friends updates
-			friendsSubscriptionRef.current = supabase
-				.channel("friends_changes")
-				.on(
-					"postgres_changes",
-					{
-						event: "INSERT",
-						schema: "public",
-						table: "friends",
-						filter: `user_id=eq.${user.id},status=eq.accepted`,
-					},
-					() => {
-						void fetchFriends();
-					}
-				)
-				.on(
-					"postgres_changes",
-					{
-						event: "DELETE",
-						schema: "public",
-						table: "friends",
-						filter: `user_id=eq.${user.id}`,
-					},
-					() => {
-						void fetchFriends();
-					}
-				)
-				.subscribe();
+	// useEffect(() => {
+	// 	if (user?.id) {
+	// 		// Subscribe to friends updates
+	// 		friendsSubscriptionRef.current = supabase
+	// 			.channel("friends_changes")
+	// 			.on(
+	// 				"postgres_changes",
+	// 				{
+	// 					event: "INSERT",
+	// 					schema: "public",
+	// 					table: "friends",
+	// 					filter: `user_id=eq.${user.id},status=eq.accepted`,
+	// 				},
+	// 				() => {
+	// 					void fetchFriends();
+	// 				}
+	// 			)
+	// 			.on(
+	// 				"postgres_changes",
+	// 				{
+	// 					event: "DELETE",
+	// 					schema: "public",
+	// 					table: "friends",
+	// 					filter: `user_id=eq.${user.id}`,
+	// 				},
+	// 				() => {
+	// 					void fetchFriends();
+	// 				}
+	// 			)
+	// 			.subscribe();
 
-			// Subscribe to friend invites updates
+	// 		// Subscribe to friend invites updates
+	// 		friendInvitesSubscriptionRef.current = supabase
+	// 			.channel("friend_invites_changes")
+	// 			.on(
+	// 				"postgres_changes",
+	// 				{
+	// 					event: "INSERT",
+	// 					schema: "public",
+	// 					table: "friend_invites",
+	// 					filter: `receiver_id=eq.${user.id}`,
+	// 				},
+	// 				() => {
+	// 					void fetchInvites();
+	// 				}
+	// 			)
+	// 			.on(
+	// 				"postgres_changes",
+	// 				{
+	// 					event: "UPDATE",
+	// 					schema: "public",
+	// 					table: "friend_invites",
+	// 					filter: `receiver_id=eq.${user.id}`,
+	// 				},
+	// 				() => {
+	// 					void fetchInvites();
+	// 				}
+	// 			)
+	// 			.on(
+	// 				"postgres_changes",
+	// 				{
+	// 					event: "DELETE",
+	// 					schema: "public",
+	// 					table: "friend_invites",
+	// 					filter: `receiver_id=eq.${user.id}`,
+	// 				},
+	// 				() => {
+	// 					void fetchInvites();
+	// 				}
+	// 			)
+	// 			.subscribe();
+
+	// 		return () => {
+	// 			if (friendsSubscriptionRef.current) {
+	// 				void friendsSubscriptionRef.current.unsubscribe();
+	// 				friendsSubscriptionRef.current = null;
+	// 			}
+	// 			if (friendInvitesSubscriptionRef.current) {
+	// 				void friendInvitesSubscriptionRef.current.unsubscribe();
+	// 				friendInvitesSubscriptionRef.current = null;
+	// 			}
+	// 		};
+	// 	}
+	// }, [user?.id]);
+	useEffect(() => {
+		if (user?.id && !friendInvitesSubscriptionRef.current) {
 			friendInvitesSubscriptionRef.current = supabase
 				.channel("friend_invites_changes")
-				.on(
-					"postgres_changes",
-					{
-						event: "INSERT",
-						schema: "public",
-						table: "friend_invites",
-						filter: `receiver_id=eq.${user.id}`,
-					},
-					() => {
-						void fetchInvites();
-					}
-				)
 				.on(
 					"postgres_changes",
 					{
@@ -132,36 +180,40 @@ export const Friends = (): FunctionComponent => {
 						table: "friend_invites",
 						filter: `receiver_id=eq.${user.id}`,
 					},
-					() => {
-						void fetchInvites();
+					(payload) => {
+						// Refetch friend invites when there's an update
+						console.log("payload update", payload);
+						debugger;
+						void refetchFriendInvites();
 					}
 				)
 				.on(
 					"postgres_changes",
 					{
-						event: "DELETE",
+						event: "INSERT",
 						schema: "public",
 						table: "friend_invites",
 						filter: `receiver_id=eq.${user.id}`,
 					},
-					() => {
-						void fetchInvites();
+					(payload) => {
+						// Refetch friend invites when there's an update
+						console.log("payload insert", payload);
+						debugger;
+						void refetchFriendInvites();
 					}
 				)
+
 				.subscribe();
 
 			return () => {
-				if (friendsSubscriptionRef.current) {
-					void friendsSubscriptionRef.current.unsubscribe();
-					friendsSubscriptionRef.current = null;
-				}
 				if (friendInvitesSubscriptionRef.current) {
+					console.log("unsubscribing from friend invites");
 					void friendInvitesSubscriptionRef.current.unsubscribe();
 					friendInvitesSubscriptionRef.current = null;
 				}
 			};
 		}
-	}, [user?.id]);
+	}, [user?.id, refetchFriendInvites]);
 
 	useEffect(() => {
 		return () => {

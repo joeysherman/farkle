@@ -251,11 +251,13 @@ export const Onboarding = (): FunctionComponent => {
 		}
 	};
 
-	const handleKeyPress = (event: React.KeyboardEvent): void => {
-		if (event.key === "Enter" && !error) {
-			void handleNext();
-		}
-	};
+	const isNextEnabled =
+		currentStep === "personalInfo"
+			? state.username.trim() &&
+				usernameAvailable &&
+				!checkingUsername &&
+				!error
+			: true;
 
 	if (loading) {
 		return (
@@ -269,7 +271,16 @@ export const Onboarding = (): FunctionComponent => {
 	}
 
 	return (
-		<div className="min-h-screen bg-gray-100 p-4 sm:px-6 lg:px-8">
+		<div
+			className="min-h-screen bg-gray-100 p-4 sm:px-6 lg:px-8"
+			tabIndex={-1}
+			onKeyDown={(event) => {
+				if (event.key === "Enter" && isNextEnabled) {
+					event.preventDefault();
+					void handleNext();
+				}
+			}}
+		>
 			<div className="max-w-3xl mx-auto">
 				<div className="bg-white shadow sm:rounded-lg overflow-hidden">
 					<div className="px-4 py-5 sm:p-6">
@@ -327,18 +338,8 @@ export const Onboarding = (): FunctionComponent => {
 														username: event.target.value,
 													}));
 													if (error) setError("");
-												}}
-												onKeyDown={(event) => {
-													if (
-														event.key === "Enter" &&
-														!error &&
-														state.username.trim() &&
-														usernameAvailable &&
-														!checkingUsername
-													) {
-														event.preventDefault();
-														void handleNext();
-													}
+													setUsernameAvailable(false);
+													setCheckingUsername(true);
 												}}
 											/>
 											{checkingUsername && state.username.trim() && (
@@ -435,12 +436,7 @@ export const Onboarding = (): FunctionComponent => {
 									paginate(1);
 									void handleNext();
 								}}
-								disabled={
-									currentStep === "personalInfo" &&
-									(!state.username.trim() ||
-										!usernameAvailable ||
-										checkingUsername)
-								}
+								disabled={!isNextEnabled}
 							>
 								{currentStep === "confirmation" ? "Finish" : "Next"}
 							</button>

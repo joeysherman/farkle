@@ -1487,7 +1487,7 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 
 -- Create friend_status enum type
 DO $$ BEGIN
-  CREATE TYPE friend_status AS ENUM ('pending', 'accepted', 'blocked', 'removed');
+  CREATE TYPE friend_status AS ENUM ('pending', 'accepted', 'blocked', 'removed', 'rejected');
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
@@ -1569,7 +1569,10 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.friend_invites;
 
 -- Function to send a friend invite
 CREATE OR REPLACE FUNCTION send_friend_invite(p_receiver_id UUID)
-RETURNS UUID AS $$
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 DECLARE
   v_invite_id UUID;
 BEGIN
@@ -1582,26 +1585,28 @@ BEGIN
     RAISE EXCEPTION 'Already friends with this user';
   END IF;
 
-  -- Check if invite already exists and is pending
-  IF EXISTS (
-    SELECT 1 FROM friend_invites
-    WHERE (sender_id = auth.uid() AND receiver_id = p_receiver_id)
-    OR (sender_id = p_receiver_id AND receiver_id = auth.uid())
-    AND status = 'pending'
-  ) THEN
-    RAISE EXCEPTION 'Friend invite already exists';
-  END IF;
+  -- Check if invite already exists
+  SELECT id INTO v_invite_id
+  FROM friend_invites
+  WHERE sender_id = auth.uid() AND receiver_id = p_receiver_id;
 
-  -- Create the invite
-  INSERT INTO friend_invites (
-    sender_id,
-    receiver_id,
-    status
-  ) VALUES (
-    auth.uid(),
-    p_receiver_id,
-    'pending'
-  ) RETURNING id INTO v_invite_id;
+  -- If invite exists, update its status to pending
+  IF v_invite_id IS NOT NULL THEN
+    UPDATE friend_invites 
+    SET status = 'pending', updated_at = NOW()
+    WHERE id = v_invite_id;
+  ELSE
+    -- Create new invite if none exists
+    INSERT INTO friend_invites (
+      sender_id,
+      receiver_id,
+      status
+    ) VALUES (
+      auth.uid(),
+      p_receiver_id,
+      'pending'
+    ) RETURNING id INTO v_invite_id;
+  END IF;
 
   -- Create notification for receiver
   INSERT INTO notifications (
@@ -1614,7 +1619,7 @@ BEGIN
 
   RETURN v_invite_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- Function to accept a friend invite
 CREATE OR REPLACE FUNCTION accept_friend_invite(p_invite_id UUID)

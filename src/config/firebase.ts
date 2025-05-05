@@ -47,7 +47,7 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
 export const onMessageListener = (): Promise<any> =>
   new Promise((resolve) => {
     onMessage(messaging, (payload) => {
-      debugger;
+      
       resolve(payload);
     });
   });

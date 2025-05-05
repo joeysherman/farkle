@@ -60,7 +60,7 @@ const useProfileData = (userId: string) => {
 	});
 };
 
-const useFriendInvites = (userId: string) => {
+export const useFriendInvites = (userId: string) => {
 	return useQuery({
 		enabled: !!userId,
 		queryKey: ["user", "friend_invites", userId],
@@ -88,11 +88,13 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	const { data: profileData, isLoading: isProfileLoading } = useProfileData(
 		user?.id ?? ""
 	);
+
 	const {
 		data: friendInvites = [],
 		isLoading: isInvitesLoading,
 		refetch: refetchFriendInvites,
 	} = useFriendInvites(user?.id ?? "");
+
 	const loading = isUserLoading || isProfileLoading || isInvitesLoading;
 	const pendingInvitesCount = friendInvites.length;
 
