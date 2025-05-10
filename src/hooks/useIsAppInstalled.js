@@ -47,6 +47,7 @@ const useIsAppInstalled = () => {
 			const isEdge = /Edg/.test(navigator.userAgent);
 
 			// Handle different browser behaviors
+			debugger;
 			if (isSafari) {
 				// Safari on iOS
 				setIsInstalled(isStandaloneWindow);
