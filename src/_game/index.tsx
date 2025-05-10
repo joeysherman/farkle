@@ -26,7 +26,10 @@ import { DiceScene } from "./DiceScene";
 import { DebugPanel, CameraDebug } from "./DebugPanel";
 import { PokerTable } from "./PokerTable";
 
-const isDev = process.env.NODE_ENV === "development";
+let isDev = false;
+if (process.env.NODE_ENV === "development") {
+	isDev = true;
+}
 
 // Camera presets for different device types
 const cameraPresets = {

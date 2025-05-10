@@ -20,6 +20,8 @@ import { GameActions } from "./GameActions";
 import { useUser } from "../services/user";
 import { InviteModal } from "../features/InviteModal";
 import { RoomSettingsDialog } from "../features/RoomSettingsDialog";
+import useTabVisibility from "../hooks/useTabVisibility";
+import useIsAppInstalled from "../hooks/useIsAppInstalled";
 
 export interface GameRoom {
 	id: string;
@@ -149,6 +151,22 @@ export function Room(): JSX.Element {
 	const [showInviteModal, setShowInviteModal] = useState(false);
 
 	const [localUsername, setLocalUsername] = useState("");
+
+	const isTabActive = useTabVisibility();
+	const isAppInstalled = useIsAppInstalled();
+
+	// if the app is installed and the tab is not active, console.log the state
+	useEffect(() => {
+		if (isAppInstalled && !isTabActive) {
+			console.log("app is installed and tab is not active");
+		} else if (isAppInstalled && isTabActive) {
+			console.log("app is installed and tab is active");
+		} else if (!isAppInstalled && isTabActive) {
+			console.log("app is not installed and tab is active");
+		} else if (!isAppInstalled && !isTabActive) {
+			console.log("app is not installed and tab is not active");
+		}
+	}, [isAppInstalled, isTabActive]);
 
 	// Function to start dice spin
 	const startSpin = (): void => {
@@ -761,27 +779,30 @@ export function Room(): JSX.Element {
 				})
 				.on("presence", { event: "join" }, async ({ key, newPresences }) => {
 					console.log("User joined:", key, newPresences);
-					await supabase
-						.from("game_players")
-						.update({ is_active: true })
-						.eq("user_id", key);
-					// setOnlineUsers((prev) => ({
-					// 	...prev,
-					// 	[key]: newPresences[0],
-					// }));
+
+					// await supabase
+					// 	.from("game_players")
+					// 	.update({ is_active: true })
+					// 	.eq("user_id", key);
+
+					setOnlineUsers((prev) => ({
+						...prev,
+						[key]: newPresences[0],
+					}));
 				})
 				.on("presence", { event: "leave" }, async ({ key }) => {
 					console.log("User left:", key);
-					// setOnlineUsers((prev) => {
-					// 	const newState = { ...prev };
-					// 	delete newState[key];
-					// 	return newState;
-					// });
 
-					await supabase
-						.from("game_players")
-						.update({ is_active: false })
-						.eq("user_id", key);
+					// await supabase
+					// 	.from("game_players")
+					// 	.update({ is_active: false })
+					// 	.eq("user_id", key);
+
+					setOnlineUsers((prev) => {
+						const newState = { ...prev };
+						delete newState[key];
+						return newState;
+					});
 				});
 
 			// Subscribe to the channel and track presence
@@ -801,6 +822,7 @@ export function Room(): JSX.Element {
 		return async () => {
 			if (presenceSubscriptionRef.current) {
 				console.log("unsubscribing from presence");
+
 				await presenceSubscriptionRef.current.untrack();
 
 				presenceSubscriptionRef.current = null;
