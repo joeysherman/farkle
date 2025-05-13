@@ -153,20 +153,19 @@ export function Room(): JSX.Element {
 	const [localUsername, setLocalUsername] = useState("");
 
 	const isTabActive = useTabVisibility();
-	const isAppInstalled = useIsAppInstalled();
 
 	// if the app is installed and the tab is not active, console.log the state
-	useEffect(() => {
-		if (isAppInstalled && !isTabActive) {
-			console.log("app is installed and tab is not active");
-		} else if (isAppInstalled && isTabActive) {
-			console.log("app is installed and tab is active");
-		} else if (!isAppInstalled && isTabActive) {
-			console.log("app is not installed and tab is active");
-		} else if (!isAppInstalled && !isTabActive) {
-			console.log("app is not installed and tab is not active");
-		}
-	}, [isAppInstalled, isTabActive]);
+	// useEffect(() => {
+	// 	if (isAppInstalled && !isTabActive) {
+	// 		console.log("app is installed and tab is not active");
+	// 	} else if (isAppInstalled && isTabActive) {
+	// 		console.log("app is installed and tab is active");
+	// 	} else if (!isAppInstalled && isTabActive) {
+	// 		console.log("app is not installed and tab is active");
+	// 	} else if (!isAppInstalled && !isTabActive) {
+	// 		console.log("app is not installed and tab is not active");
+	// 	}
+	// }, [isAppInstalled, isTabActive]);
 
 	// Function to start dice spin
 	const startSpin = (): void => {
@@ -748,6 +747,26 @@ export function Room(): JSX.Element {
 
 	// Setup presence subscription
 	useEffect(() => {
+		const untrackPresence = async () => {
+			const currentSubscription = presenceSubscriptionRef.current;
+			if (currentSubscription) {
+				await currentSubscription.untrack();
+				if (presenceSubscriptionRef.current) {
+					presenceSubscriptionRef.current = null;
+				}
+			}
+		};
+
+		const trackPresence = async () => {
+			const currentSubscription = presenceSubscriptionRef.current;
+			if (currentSubscription) {
+				await currentSubscription.track({
+					user_id: user.id,
+					online_at: new Date().toISOString(),
+				});
+			}
+		};
+
 		if (user && roomId && !presenceSubscriptionRef.current) {
 			// Create a presence subscription for this room
 			// Create a presence subscription for this room
@@ -777,7 +796,7 @@ export function Room(): JSX.Element {
 					// });
 					setOnlineUsers(Object.assign({}, state));
 				})
-				.on("presence", { event: "join" }, async ({ key, newPresences }) => {
+				.on("presence", { event: "join" }, ({ key, newPresences }) => {
 					console.log("User joined:", key, newPresences);
 
 					// await supabase
@@ -790,7 +809,7 @@ export function Room(): JSX.Element {
 						[key]: newPresences[0],
 					}));
 				})
-				.on("presence", { event: "leave" }, async ({ key }) => {
+				.on("presence", { event: "leave" }, ({ key }) => {
 					console.log("User left:", key);
 
 					// await supabase
@@ -807,16 +826,25 @@ export function Room(): JSX.Element {
 
 			// Subscribe to the channel and track presence
 			presenceChannel.subscribe(async (status) => {
+				if (status !== "SUBSCRIBED") {
+					return;
+				}
+
 				if (status === "SUBSCRIBED") {
 					console.log("tracking presence");
-					await presenceChannel.track({
+					const presenceTrackStatus = await presenceChannel.track({
 						user_id: user.id,
 						online_at: new Date().toISOString(),
 					});
+					console.log("presenceTrackStatus", presenceTrackStatus);
 				}
 			});
 
 			presenceSubscriptionRef.current = presenceChannel;
+		} else if (!isTabActive && presenceSubscriptionRef.current) {
+			console.log("user switched tabs.. untracking presence");
+			// update
+			void untrackPresence();
 		}
 		// Cleanup function
 		return async () => {
@@ -824,11 +852,12 @@ export function Room(): JSX.Element {
 				console.log("unsubscribing from presence");
 
 				await presenceSubscriptionRef.current.untrack();
-
-				presenceSubscriptionRef.current = null;
+				if (presenceSubscriptionRef.current) {
+					presenceSubscriptionRef.current = null;
+				}
 			}
 		};
-	}, [user, roomId]);
+	}, [user, roomId, isTabActive]);
 
 	const copyInviteLink = async (): Promise<void> => {
 		const url = `${window.location.origin}/room?roomId=${roomId}`;

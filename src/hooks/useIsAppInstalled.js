@@ -47,20 +47,20 @@ const useIsAppInstalled = () => {
 			const isEdge = /Edg/.test(navigator.userAgent);
 
 			// log everything to an alert
-			alert(
-				JSON.stringify({
-					isSafari,
-					isChrome,
-					isEdge,
-					isFirefox,
-					isStandalone,
-					isFullscreen,
-					isMinimalUI,
-					isWindowControlsOverlay,
-					isStandaloneWindow,
-					isPWA,
-				})
-			);
+			// alert(
+			// 	JSON.stringify({
+			// 		isSafari,
+			// 		isChrome,
+			// 		isEdge,
+			// 		isFirefox,
+			// 		isStandalone,
+			// 		isFullscreen,
+			// 		isMinimalUI,
+			// 		isWindowControlsOverlay,
+			// 		isStandaloneWindow,
+			// 		isPWA,
+			// 	})
+			// );
 			// Handle different browser behaviors
 			//debugger;
 			if (isSafari) {
