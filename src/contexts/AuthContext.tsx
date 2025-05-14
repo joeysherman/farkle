@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "../lib/supabaseClient";
 import type { User, AuthError } from "@supabase/supabase-js";
 
@@ -9,9 +8,10 @@ interface Profile {
 	onboarding_completed: boolean;
 }
 
-interface AuthContextType {
+export interface AuthContextType {
 	user: User | null;
 	isAuthChecking: boolean;
+	isAuthenticated: boolean;
 	signIn: (
 		email: string,
 		password: string
@@ -25,14 +25,15 @@ interface AuthContextType {
 	updatePassword: (password: string) => Promise<{ error: AuthError | null }>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(
+	undefined
+);
 
 export function AuthProvider({
 	children,
 }: {
 	children: ReactNode;
 }): JSX.Element {
-	const navigate = useNavigate();
 	const [isAuthChecking, setIsAuthChecking] = useState(true);
 	const [user, setUser] = useState<User | null>(null);
 
@@ -55,7 +56,8 @@ export function AuthProvider({
 					if (!profile && isMounted) {
 						setIsAuthChecking(false);
 						setUser(authUser);
-						await navigate({ to: "/onboarding" });
+						debugger;
+						//await navigate({ to: "/onboarding" });
 						return;
 					}
 
@@ -63,14 +65,16 @@ export function AuthProvider({
 						setIsAuthChecking(false);
 						setUser(authUser);
 						if (!profile.onboarding_completed) {
-							await navigate({ to: "/onboarding" });
+							debugger;
+							//await navigate({ to: "/onboarding" });
 						}
 						return;
 					}
 				} else if (isMounted) {
 					setIsAuthChecking(false);
 					setUser(null);
-					await navigate({ to: "/signin" });
+					debugger;
+					//await navigate({ to: "/signin" });
 				}
 			} catch (error) {
 				console.error("Auth check error:", error);
@@ -84,7 +88,7 @@ export function AuthProvider({
 		return (): void => {
 			isMounted = false;
 		};
-	}, [navigate]);
+	}, []);
 
 	// Sign in with email and password
 	const signIn = async (
@@ -117,7 +121,7 @@ export function AuthProvider({
 	const signOut = async (): Promise<void> => {
 		await supabase.auth.signOut();
 		setUser(null);
-		await navigate({ to: "/signin" });
+		//await navigate({ to: "/signin" });
 	};
 
 	// Reset password (send reset email)

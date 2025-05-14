@@ -19,7 +19,6 @@ import { Route as OnboardingImport } from './routes/onboarding'
 import { Route as HistoryImport } from './routes/history'
 import { Route as FriendsImport } from './routes/friends'
 import { Route as IndexImport } from './routes/index'
-import { Route as RoomsRoomIdImport } from './routes/rooms/$roomId'
 import { Route as AuthCallbackImport } from './routes/auth.callback'
 
 // Create/Update Routes
@@ -61,11 +60,6 @@ const FriendsRoute = FriendsImport.update({
 
 const IndexRoute = IndexImport.update({
   path: '/',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const RoomsRoomIdRoute = RoomsRoomIdImport.update({
-  path: '/rooms/$roomId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -141,13 +135,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackImport
       parentRoute: typeof rootRoute
     }
-    '/rooms/$roomId': {
-      id: '/rooms/$roomId'
-      path: '/rooms/$roomId'
-      fullPath: '/rooms/$roomId'
-      preLoaderRoute: typeof RoomsRoomIdImport
-      parentRoute: typeof rootRoute
-    }
   }
 }
 
@@ -163,7 +150,6 @@ export const routeTree = rootRoute.addChildren({
   SigninRoute,
   SignupRoute,
   AuthCallbackRoute,
-  RoomsRoomIdRoute,
 })
 
 /* prettier-ignore-end */
@@ -182,8 +168,7 @@ export const routeTree = rootRoute.addChildren({
         "/room",
         "/signin",
         "/signup",
-        "/auth/callback",
-        "/rooms/$roomId"
+        "/auth/callback"
       ]
     },
     "/": {
@@ -212,9 +197,6 @@ export const routeTree = rootRoute.addChildren({
     },
     "/auth/callback": {
       "filePath": "auth.callback.tsx"
-    },
-    "/rooms/$roomId": {
-      "filePath": "rooms/$roomId.tsx"
     }
   }
 }
