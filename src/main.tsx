@@ -29,6 +29,15 @@ declare module "@tanstack/react-router" {
 
 export function App(): FunctionComponent {
 	const auth = useAuth();
+	if (auth.isAuthChecking) {
+		// add a loading spinner here using daisyui
+		// make purple
+		return (
+			<div className="flex h-screen items-center justify-center">
+				<div className="loading loading-spinner loading-lg text-indigo-600"></div>
+			</div>
+		);
+	}
 	return <RouterProvider router={router} context={{ auth }} />;
 }
 

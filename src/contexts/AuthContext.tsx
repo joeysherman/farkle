@@ -1,15 +1,16 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { supabase } from "../lib/supabaseClient";
-import type { User, AuthError } from "@supabase/supabase-js";
+import type { User, AuthError, Session } from "@supabase/supabase-js";
 
-interface Profile {
+type Profile = {
 	id: string;
 	onboarding_completed: boolean;
-}
+};
 
 export interface AuthContextType {
 	user: User | null;
+	session: Session | null;
 	isAuthChecking: boolean;
 	isAuthenticated: boolean;
 	signIn: (
@@ -36,57 +37,83 @@ export function AuthProvider({
 }): JSX.Element {
 	const [isAuthChecking, setIsAuthChecking] = useState(true);
 	const [user, setUser] = useState<User | null>(null);
+	const [session, setSession] = useState<Session | null>(null);
 
 	useEffect(() => {
-		let isMounted = true;
-
-		const checkAuth = async (): Promise<void> => {
+		const initializeAuth = async (): Promise<void> => {
 			try {
+				// First check for existing session in local storage
 				const {
-					data: { user: authUser },
-				} = await supabase.auth.getUser();
+					data: { session: currentSession },
+				} = await supabase.auth.getSession();
 
-				if (authUser) {
-					const { data: profile } = await supabase
-						.from("profiles")
-						.select("*")
-						.eq("id", authUser.id)
-						.single();
+				if (currentSession) {
+					setSession(currentSession);
 
-					if (!profile && isMounted) {
-						setIsAuthChecking(false);
-						setUser(authUser);
-						debugger;
-						//await navigate({ to: "/onboarding" });
+					// Then verify the session with the server
+					const {
+						data: { user: authUser },
+						error,
+					} = await supabase.auth.getUser();
+
+					if (error) {
+						console.error("Auth verification error:", error);
+						setUser(null);
+						setSession(null);
 						return;
 					}
 
-					if (profile && isMounted) {
-						setIsAuthChecking(false);
-						setUser(authUser);
-						if (!profile.onboarding_completed) {
-							debugger;
-							//await navigate({ to: "/onboarding" });
+					if (authUser) {
+						const { data: profile } = await supabase
+							.from("profiles")
+							.select("*")
+							.eq("id", authUser.id)
+							.single();
+
+						if (!profile) {
+							setUser(authUser);
+							return;
 						}
-						return;
+
+						if (profile) {
+							setUser(authUser);
+							if (!profile.onboarding_completed) {
+								// Handle onboarding redirect
+							}
+							return;
+						}
 					}
-				} else if (isMounted) {
-					setIsAuthChecking(false);
-					setUser(null);
-					debugger;
-					//await navigate({ to: "/signin" });
 				}
 			} catch (error) {
-				console.error("Auth check error:", error);
+				console.error("Auth initialization error:", error);
+			} finally {
 				setIsAuthChecking(false);
-				setUser(null);
 			}
 		};
 
-		void checkAuth();
+		void initializeAuth();
+
+		// Set up auth state change listener
+		const {
+			data: { subscription },
+		} = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+			setSession(currentSession);
+
+			if (event === "SIGNED_OUT") {
+				setUser(null);
+				setSession(null);
+			} else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+				const {
+					data: { user: authUser },
+				} = await supabase.auth.getUser();
+				if (authUser) {
+					setUser(authUser);
+				}
+			}
+		});
 
 		return (): void => {
-			isMounted = false;
+			subscription.unsubscribe();
 		};
 	}, []);
 
@@ -99,8 +126,9 @@ export function AuthProvider({
 			email,
 			password,
 		});
-		if (data && data.user) {
+		if (data?.user) {
 			setUser(data.user);
+			setSession(data.session);
 		}
 		return { error };
 	};
@@ -121,7 +149,7 @@ export function AuthProvider({
 	const signOut = async (): Promise<void> => {
 		await supabase.auth.signOut();
 		setUser(null);
-		//await navigate({ to: "/signin" });
+		setSession(null);
 	};
 
 	// Reset password (send reset email)
@@ -146,7 +174,9 @@ export function AuthProvider({
 
 	const value = {
 		user,
+		session,
 		isAuthChecking,
+		isAuthenticated: !!user,
 		signIn,
 		signUp,
 		signOut,
