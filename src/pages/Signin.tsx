@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { BouncingDice } from "../components/BouncingDice";
 import { useAuth } from "../contexts/AuthContext";
 
 export function Signin(): JSX.Element {
-	const navigate = useNavigate();
+	const router = useRouter();
 	const { signIn } = useAuth();
 
 	const [email, setEmail] = useState("");
@@ -26,7 +26,12 @@ export function Signin(): JSX.Element {
 			const { error } = await signIn(email, password);
 
 			if (error) throw error;
-			void navigate({ to: "/" });
+
+			// Invalidate the router to force a re-render with new auth state
+			await router.invalidate();
+
+			// Then navigate to home
+			await router.navigate({ to: "/" });
 		} catch (error) {
 			setMessage({
 				type: "error",

@@ -149,6 +149,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	const handleSignOut = async (): Promise<void> => {
 		try {
 			await signOut();
+			await navigate({ to: "/signin" });
 		} catch (error) {
 			console.error("Error signing out:", error);
 		}

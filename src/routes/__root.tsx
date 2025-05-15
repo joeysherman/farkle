@@ -1,4 +1,8 @@
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import {
+	createRootRouteWithContext,
+	Outlet,
+	redirect,
+} from "@tanstack/react-router";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { Navbar } from "../components/layout/navbar/Navbar";
 import * as React from "react";
@@ -18,4 +22,17 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			<TanStackRouterDevtools position="bottom-right" initialIsOpen={false} />
 		</div>
 	),
+	beforeLoad: ({ context, location }) => {
+		// Skip auth check for auth-related routes
+		if (location.pathname === "/signin" || location.pathname === "/signup") {
+			return;
+		}
+
+		// If user is not authenticated, redirect to signin
+		if (!context.auth.isAuthenticated) {
+			throw redirect({
+				to: "/signin",
+			});
+		}
+	},
 });

@@ -4,15 +4,12 @@ import { Signin } from "../pages/Signin";
 
 export const Route = createFileRoute("/signin")({
   component: Signin,
-  beforeLoad: ({ context, location }) => {
-    debugger;
-    if (!context.auth.isAuthenticated) {
+  beforeLoad: ({ context }) => {
+    // If user is already authenticated, redirect to home
+    if (context.auth.isAuthenticated) {
       throw redirect({
-        to: '/login',
-        search: {
-          redirect: location.href,
-        },
-      })
+        to: "/",
+      });
     }
   },
 }); 

@@ -129,6 +129,7 @@ export function AuthProvider({
 		if (data?.user) {
 			setUser(data.user);
 			setSession(data.session);
+			setIsAuthChecking(false);
 		}
 		return { error };
 	};
