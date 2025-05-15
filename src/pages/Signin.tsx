@@ -27,11 +27,8 @@ export function Signin(): JSX.Element {
 
 			if (error) throw error;
 
-			// Invalidate the router to force a re-render with new auth state
-			await router.invalidate();
-
 			// Then navigate to home
-			await router.navigate({ to: "/" });
+			router.history.push("/dashboard");
 		} catch (error) {
 			setMessage({
 				type: "error",

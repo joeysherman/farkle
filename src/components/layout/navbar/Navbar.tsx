@@ -163,7 +163,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 						<div className="flex-shrink-0 flex items-center">
 							<Link
 								className="text-base sm:text-xl font-bold text-indigo-600"
-								to="/"
+								to="/dashboard"
 							>
 								Farkle Online
 							</Link>

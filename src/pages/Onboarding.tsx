@@ -115,7 +115,7 @@ export const Onboarding = (): FunctionComponent => {
 					.single();
 
 			if (profile?.onboarding_completed) {
-				void navigate({ to: "/" });
+				void navigate({ to: "/dashboard" });
 				return;
 			}
 
@@ -223,7 +223,7 @@ export const Onboarding = (): FunctionComponent => {
 				await updateProfile({
 					onboarding_completed: true,
 				});
-				void navigate({ to: "/" });
+				void navigate({ to: "/dashboard" });
 			}
 		} catch (error) {
 			console.error("Error:", error);

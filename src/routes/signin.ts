@@ -8,7 +8,7 @@ export const Route = createFileRoute("/signin")({
     // If user is already authenticated, redirect to home
     if (context.auth.isAuthenticated) {
       throw redirect({
-        to: "/",
+        to: "/dashboard",
       });
     }
   },

@@ -18,6 +18,7 @@ import { Route as ProfileImport } from './routes/profile'
 import { Route as OnboardingImport } from './routes/onboarding'
 import { Route as HistoryImport } from './routes/history'
 import { Route as FriendsImport } from './routes/friends'
+import { Route as DashboardImport } from './routes/dashboard'
 import { Route as IndexImport } from './routes/index'
 import { Route as AuthCallbackImport } from './routes/auth.callback'
 
@@ -58,6 +59,11 @@ const FriendsRoute = FriendsImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const DashboardRoute = DashboardImport.update({
+  path: '/dashboard',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const IndexRoute = IndexImport.update({
   path: '/',
   getParentRoute: () => rootRoute,
@@ -77,6 +83,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardImport
       parentRoute: typeof rootRoute
     }
     '/friends': {
@@ -142,6 +155,7 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren({
   IndexRoute,
+  DashboardRoute,
   FriendsRoute,
   HistoryRoute,
   OnboardingRoute,
@@ -161,6 +175,7 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/dashboard",
         "/friends",
         "/history",
         "/onboarding",
@@ -173,6 +188,9 @@ export const routeTree = rootRoute.addChildren({
     },
     "/": {
       "filePath": "index.ts"
+    },
+    "/dashboard": {
+      "filePath": "dashboard.ts"
     },
     "/friends": {
       "filePath": "friends.ts"
