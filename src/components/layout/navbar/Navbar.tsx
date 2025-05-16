@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef } from "react";
-import { Link, useMatch, useNavigate } from "@tanstack/react-router";
+import { Link, useMatch, useNavigate, useRouter } from "@tanstack/react-router";
 import { supabase } from "../../../lib/supabaseClient";
 import { useAuth } from "../../../contexts/AuthContext";
 import type { User, RealtimeChannel } from "@supabase/supabase-js";
@@ -78,6 +78,7 @@ export const useFriendInvites = (userId: string) => {
 
 export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	const navigate = useNavigate();
+	const router = useRouter();
 	const { user, isAuthChecking: isUserLoading, signOut } = useAuth();
 	const friendInvitesSubscriptionRef = useRef<RealtimeChannel | null>(null);
 
@@ -148,7 +149,9 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 
 	const handleSignOut = async (): Promise<void> => {
 		try {
+			debugger;
 			await signOut();
+
 			await navigate({ to: "/signin" });
 		} catch (error) {
 			console.error("Error signing out:", error);

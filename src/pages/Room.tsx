@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { supabase } from "../lib/supabaseClient";
 import { Navbar } from "../components/layout/navbar/Navbar";
-import { Route as RoomRoute } from "../routes/room";
+import { Route as RoomRoute } from "../routes/app/room";
 import { GameScene } from "../_game";
 import { nanoid } from "nanoid";
 import { generateRoomName } from "../utils/roomNames";

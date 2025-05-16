@@ -13,31 +13,34 @@ import { NotificationProvider } from "./contexts/NotificationContext.tsx";
 
 const queryClient = new QueryClient();
 
-const router = createRouter({
-	routeTree,
-	context: {
-		auth: undefined!, // This will be set after we wrap the app in an AuthProvider
-	},
-});
+// Create a function that returns a new router instance with the current auth context
+const createRouterWithContext = (auth: ReturnType<typeof useAuth>) => {
+	return createRouter({
+		routeTree,
+		context: {
+			auth,
+		},
+	});
+};
 
 declare module "@tanstack/react-router" {
 	interface Register {
-		// This infers the type of our router and registers it across your entire project
-		router: typeof router;
+		router: ReturnType<typeof createRouterWithContext>;
 	}
 }
 
 export function App(): FunctionComponent {
 	const auth = useAuth();
-	if (auth.isAuthChecking) {
-		// add a loading spinner here using daisyui
-		// make purple
-		return (
-			<div className="flex h-screen items-center justify-center">
-				<div className="loading loading-spinner loading-lg text-indigo-600"></div>
-			</div>
-		);
-	}
+	const router = createRouterWithContext(auth);
+	// if (auth.isAuthChecking) {
+	// 	// add a loading spinner here using daisyui
+	// 	// make purple
+	// 	return (
+	// 		<div className="flex h-screen items-center justify-center">
+	// 			<div className="loading loading-spinner loading-lg text-indigo-600"></div>
+	// 		</div>
+	// 	);
+	// }
 	return <RouterProvider router={router} context={{ auth }} />;
 }
 

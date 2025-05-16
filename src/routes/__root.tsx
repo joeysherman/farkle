@@ -3,7 +3,7 @@ import {
 	Outlet,
 	redirect,
 } from "@tanstack/react-router";
-import { AuthProvider, useAuth } from "../contexts/AuthContext";
+import { AuthProvider } from "../contexts/AuthContext";
 import { Navbar } from "../components/layout/navbar/Navbar";
 import * as React from "react";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
@@ -17,7 +17,7 @@ interface MyRouterContext {
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: () => (
 		<div className="pt-12">
-			<Navbar />
+			{/* <Navbar /> */}
 			<Outlet />
 			<TanStackRouterDevtools position="bottom-right" initialIsOpen={false} />
 		</div>

@@ -41,6 +41,7 @@ export function AuthProvider({
 
 	useEffect(() => {
 		const initializeAuth = async (): Promise<void> => {
+			debugger;
 			try {
 				// First check for existing session in local storage
 				const {
@@ -92,29 +93,6 @@ export function AuthProvider({
 		};
 
 		void initializeAuth();
-
-		// Set up auth state change listener
-		const {
-			data: { subscription },
-		} = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-			setSession(currentSession);
-
-			if (event === "SIGNED_OUT") {
-				setUser(null);
-				setSession(null);
-			} else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-				const {
-					data: { user: authUser },
-				} = await supabase.auth.getUser();
-				if (authUser) {
-					setUser(authUser);
-				}
-			}
-		});
-
-		return (): void => {
-			subscription.unsubscribe();
-		};
 	}, []);
 
 	// Sign in with email and password
@@ -130,6 +108,7 @@ export function AuthProvider({
 			setUser(data.user);
 			setSession(data.session);
 			setIsAuthChecking(false);
+			debugger;
 		}
 		return { error };
 	};
@@ -151,6 +130,8 @@ export function AuthProvider({
 		await supabase.auth.signOut();
 		setUser(null);
 		setSession(null);
+		setIsAuthenticated(false);
+		debugger;
 	};
 
 	// Reset password (send reset email)

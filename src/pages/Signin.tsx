@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { BouncingDice } from "../components/BouncingDice";
 import { useAuth } from "../contexts/AuthContext";
 
 export function Signin(): JSX.Element {
 	const router = useRouter();
+	const navigate = useNavigate();
 	const { signIn } = useAuth();
 
 	const [email, setEmail] = useState("");
@@ -22,20 +23,22 @@ export function Signin(): JSX.Element {
 		try {
 			setLoading(true);
 			setMessage(null);
-
+			debugger;
 			const { error } = await signIn(email, password);
 
 			if (error) throw error;
 
-			// Then navigate to home
-			router.history.push("/dashboard");
+			await navigate({ to: "/app/dashboard" });
+			//await router.invalidate();
+			console.log("Navigating to dashboard");
+			// Then navigate to dashboard
 		} catch (error) {
 			setMessage({
 				type: "error",
 				text: error instanceof Error ? error.message : "An error occurred",
 			});
 		} finally {
-			setLoading(false);
+			//setLoading(false);
 		}
 	};
 

@@ -13,14 +13,15 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as SignupImport } from './routes/signup'
 import { Route as SigninImport } from './routes/signin'
-import { Route as RoomImport } from './routes/room'
-import { Route as ProfileImport } from './routes/profile'
 import { Route as OnboardingImport } from './routes/onboarding'
-import { Route as HistoryImport } from './routes/history'
-import { Route as FriendsImport } from './routes/friends'
-import { Route as DashboardImport } from './routes/dashboard'
+import { Route as AppRouteImport } from './routes/app/route'
 import { Route as IndexImport } from './routes/index'
 import { Route as AuthCallbackImport } from './routes/auth.callback'
+import { Route as AppRoomImport } from './routes/app/room'
+import { Route as AppProfileImport } from './routes/app/profile'
+import { Route as AppHistoryImport } from './routes/app/history'
+import { Route as AppFriendsImport } from './routes/app/friends'
+import { Route as AppDashboardImport } from './routes/app/dashboard'
 
 // Create/Update Routes
 
@@ -34,33 +35,13 @@ const SigninRoute = SigninImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const RoomRoute = RoomImport.update({
-  path: '/room',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const ProfileRoute = ProfileImport.update({
-  path: '/profile',
-  getParentRoute: () => rootRoute,
-} as any)
-
 const OnboardingRoute = OnboardingImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRoute,
 } as any)
 
-const HistoryRoute = HistoryImport.update({
-  path: '/history',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const FriendsRoute = FriendsImport.update({
-  path: '/friends',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const DashboardRoute = DashboardImport.update({
-  path: '/dashboard',
+const AppRouteRoute = AppRouteImport.update({
+  path: '/app',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -74,6 +55,31 @@ const AuthCallbackRoute = AuthCallbackImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const AppRoomRoute = AppRoomImport.update({
+  path: '/room',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+
+const AppProfileRoute = AppProfileImport.update({
+  path: '/profile',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+
+const AppHistoryRoute = AppHistoryImport.update({
+  path: '/history',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+
+const AppFriendsRoute = AppFriendsImport.update({
+  path: '/friends',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+
+const AppDashboardRoute = AppDashboardImport.update({
+  path: '/dashboard',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -85,25 +91,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardImport
-      parentRoute: typeof rootRoute
-    }
-    '/friends': {
-      id: '/friends'
-      path: '/friends'
-      fullPath: '/friends'
-      preLoaderRoute: typeof FriendsImport
-      parentRoute: typeof rootRoute
-    }
-    '/history': {
-      id: '/history'
-      path: '/history'
-      fullPath: '/history'
-      preLoaderRoute: typeof HistoryImport
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRoute
     }
     '/onboarding': {
@@ -111,20 +103,6 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingImport
-      parentRoute: typeof rootRoute
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileImport
-      parentRoute: typeof rootRoute
-    }
-    '/room': {
-      id: '/room'
-      path: '/room'
-      fullPath: '/room'
-      preLoaderRoute: typeof RoomImport
       parentRoute: typeof rootRoute
     }
     '/signin': {
@@ -141,6 +119,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupImport
       parentRoute: typeof rootRoute
     }
+    '/app/dashboard': {
+      id: '/app/dashboard'
+      path: '/dashboard'
+      fullPath: '/app/dashboard'
+      preLoaderRoute: typeof AppDashboardImport
+      parentRoute: typeof AppRouteImport
+    }
+    '/app/friends': {
+      id: '/app/friends'
+      path: '/friends'
+      fullPath: '/app/friends'
+      preLoaderRoute: typeof AppFriendsImport
+      parentRoute: typeof AppRouteImport
+    }
+    '/app/history': {
+      id: '/app/history'
+      path: '/history'
+      fullPath: '/app/history'
+      preLoaderRoute: typeof AppHistoryImport
+      parentRoute: typeof AppRouteImport
+    }
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileImport
+      parentRoute: typeof AppRouteImport
+    }
+    '/app/room': {
+      id: '/app/room'
+      path: '/room'
+      fullPath: '/app/room'
+      preLoaderRoute: typeof AppRoomImport
+      parentRoute: typeof AppRouteImport
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/auth/callback'
@@ -155,12 +168,14 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren({
   IndexRoute,
-  DashboardRoute,
-  FriendsRoute,
-  HistoryRoute,
+  AppRouteRoute: AppRouteRoute.addChildren({
+    AppDashboardRoute,
+    AppFriendsRoute,
+    AppHistoryRoute,
+    AppProfileRoute,
+    AppRoomRoute,
+  }),
   OnboardingRoute,
-  ProfileRoute,
-  RoomRoute,
   SigninRoute,
   SignupRoute,
   AuthCallbackRoute,
@@ -175,12 +190,8 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/dashboard",
-        "/friends",
-        "/history",
+        "/app",
         "/onboarding",
-        "/profile",
-        "/room",
         "/signin",
         "/signup",
         "/auth/callback"
@@ -189,29 +200,44 @@ export const routeTree = rootRoute.addChildren({
     "/": {
       "filePath": "index.ts"
     },
-    "/dashboard": {
-      "filePath": "dashboard.ts"
-    },
-    "/friends": {
-      "filePath": "friends.ts"
-    },
-    "/history": {
-      "filePath": "history.ts"
+    "/app": {
+      "filePath": "app/route.tsx",
+      "children": [
+        "/app/dashboard",
+        "/app/friends",
+        "/app/history",
+        "/app/profile",
+        "/app/room"
+      ]
     },
     "/onboarding": {
       "filePath": "onboarding.ts"
-    },
-    "/profile": {
-      "filePath": "profile.ts"
-    },
-    "/room": {
-      "filePath": "room.ts"
     },
     "/signin": {
       "filePath": "signin.ts"
     },
     "/signup": {
       "filePath": "signup.ts"
+    },
+    "/app/dashboard": {
+      "filePath": "app/dashboard.ts",
+      "parent": "/app"
+    },
+    "/app/friends": {
+      "filePath": "app/friends.ts",
+      "parent": "/app"
+    },
+    "/app/history": {
+      "filePath": "app/history.ts",
+      "parent": "/app"
+    },
+    "/app/profile": {
+      "filePath": "app/profile.ts",
+      "parent": "/app"
+    },
+    "/app/room": {
+      "filePath": "app/room.ts",
+      "parent": "/app"
     },
     "/auth/callback": {
       "filePath": "auth.callback.tsx"

@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/only-throw-error */
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Dashboard } from "../pages/Dashboard";
+import { Dashboard } from "../../pages/Dashboard";
 
-export const Route = createFileRoute("/dashboard")({
+export const Route = createFileRoute("/app/dashboard")({
 	component: Dashboard,
 	beforeLoad: ({ context }) => {
-		
+		debugger;
 		if (!context.auth.isAuthChecking && !context.auth.isAuthenticated) {
 			throw redirect({
 				to: "/signin",

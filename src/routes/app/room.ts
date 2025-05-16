@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Room } from "../pages/Room";
+import { Room } from "../../pages/Room";
 
 export interface SearchParams {
 	roomId?: string;
 }
 
-export const Route = createFileRoute("/room")({
+export const Route = createFileRoute("/app/room")({
 	component: Room,
 	// validateSearch: (
 	//   search: Record<string, unknown>
