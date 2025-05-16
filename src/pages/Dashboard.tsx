@@ -121,7 +121,7 @@ export const Dashboard = (): FunctionComponent => {
 			if (!roomId) throw new Error("No room ID returned");
 
 			// Navigate to the room page
-			navigate({ to: "/room", search: { roomId } });
+			navigate({ to: "/app/room", search: { roomId } });
 		} catch (error) {
 			console.error("Error creating room:", error);
 			setError("Failed to create room. Please try again.");
@@ -204,7 +204,10 @@ export const Dashboard = (): FunctionComponent => {
 									<div className="mt-4 flex gap-2">
 										<button
 											onClick={() =>
-												navigate({ to: "/room", search: { roomId: room.id } })
+												navigate({
+													to: "/app/room",
+													search: { roomId: room.id },
+												})
 											}
 											className={`flex-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
 												room?.status === "waiting"
@@ -315,7 +318,10 @@ export const Dashboard = (): FunctionComponent => {
 									<div className="mt-3 sm:mt-4 flex gap-2">
 										<button
 											onClick={() =>
-												navigate({ to: "/room", search: { roomId: room.id } })
+												navigate({
+													to: "/app/room",
+													search: { roomId: room.id },
+												})
 											}
 											className={`flex-1 inline-flex justify-center py-2 px-3 sm:px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
 												room?.status === "waiting"

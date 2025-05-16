@@ -81,7 +81,7 @@ export function InviteModal({
 			const timer = setInterval(() => {
 				setCountdown((previous) => {
 					if (previous <= 1) {
-						void navigate({ to: "/dashboard" });
+						void navigate({ to: "/app/dashboard" });
 						return 0;
 					}
 					return previous - 1;
@@ -283,7 +283,7 @@ export function InviteModal({
 						</p>
 						<button
 							className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-							onClick={() => void navigate({ to: "/dashboard" })}
+							onClick={() => void navigate({ to: "/app/dashboard" })}
 						>
 							Go Back
 						</button>
@@ -336,7 +336,7 @@ export function InviteModal({
 							{/* go back home */}
 							<button
 								className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-								onClick={() => void navigate({ to: "/dashboard" })}
+								onClick={() => void navigate({ to: "/app/dashboard" })}
 							>
 								Go Back
 							</button>

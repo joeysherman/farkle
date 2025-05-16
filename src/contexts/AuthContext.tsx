@@ -130,8 +130,7 @@ export function AuthProvider({
 		await supabase.auth.signOut();
 		setUser(null);
 		setSession(null);
-		setIsAuthenticated(false);
-		debugger;
+		setIsAuthChecking(false);
 	};
 
 	// Reset password (send reset email)

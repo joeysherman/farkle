@@ -166,7 +166,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 						<div className="flex-shrink-0 flex items-center">
 							<Link
 								className="text-base sm:text-xl font-bold text-indigo-600"
-								to="/dashboard"
+								to="/app/dashboard"
 							>
 								Farkle Online
 							</Link>
@@ -214,7 +214,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 																	? "bg-indigo-500 text-white"
 																	: "text-gray-900"
 															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-															to="/profile"
+															to="/app/profile"
 														>
 															Profile
 														</Link>
@@ -228,7 +228,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 																	? "bg-indigo-500 text-white"
 																	: "text-gray-900"
 															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-															to="/friends"
+															to="/app/friends"
 														>
 															<span className="flex-1">Friends</span>
 															{pendingInvitesCount > 0 && (
@@ -247,7 +247,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 																	? "bg-indigo-500 text-white"
 																	: "text-gray-900"
 															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-															to="/history"
+															to="/app/history"
 														>
 															History
 														</Link>
