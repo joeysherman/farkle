@@ -208,20 +208,13 @@ export const Onboarding = (): FunctionComponent => {
 					setError("Username is required");
 					return;
 				}
-
-				await updateProfile({
-					username: state.username.trim(),
-					onboarding_step: "accountInfo",
-				});
 				setCurrentStep("accountInfo");
 			} else if (currentStep === "accountInfo") {
-				await updateProfile({
-					avatar_name: state.avatarName,
-					onboarding_step: "confirmation",
-				});
 				setCurrentStep("confirmation");
 			} else if (currentStep === "confirmation") {
 				await updateProfile({
+					username: state.username.trim(),
+					avatar_name: state.avatarName,
 					onboarding_completed: true,
 				});
 				void navigate({ to: "/app/dashboard" });
@@ -236,14 +229,8 @@ export const Onboarding = (): FunctionComponent => {
 		try {
 			setError("");
 			if (currentStep === "accountInfo") {
-				await updateProfile({
-					onboarding_step: "personalInfo",
-				});
 				setCurrentStep("personalInfo");
 			} else if (currentStep === "confirmation") {
-				await updateProfile({
-					onboarding_step: "accountInfo",
-				});
 				setCurrentStep("accountInfo");
 			}
 		} catch (error) {
