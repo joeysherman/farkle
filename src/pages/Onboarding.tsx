@@ -55,6 +55,7 @@ export const Onboarding = (): FunctionComponent => {
 	const [usernameAvailable, setUsernameAvailable] = useState(false);
 	const [checkingUsername, setCheckingUsername] = useState(false);
 	const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+	const avatarStepRef = useRef<HTMLDivElement>(null);
 
 	const slideVariants = {
 		enter: (direction: number) => ({
@@ -383,10 +384,12 @@ export const Onboarding = (): FunctionComponent => {
 												Choose your avatar
 											</h3>
 											<div
+												ref={avatarStepRef}
 												tabIndex={0}
 												onKeyDown={(event) => {
-													if (event.key === "Enter" && !error) {
+													if (event.key === "Enter") {
 														event.preventDefault();
+														paginate(1);
 														void handleNext();
 													}
 												}}
@@ -399,6 +402,8 @@ export const Onboarding = (): FunctionComponent => {
 															...previous,
 															avatarName,
 														}));
+														// Use the ref to focus the div
+														avatarStepRef.current?.focus();
 													}}
 												/>
 											</div>
