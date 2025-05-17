@@ -41,7 +41,6 @@ const cameraPresets = {
 	poker_table: {
 		position: [0, 10, 0],
 		scale: [1, 1, 1],
-		//cameraPosition: [0, 15, 30],
 		cameraPosition: [0, 0, 0],
 		fov: 20,
 		minDistance: 140,
@@ -56,12 +55,7 @@ function ModelPreview({
 }): JSX.Element {
 	return (
 		<Canvas>
-			<PerspectiveCamera
-				makeDefault
-				fov={cameraPresets[model].fov}
-				//position={cameraPresets[model].cameraPosition}
-				//scale={cameraPresets[model].scale}
-			/>
+			<PerspectiveCamera makeDefault fov={cameraPresets[model].fov} />
 			<ambientLight intensity={0.5} />
 			<pointLight position={[-50, 100, -50]} />
 			<directionalLight
@@ -88,10 +82,7 @@ function ModelPreview({
 					<Coliseum />
 				</group>
 			) : (
-				<group
-					position={cameraPresets[model].position}
-					//scale={cameraPresets[model].scale}
-				>
+				<group position={cameraPresets[model].position}>
 					<PokerTable />
 				</group>
 			)}
@@ -118,15 +109,44 @@ export function RoomSettingsDialog({
 		"boxing_ring" | "coliseum" | "poker_table"
 	>("boxing_ring");
 	const [isSaving, setIsSaving] = useState(false);
-	const [friends, setFriends] = useState<Friend[]>([]);
+	const [friends, setFriends] = useState<Array<Friend>>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [invitedFriends, setInvitedFriends] = useState<Set<string>>(new Set());
+	const [step, setStep] = useState(currentStep || 1);
+	const [addingBot, setAddingBot] = useState(false);
+	const [botAddedFeedback, setBotAddedFeedback] = useState<string | null>(null);
+	const [botPlayers, setBotPlayers] = useState<
+		Array<{ id: string; difficulty: string }>
+	>([]);
 
 	useEffect(() => {
-		if (currentStep === 2) {
-			loadFriends();
-		}
+		setStep(currentStep || 1);
 	}, [currentStep]);
+
+	useEffect(() => {
+		if (step === 2) {
+			void loadFriends();
+		} else if (step === 3) {
+			void loadBotPlayers();
+		}
+	}, [step]);
+
+	const loadBotPlayers = async (): Promise<void> => {
+		try {
+			setIsLoading(true);
+			const { data: botData, error } = await supabase
+				.from("bot_players")
+				.select("id, difficulty")
+				.eq("game_id", roomId);
+
+			if (error) throw error;
+			setBotPlayers(botData || []);
+		} catch (error) {
+			console.error("Error loading bot players:", error);
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
 	const loadFriends = async (): Promise<void> => {
 		try {
@@ -186,7 +206,6 @@ export function RoomSettingsDialog({
 						?.filter((invite) => invite.status === "pending")
 						.map((invite) => invite.receiver_id)
 				);
-				debugger;
 
 				setInvitedFriends(newInvitedFriends);
 			}
@@ -207,11 +226,11 @@ export function RoomSettingsDialog({
 			if (error) throw error;
 
 			// Update local state to show friend as invited
-			setInvitedFriends((prev) => new Set([...prev, friendId]));
+			setInvitedFriends((previous) => new Set([...previous, friendId]));
 
 			// Update the friend's status in the friends array
-			setFriends((prevFriends) =>
-				prevFriends.map((friend) =>
+			setFriends((previousFriends) =>
+				previousFriends.map((friend) =>
 					friend.id === friendId
 						? { ...friend, inviteStatus: "pending", isInvited: true }
 						: friend
@@ -219,6 +238,38 @@ export function RoomSettingsDialog({
 			);
 		} catch (error) {
 			console.error("Error inviting friend:", error);
+		}
+	};
+
+	const handleAddBot = async (difficulty: string): Promise<void> => {
+		try {
+			setAddingBot(true);
+			setBotAddedFeedback(null);
+
+			const { error } = await supabase.rpc("add_bot_player", {
+				p_game_id: roomId,
+				p_difficulty: difficulty,
+			});
+
+			if (error) throw error;
+
+			// Refresh the bot players list
+			await loadBotPlayers();
+
+			// Show success feedback
+			setBotAddedFeedback(
+				`${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} bot added successfully!`
+			);
+
+			// Clear feedback after 3 seconds
+			setTimeout(() => {
+				setBotAddedFeedback(null);
+			}, 3000);
+		} catch (error) {
+			console.error("Error adding bot player:", error);
+			setBotAddedFeedback("Failed to add bot player");
+		} finally {
+			setAddingBot(false);
 		}
 	};
 
@@ -237,15 +288,22 @@ export function RoomSettingsDialog({
 			}
 
 			console.log("Update successful:", data);
-			// only close if the step is 3
-			if (currentStep === 3) {
+			// If we're on the final step, close the dialog
+			if (step === 3) {
 				onClose();
+			} else {
+				// Otherwise move to the next step
+				setStep(step + 1);
 			}
 		} catch (error) {
 			console.error("Error saving room settings:", error);
 		} finally {
 			setIsSaving(false);
 		}
+	};
+
+	const handleBack = (): void => {
+		setStep(step - 1);
 	};
 
 	const handleModelSelect = (
@@ -255,7 +313,7 @@ export function RoomSettingsDialog({
 	};
 
 	const renderStep = (): JSX.Element => {
-		switch (currentStep) {
+		switch (step) {
 			case 1:
 				return (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -330,7 +388,7 @@ export function RoomSettingsDialog({
 										<div className="flex items-center space-x-3">
 											<div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
 												<span className="text-lg font-medium text-gray-600">
-													{friend.username[0].toUpperCase()}
+													{friend.username?.[0].toUpperCase() || "?"}
 												</span>
 											</div>
 											<div>
@@ -350,10 +408,10 @@ export function RoomSettingsDialog({
 															? "bg-red-100 text-red-700 cursor-not-allowed"
 															: "bg-indigo-600 text-white hover:bg-indigo-700"
 											}`}
+											disabled={friend.inviteStatus !== undefined}
 											onClick={(): Promise<void> =>
 												handleInviteFriend(friend.id)
 											}
-											disabled={friend.inviteStatus !== undefined}
 										>
 											{friend.inviteStatus === "pending"
 												? "Invite Pending"
@@ -375,54 +433,94 @@ export function RoomSettingsDialog({
 						<div className="text-sm text-gray-500">
 							Add bot players to your game
 						</div>
-						<div className="grid grid-cols-1 gap-3">
-							<button
-								className="flex items-center justify-between p-4 bg-white border rounded-lg hover:border-indigo-200 transition-colors"
-								onClick={async () => {
-									try {
-										const { error } = await supabase.rpc("add_bot_player", {
-											p_game_id: roomId,
-											p_difficulty: "medium",
-										});
-										if (error) throw error;
-									} catch (error) {
-										console.error("Error adding bot player:", error);
-									}
-								}}
+
+						{botAddedFeedback && (
+							<div
+								className={`p-3 rounded-md text-sm ${
+									botAddedFeedback.includes("Failed")
+										? "bg-red-100 text-red-700"
+										: "bg-green-100 text-green-700"
+								}`}
 							>
-								<div className="flex items-center space-x-3">
-									<div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-										<span className="text-lg font-medium text-gray-600">
-											🤖
-										</span>
-									</div>
-									<div>
-										<div className="font-medium">Add Bot Player</div>
-										<div className="text-sm text-gray-500">
-											Add a medium difficulty bot player
+								{botAddedFeedback}
+							</div>
+						)}
+
+						{isLoading ? (
+							<div className="flex items-center justify-center py-8">
+								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+							</div>
+						) : (
+							<>
+								{botPlayers.length > 0 && (
+									<div className="mb-4">
+										<h3 className="text-md font-medium text-gray-700 mb-2">
+											Current Bot Players
+										</h3>
+										<div className="grid grid-cols-1 gap-2">
+											{botPlayers.map((bot) => (
+												<div
+													key={bot.id}
+													className="flex items-center gap-2 p-3 bg-gray-50 rounded-md"
+												>
+													<div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+														<span className="text-base font-medium text-gray-600">
+															🤖
+														</span>
+													</div>
+													<span className="text-sm font-medium capitalize">
+														{bot.difficulty} Bot
+													</span>
+												</div>
+											))}
 										</div>
 									</div>
+								)}
+
+								<h3 className="text-md font-medium text-gray-700 mb-2">
+									Add New Bot
+								</h3>
+								<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+									{["easy", "medium", "hard"].map((difficulty) => (
+										<button
+											key={difficulty}
+											className="flex flex-col items-center p-4 bg-white border rounded-lg hover:border-indigo-200 transition-colors"
+											onClick={() => handleAddBot(difficulty)}
+											disabled={addingBot}
+										>
+											<div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mb-2">
+												<span className="text-lg font-medium text-gray-600">
+													🤖
+												</span>
+											</div>
+											<div className="font-medium capitalize">{difficulty}</div>
+											<div className="text-xs text-gray-500 text-center mt-1">
+												{difficulty === "easy"
+													? "Conservative play style"
+													: difficulty === "medium"
+														? "Balanced play style"
+														: "Aggressive play style"}
+											</div>
+										</button>
+									))}
 								</div>
-								<button className="px-4 py-2 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
-									Add Bot
-								</button>
-							</button>
-						</div>
+							</>
+						)}
 					</div>
 				);
 			default:
-				return null;
+				return <div>Invalid step</div>;
 		}
 	};
 
 	const getStepTitle = (): string => {
-		switch (currentStep) {
+		switch (step) {
 			case 1:
 				return "Select game table";
 			case 2:
 				return "Invite friends";
 			case 3:
-				return "Step 3 title";
+				return "Add bot players";
 			default:
 				return "";
 		}
@@ -437,14 +535,12 @@ export function RoomSettingsDialog({
 							<h2 className="text-xl md:text-2xl font-bold text-gray-900">
 								{getStepTitle()}
 							</h2>
-							<p className="text-sm text-gray-500 mt-1">
-								Step {currentStep} of 3
-							</p>
+							<p className="text-sm text-gray-500 mt-1">Step {step} of 3</p>
 						</div>
 						<button
-							onClick={onClose}
 							className="p-2 hover:bg-gray-100 rounded-full transition-colors"
 							aria-label="Close dialog"
+							onClick={onClose}
 						>
 							<svg
 								className="w-5 h-5 text-gray-500"
@@ -453,10 +549,10 @@ export function RoomSettingsDialog({
 								viewBox="0 0 24 24"
 							>
 								<path
+									d="M6 18L18 6M6 6l12 12"
 									strokeLinecap="round"
 									strokeLinejoin="round"
 									strokeWidth={2}
-									d="M6 18L18 6M6 6l12 12"
 								/>
 							</svg>
 						</button>
@@ -469,12 +565,10 @@ export function RoomSettingsDialog({
 
 				<div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 md:p-6">
 					<div className="flex justify-between gap-3">
-						{currentStep > 1 && (
+						{step > 1 && (
 							<button
 								className="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-								onClick={(): void => {
-									// Handle going back
-								}}
+								onClick={handleBack}
 							>
 								Back
 							</button>
@@ -484,11 +578,7 @@ export function RoomSettingsDialog({
 							disabled={isSaving}
 							onClick={handleSave}
 						>
-							{isSaving
-								? "Saving..."
-								: currentStep === 3
-									? "Finish"
-									: "Continue"}
+							{isSaving ? "Saving..." : step === 3 ? "Finish" : "Continue"}
 						</button>
 					</div>
 				</div>

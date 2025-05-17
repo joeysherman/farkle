@@ -1916,6 +1916,7 @@ CREATE OR REPLACE FUNCTION send_game_invite(p_game_id UUID, p_receiver_id UUID)
 RETURNS UUID AS $$
 DECLARE
   v_invite_id UUID;
+  v_status game_invite_status;
 BEGIN
   -- Check if user is in the game
   IF NOT EXISTS (
@@ -2374,7 +2375,7 @@ BEGIN
     v_risk_limit := get_bot_risk_limit(v_bot_difficulty);
     
     -- Slight delay to make it feel more natural
-    PERFORM pg_sleep(100);
+    PERFORM pg_sleep(1);
     
     -- Execute the bot's turn
     PERFORM bot_play_turn(NEW.game_id, v_bot_user_id, v_risk_limit);

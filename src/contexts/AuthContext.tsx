@@ -36,6 +36,7 @@ export function AuthProvider({
 	children: ReactNode;
 }): JSX.Element {
 	const [isAuthChecking, setIsAuthChecking] = useState(true);
+	const [profile, setProfile] = useState<Profile | null>(null);
 	const [user, setUser] = useState<User | null>(null);
 	const [session, setSession] = useState<Session | null>(null);
 
@@ -77,9 +78,8 @@ export function AuthProvider({
 
 						if (profile) {
 							setUser(authUser);
-							if (!profile.onboarding_completed) {
-								// Handle onboarding redirect
-							}
+							setProfile(profile);
+
 							return;
 						}
 					}
@@ -154,6 +154,7 @@ export function AuthProvider({
 	const value = {
 		user,
 		session,
+		profile,
 		isAuthChecking,
 		isAuthenticated: !!user,
 		signIn,

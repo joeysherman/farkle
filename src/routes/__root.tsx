@@ -28,6 +28,14 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			return;
 		}
 
+		if (
+			!context.auth.profile?.onboarding_completed &&
+			location.pathname !== "/onboarding"
+		) {
+			throw redirect({
+				to: "/onboarding",
+			});
+		}
 		// If user is not authenticated, redirect to signin
 		if (!context.auth.isAuthenticated) {
 			throw redirect({
