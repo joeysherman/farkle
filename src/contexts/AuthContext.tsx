@@ -41,7 +41,6 @@ export function AuthProvider({
 
 	useEffect(() => {
 		const initializeAuth = async (): Promise<void> => {
-			debugger;
 			try {
 				// First check for existing session in local storage
 				const {
@@ -108,7 +107,6 @@ export function AuthProvider({
 			setUser(data.user);
 			setSession(data.session);
 			setIsAuthChecking(false);
-			debugger;
 		}
 		return { error };
 	};

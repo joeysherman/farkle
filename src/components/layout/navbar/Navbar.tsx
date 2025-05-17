@@ -115,7 +115,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 					(payload) => {
 						// Refetch friend invites when there's an update
 						console.log("payload update", payload);
-						debugger;
+
 						void refetchFriendInvites();
 					}
 				)
@@ -130,7 +130,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 					(payload) => {
 						// Refetch friend invites when there's an update
 						console.log("payload insert", payload);
-						debugger;
+
 						void refetchFriendInvites();
 					}
 				)
@@ -149,7 +149,6 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 
 	const handleSignOut = async (): Promise<void> => {
 		try {
-			debugger;
 			await signOut();
 
 			await navigate({ to: "/signin" });

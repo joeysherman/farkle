@@ -183,7 +183,7 @@ export const Friends = (): FunctionComponent => {
 					(payload) => {
 						// Refetch friend invites when there's an update
 						console.log("payload update", payload);
-						debugger;
+
 						void refetchFriendInvites();
 					}
 				)
@@ -198,7 +198,7 @@ export const Friends = (): FunctionComponent => {
 					(payload) => {
 						// Refetch friend invites when there's an update
 						console.log("payload insert", payload);
-						debugger;
+
 						void refetchFriendInvites();
 					}
 				)

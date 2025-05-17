@@ -5,7 +5,7 @@ import { Dashboard } from "../../pages/Dashboard";
 export const Route = createFileRoute("/app/dashboard")({
 	component: Dashboard,
 	beforeLoad: ({ context }) => {
-		debugger;
+		
 		if (!context.auth.isAuthChecking && !context.auth.isAuthenticated) {
 			throw redirect({
 				to: "/signin",

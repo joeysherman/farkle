@@ -62,7 +62,7 @@ const useIsAppInstalled = () => {
 			// 	})
 			// );
 			// Handle different browser behaviors
-			//debugger;
+			//
 			if (isSafari) {
 				// Safari on iOS
 				setIsInstalled(isStandaloneWindow);

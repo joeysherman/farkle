@@ -186,6 +186,8 @@ export function RoomSettingsDialog({
 						?.filter((invite) => invite.status === "pending")
 						.map((invite) => invite.receiver_id)
 				);
+				debugger;
+
 				setInvitedFriends(newInvitedFriends);
 			}
 		} catch (error) {
@@ -206,6 +208,15 @@ export function RoomSettingsDialog({
 
 			// Update local state to show friend as invited
 			setInvitedFriends((prev) => new Set([...prev, friendId]));
+
+			// Update the friend's status in the friends array
+			setFriends((prevFriends) =>
+				prevFriends.map((friend) =>
+					friend.id === friendId
+						? { ...friend, inviteStatus: "pending", isInvited: true }
+						: friend
+				)
+			);
 		} catch (error) {
 			console.error("Error inviting friend:", error);
 		}

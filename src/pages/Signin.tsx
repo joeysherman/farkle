@@ -23,7 +23,7 @@ export function Signin(): JSX.Element {
 		try {
 			setLoading(true);
 			setMessage(null);
-			debugger;
+
 			const { error } = await signIn(email, password);
 
 			if (error) throw error;
