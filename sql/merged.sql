@@ -1885,35 +1885,54 @@ BEGIN
     RAISE EXCEPTION 'Only room creator can send invites';
   END IF;
 
-  -- Check if invite already exists
+  -- Check if invite already exists for this game and receiver
   IF EXISTS (
     SELECT 1 FROM game_invites
     WHERE game_id = p_game_id
     AND receiver_id = p_receiver_id
-    AND status = 'pending'
   ) THEN
-    RAISE EXCEPTION 'Invite already sent to this user';
+    -- get the status of the invite
+    SELECT status INTO v_status
+    FROM game_invites
+    WHERE game_id = p_game_id
+    AND receiver_id = p_receiver_id;
+
+    -- if the status is pending, raise an exception
+    IF v_status = 'pending' THEN
+      RAISE EXCEPTION 'Invite already sent to this user';
+    END IF;
+    -- if the status is rejected, change it to pending
+    IF v_status = 'rejected' THEN
+      UPDATE game_invites
+      SET status = 'pending'
+      WHERE game_id = p_game_id
+      AND receiver_id = p_receiver_id;
+    END IF;
+    -- if the status is cancelled, raise an exception
+    IF v_status = 'cancelled' THEN
+      RAISE EXCEPTION 'Game has already started, cannot send invite';
+    END IF;
+  ELSE
+    -- Create the invite
+    INSERT INTO game_invites (
+      game_id,
+      sender_id,
+      receiver_id
+    ) VALUES (
+      p_game_id,
+      auth.uid(),
+      p_receiver_id
+    ) RETURNING id INTO v_invite_id;
+
+    -- Create notification for receiver
+    INSERT INTO notifications (
+      user_id,
+      body
+    ) VALUES (
+      p_receiver_id,
+      'You have been invited to join a game'
+    );
   END IF;
-
-  -- Create the invite
-  INSERT INTO game_invites (
-    game_id,
-    sender_id,
-    receiver_id
-  ) VALUES (
-    p_game_id,
-    auth.uid(),
-    p_receiver_id
-  ) RETURNING id INTO v_invite_id;
-
-  -- Create notification for receiver
-  INSERT INTO notifications (
-    user_id,
-    body
-  ) VALUES (
-    p_receiver_id,
-    'You have been invited to join a game'
-  );
 
   RETURN v_invite_id;
 END;
