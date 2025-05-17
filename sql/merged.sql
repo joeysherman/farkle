@@ -2131,4 +2131,261 @@ BEGIN
 
   RETURN v_bot_player_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER; 
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Calculate all possible scoring combinations from a roll
+CREATE OR REPLACE FUNCTION score_options(p_dice INTEGER[])
+RETURNS TABLE(kept_dice INTEGER[], score INTEGER) AS $$
+DECLARE
+  i INTEGER;
+  j INTEGER;
+  k INTEGER;
+  temp_dice INTEGER[];
+  temp_result turn_score_result;
+BEGIN
+  -- First check the full set of dice
+  temp_result := calculate_turn_score(p_dice);
+  IF temp_result.score > 0 THEN
+    RETURN QUERY SELECT temp_result.valid_dice, temp_result.score;
+  END IF;
+  
+  -- Check all possible subsets of the dice
+  -- This is a simplified approach - a full implementation would check all combinations
+  FOR i IN 1..array_length(p_dice, 1) LOOP
+    temp_dice := ARRAY[p_dice[i]];
+    temp_result := calculate_turn_score(temp_dice);
+    IF temp_result.score > 0 THEN
+      RETURN QUERY SELECT temp_result.valid_dice, temp_result.score;
+    END IF;
+  END LOOP;
+  
+  -- Return empty set if no scoring options
+  RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Calculate probability of rolling a farkle with given number of dice
+CREATE OR REPLACE FUNCTION farkle_probability(p_remaining_dice INTEGER)
+RETURNS NUMERIC AS $$
+BEGIN
+  -- Simplified probabilities based on dice count
+  RETURN CASE
+    WHEN p_remaining_dice = 1 THEN 0.667  -- 4/6 chance (2,3,4,6 don't score)
+    WHEN p_remaining_dice = 2 THEN 0.444  -- ~4/9 chance
+    WHEN p_remaining_dice = 3 THEN 0.278  -- ~1/4 chance
+    WHEN p_remaining_dice = 4 THEN 0.167  -- ~1/6 chance
+    WHEN p_remaining_dice = 5 THEN 0.089  -- ~1/12 chance
+    WHEN p_remaining_dice = 6 THEN 0.021  -- ~1/48 chance
+    ELSE 1.0  -- Default to 100% if invalid input
+  END;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Decide if bot should bank based on current score and risk
+CREATE OR REPLACE FUNCTION should_bank(p_turn_score INTEGER, p_remaining_dice INTEGER, p_risk_limit INTEGER)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_farkle_probability NUMERIC;
+BEGIN
+  -- Bot will bank if it has reached its target score for the turn
+  IF p_turn_score >= p_risk_limit THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Calculate farkle probability
+  v_farkle_probability := farkle_probability(p_remaining_dice);
+  
+  -- Higher-scoring turns make the bot more conservative
+  IF p_turn_score > 500 AND v_farkle_probability > 0.2 THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Very high risk of farkle will cause banking
+  IF v_farkle_probability > 0.5 THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Default: continue rolling
+  RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Get risk limit based on bot difficulty
+CREATE OR REPLACE FUNCTION get_bot_risk_limit(p_difficulty bot_difficulty)
+RETURNS INTEGER AS $$
+BEGIN
+  RETURN CASE
+    WHEN p_difficulty = 'easy' THEN 200     -- Banks early, very conservative
+    WHEN p_difficulty = 'medium' THEN 350   -- Reasonable balance
+    WHEN p_difficulty = 'hard' THEN 550     -- Pushes for high scores, more aggressive
+    ELSE 350                                -- Default to medium
+  END;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Main function to handle bot's turn
+CREATE OR REPLACE FUNCTION bot_play_turn(p_game_id UUID, p_bot_id UUID, p_risk_limit INTEGER DEFAULT 300)
+RETURNS JSONB AS $$
+DECLARE
+  v_turn_id UUID;
+  v_current_score INTEGER := 0;
+  v_roll_result INTEGER[];
+  v_selected_dice INTEGER[] := ARRAY[]::INTEGER[];
+  v_best_option RECORD;
+  v_total_score INTEGER := 0;
+  v_action_outcome turn_action_outcome;
+  v_available_dice INTEGER := 6;
+  v_latest_action turn_actions;
+  v_should_bank BOOLEAN;
+  v_log JSONB := '[]'::JSONB;
+BEGIN
+  -- Get the current turn for this bot
+  SELECT id INTO v_turn_id
+  FROM game_turns
+  WHERE game_id = p_game_id
+  AND player_id = (
+    SELECT id FROM game_players WHERE game_id = p_game_id AND user_id = p_bot_id
+  )
+  AND ended_at IS NULL;
+  
+  -- If no active turn, exit
+  IF v_turn_id IS NULL THEN
+    RETURN jsonb_build_object('status', 'error', 'message', 'No active turn found for bot');
+  END IF;
+  
+  -- Main turn loop
+  WHILE TRUE LOOP
+    -- 1. Roll the dice
+    PERFORM perform_roll(p_game_id, v_available_dice);
+    
+    -- Get the latest action to see the roll results
+    SELECT * INTO v_latest_action
+    FROM turn_actions
+    WHERE turn_id = v_turn_id
+    ORDER BY action_number DESC
+    LIMIT 1;
+    
+    -- Log the roll
+    v_log := v_log || jsonb_build_object(
+      'action', 'roll',
+      'dice', v_latest_action.dice_values,
+      'scoring_dice', v_latest_action.scoring_dice
+    );
+    
+    -- 2. If no scoring dice, it's a farkle - end turn
+    IF array_length(v_latest_action.scoring_dice, 1) IS NULL OR array_length(v_latest_action.scoring_dice, 1) = 0 THEN
+      -- Process bust outcome
+      PERFORM process_turn_action(p_game_id, 'bust');
+      
+      -- Log the bust
+      v_log := v_log || jsonb_build_object('action', 'bust', 'reason', 'No scoring dice');
+      EXIT;
+    END IF;
+    
+    -- 3. Select the best scoring option (for now, just take all valid scoring dice)
+    -- Use select_dice to update the selected dice
+    PERFORM select_dice(v_latest_action.id, 
+      (SELECT array_agg(i - 1) 
+       FROM generate_series(1, array_length(v_latest_action.dice_values, 1)) i
+       WHERE v_latest_action.dice_values[i] = ANY(v_latest_action.scoring_dice))
+    );
+    
+    -- Get the updated action after selecting dice
+    SELECT * INTO v_latest_action
+    FROM turn_actions
+    WHERE id = v_latest_action.id;
+    
+    -- Add to running score
+    v_total_score := v_total_score + v_latest_action.score;
+    
+    -- Log the selection
+    v_log := v_log || jsonb_build_object(
+      'action', 'select',
+      'selected_dice', v_latest_action.selected_dice,
+      'score', v_latest_action.score,
+      'total_score', v_total_score
+    );
+    
+    -- 4. Decide whether to bank or continue
+    v_available_dice := COALESCE(v_latest_action.available_dice, 0);
+    
+    -- If all dice were used, get 6 new dice
+    IF v_available_dice = 0 AND array_length(v_latest_action.selected_dice, 1) > 0 THEN
+      v_available_dice := 6;
+    END IF;
+    
+    -- Decide to bank or continue
+    v_should_bank := should_bank(v_total_score, v_available_dice, p_risk_limit);
+    
+    IF v_should_bank THEN
+      -- Process bank outcome
+      PERFORM process_turn_action(p_game_id, 'bank');
+      
+      -- Log the bank decision
+      v_log := v_log || jsonb_build_object(
+        'action', 'bank',
+        'total_score', v_total_score,
+        'reason', 'Reached target or high risk'
+      );
+      EXIT;
+    ELSE
+      -- Process continue outcome
+      PERFORM process_turn_action(p_game_id, 'continue');
+      
+      -- Log the continue decision
+      v_log := v_log || jsonb_build_object(
+        'action', 'continue',
+        'remaining_dice', v_available_dice,
+        'reason', 'Low risk, continuing for higher score'
+      );
+    END IF;
+    
+    -- Small delay to prevent infinite loops during debugging
+    PERFORM pg_sleep(0.2);
+  END LOOP;
+  
+  RETURN jsonb_build_object(
+    'status', 'success',
+    'total_score', v_total_score,
+    'actions', v_log
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger function to automatically play bot turns
+CREATE OR REPLACE FUNCTION handle_bot_turns()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_bot_id UUID;
+  v_bot_difficulty bot_difficulty;
+  v_risk_limit INTEGER;
+  v_bot_user_id UUID;
+BEGIN
+  -- Check if the current player is a bot
+  SELECT bp.player_id, bp.difficulty, gp.user_id 
+  INTO v_bot_id, v_bot_difficulty, v_bot_user_id
+  FROM bot_players bp
+  JOIN game_players gp ON bp.player_id = gp.id
+  WHERE gp.id = NEW.current_player_id;
+  
+  -- If it's a bot's turn, play automatically
+  IF v_bot_id IS NOT NULL THEN
+    -- Get risk limit based on difficulty
+    v_risk_limit := get_bot_risk_limit(v_bot_difficulty);
+    
+    -- Slight delay to make it feel more natural
+    PERFORM pg_sleep(100);
+    
+    -- Execute the bot's turn
+    PERFORM bot_play_turn(NEW.game_id, v_bot_user_id, v_risk_limit);
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger to automatically play bot turns
+CREATE TRIGGER bot_turn_trigger
+  AFTER UPDATE OF current_player_id ON game_states
+  FOR EACH ROW
+  EXECUTE FUNCTION handle_bot_turns(); 
