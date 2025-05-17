@@ -351,10 +351,14 @@ DECLARE
   new_player game_players;
 BEGIN
   -- Verify room exists and is joinable
+  -- and the invite code is correct
+  -- and the room is not full
+  -- and the status is "waiting" or "settings"
+
   IF NOT EXISTS (
     SELECT 1 FROM game_rooms
     WHERE id = room_id
-    AND status = 'waiting'
+    AND (status = 'waiting' OR status = 'settings')
     AND current_players < max_players
     AND invite_code = code
   ) THEN
@@ -1503,7 +1507,7 @@ END $$;
 
 -- Create game_invite status enum type
 DO $$ BEGIN
-  CREATE TYPE game_invite_status AS ENUM ('pending', 'accepted', 'rejected', 'cancelled');
+  CREATE TYPE game_invite_status AS ENUM ('pending', 'accepted', 'declined', 'cancelled');
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
@@ -1901,8 +1905,8 @@ BEGIN
     IF v_status = 'pending' THEN
       RAISE EXCEPTION 'Invite already sent to this user';
     END IF;
-    -- if the status is rejected, change it to pending
-    IF v_status = 'rejected' THEN
+    -- if the status is declined, change it to pending
+    IF v_status = 'declined' THEN
       UPDATE game_invites
       SET status = 'pending'
       WHERE game_id = p_game_id
