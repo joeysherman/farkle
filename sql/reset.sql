@@ -10,6 +10,7 @@ DROP TABLE IF EXISTS public.profiles CASCADE;
 DROP TABLE IF EXISTS public.notifications CASCADE;
 DROP TABLE IF EXISTS public.friends CASCADE;
 DROP TABLE IF EXISTS public.friend_invites CASCADE;
+DROP TABLE IF EXISTS public.bot_players CASCADE;
 
 -- Drop all functions
 DROP FUNCTION IF EXISTS end_game(UUID);
@@ -41,6 +42,7 @@ DROP FUNCTION IF EXISTS block_user(UUID);
 DROP FUNCTION IF EXISTS unblock_user(UUID);
 DROP FUNCTION IF EXISTS send_game_invite(UUID, UUID);
 DROP FUNCTION IF EXISTS respond_to_game_invite(UUID, BOOLEAN);
+DROP FUNCTION IF EXISTS add_bot_player(UUID, bot_difficulty);
 
 -- Drop types (after functions that depend on them)
 DROP TYPE IF EXISTS turn_score_result CASCADE;
@@ -48,6 +50,7 @@ DROP TYPE IF EXISTS turn_action_outcome CASCADE;
 DROP TYPE IF EXISTS game_status CASCADE;
 DROP TYPE IF EXISTS friend_status CASCADE;
 DROP TYPE IF EXISTS game_invite_status CASCADE;
+DROP TYPE IF EXISTS bot_difficulty CASCADE;
 
 -- Drop publication
 DROP PUBLICATION IF EXISTS supabase_realtime;

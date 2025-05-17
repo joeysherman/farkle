@@ -122,6 +122,43 @@ CREATE TABLE IF NOT EXISTS public.game_players (
   unique(game_id, player_order)
 );
 
+-- Create bot player type
+DO $$ BEGIN
+  CREATE TYPE bot_difficulty AS ENUM ('easy', 'medium', 'hard');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+-- Create bot players table
+CREATE TABLE IF NOT EXISTS public.bot_players (
+  id uuid default gen_random_uuid() primary key,
+  game_id uuid references public.game_rooms(id) on delete cascade,
+  player_id uuid references public.game_players(id) on delete cascade,
+  difficulty bot_difficulty default 'medium' not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Set up RLS for bot players
+ALTER TABLE public.bot_players ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Bot players are viewable by authenticated users"
+  ON public.bot_players FOR SELECT
+  USING (true);
+
+CREATE POLICY "Room creators can add bot players"
+  ON public.bot_players FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM game_rooms
+      WHERE id = game_id
+      AND created_by = auth.uid()
+    )
+  );
+
+-- Add to realtime publication
+ALTER PUBLICATION supabase_realtime ADD TABLE public.bot_players;
+
 ALTER TABLE public.game_players ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Game players are viewable by authenticated users"
@@ -1981,5 +2018,117 @@ BEGIN
       ELSE 'Your game invite was declined'
     END
   );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to add a bot player to a game
+CREATE OR REPLACE FUNCTION add_bot_player(p_game_id UUID, p_difficulty bot_difficulty DEFAULT 'medium')
+RETURNS UUID AS $$
+DECLARE
+  v_bot_user_id UUID;
+  v_player_id UUID;
+  v_bot_player_id UUID;
+  v_next_order INT;
+BEGIN
+  -- Verify user is room creator
+  IF NOT EXISTS (
+    SELECT 1 FROM game_rooms
+    WHERE id = p_game_id
+    AND created_by = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Only room creator can add bot players';
+  END IF;
+
+  -- Verify room is in settings or waiting state
+  IF NOT EXISTS (
+    SELECT 1 FROM game_rooms
+    WHERE id = p_game_id
+    AND (status = 'settings' OR status = 'waiting')
+  ) THEN
+    RAISE EXCEPTION 'Can only add bot players during setup or waiting state';
+  END IF;
+
+  -- Verify room is not full
+  IF EXISTS (
+    SELECT 1 FROM game_rooms
+    WHERE id = p_game_id
+    AND current_players >= max_players
+  ) THEN
+    RAISE EXCEPTION 'Room is full';
+  END IF;
+
+  -- Create a bot user if it doesn't exist
+  INSERT INTO auth.users (
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    created_at,
+    updated_at,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    is_super_admin,
+    role
+  ) VALUES (
+    'bot_' || gen_random_uuid() || '@bot.farkle.com',
+    crypt(gen_random_uuid()::text, gen_salt('bf')),
+    now(),
+    now(),
+    now(),
+    '{"provider":"email","providers":["email"]}',
+    '{"is_bot": true}',
+    false,
+    'authenticated'
+  ) RETURNING id INTO v_bot_user_id;
+
+  -- Create bot profile
+  INSERT INTO profiles (
+    id,
+    username,
+    avatar_name,
+    created_at,
+    updated_at
+  ) VALUES (
+    v_bot_user_id,
+    'Bot_' || substr(gen_random_uuid()::text, 1, 4),
+    'default',
+    now(),
+    now()
+  );
+
+  -- Get next player order
+  SELECT COALESCE(MAX(player_order), 0) + 1
+  INTO v_next_order
+  FROM game_players
+  WHERE game_id = p_game_id;
+
+  -- Add bot as player
+  INSERT INTO game_players (
+    game_id,
+    user_id,
+    player_order,
+    score,
+    is_active,
+    is_joined
+  ) VALUES (
+    p_game_id,
+    v_bot_user_id,
+    v_next_order,
+    0,
+    true,
+    true
+  ) RETURNING id INTO v_player_id;
+
+  -- Create bot player record
+  INSERT INTO bot_players (
+    game_id,
+    player_id,
+    difficulty
+  ) VALUES (
+    p_game_id,
+    v_player_id,
+    p_difficulty
+  ) RETURNING id INTO v_bot_player_id;
+
+  RETURN v_bot_player_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER; 

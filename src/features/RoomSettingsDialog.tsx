@@ -371,8 +371,43 @@ export function RoomSettingsDialog({
 				);
 			case 3:
 				return (
-					<div className="p-4 text-center text-gray-500">
-						Step 3 content will go here
+					<div className="space-y-4">
+						<div className="text-sm text-gray-500">
+							Add bot players to your game
+						</div>
+						<div className="grid grid-cols-1 gap-3">
+							<button
+								className="flex items-center justify-between p-4 bg-white border rounded-lg hover:border-indigo-200 transition-colors"
+								onClick={async () => {
+									try {
+										const { error } = await supabase.rpc("add_bot_player", {
+											p_game_id: roomId,
+											p_difficulty: "medium",
+										});
+										if (error) throw error;
+									} catch (error) {
+										console.error("Error adding bot player:", error);
+									}
+								}}
+							>
+								<div className="flex items-center space-x-3">
+									<div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+										<span className="text-lg font-medium text-gray-600">
+											🤖
+										</span>
+									</div>
+									<div>
+										<div className="font-medium">Add Bot Player</div>
+										<div className="text-sm text-gray-500">
+											Add a medium difficulty bot player
+										</div>
+									</div>
+								</div>
+								<button className="px-4 py-2 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+									Add Bot
+								</button>
+							</button>
+						</div>
 					</div>
 				);
 			default:
