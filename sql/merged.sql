@@ -18,10 +18,14 @@ EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
 
+DO $$ BEGIN
 CREATE TYPE turn_score_result AS (
   score INTEGER,
   valid_dice INTEGER[]
 );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -464,6 +468,11 @@ BEGIN
   WHERE id = room_id
   AND status IN ('waiting')
   AND current_players > 0;  -- Allow single player games
+
+  -- Update all game_invites for this game to cancelled
+  UPDATE game_invites
+  SET status = 'cancelled'
+  WHERE game_id = room_id;
 
   -- Initialize game state if not exists
   INSERT INTO game_states (
@@ -1492,6 +1501,13 @@ EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
 
+-- Create game_invite status enum type
+DO $$ BEGIN
+  CREATE TYPE game_invite_status AS ENUM ('pending', 'accepted', 'rejected', 'cancelled');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
 -- Create friends table
 CREATE TABLE IF NOT EXISTS public.friends (
   id uuid default gen_random_uuid() primary key,
@@ -1824,7 +1840,7 @@ CREATE TABLE IF NOT EXISTS public.game_invites (
   game_id uuid references public.game_rooms(id) on delete cascade,
   sender_id uuid references auth.users(id) on delete cascade,
   receiver_id uuid references auth.users(id) on delete cascade,
-  status text default 'pending' check (status in ('pending', 'accepted', 'declined')),
+  status game_invite_status default 'pending' not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(game_id, receiver_id)

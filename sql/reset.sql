@@ -47,6 +47,7 @@ DROP TYPE IF EXISTS turn_score_result CASCADE;
 DROP TYPE IF EXISTS turn_action_outcome CASCADE;
 DROP TYPE IF EXISTS game_status CASCADE;
 DROP TYPE IF EXISTS friend_status CASCADE;
+DROP TYPE IF EXISTS game_invite_status CASCADE;
 
 -- Drop publication
 DROP PUBLICATION IF EXISTS supabase_realtime;
