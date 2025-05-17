@@ -2058,8 +2058,12 @@ BEGIN
     RAISE EXCEPTION 'Room is full';
   END IF;
 
+  -- Generate a UUID for the bot user
+  v_bot_user_id := gen_random_uuid();
+
   -- Create a bot user if it doesn't exist
   INSERT INTO auth.users (
+    id,
     email,
     encrypted_password,
     email_confirmed_at,
@@ -2070,7 +2074,8 @@ BEGIN
     is_super_admin,
     role
   ) VALUES (
-    'bot_' || gen_random_uuid() || '@bot.farkle.com',
+    v_bot_user_id,
+    'bot_' || v_bot_user_id || '@bot.farkle.com',
     crypt(gen_random_uuid()::text, gen_salt('bf')),
     now(),
     now(),
@@ -2079,7 +2084,7 @@ BEGIN
     '{"is_bot": true}',
     false,
     'authenticated'
-  ) RETURNING id INTO v_bot_user_id;
+  );
 
   -- Create bot profile
   INSERT INTO profiles (
@@ -2090,7 +2095,7 @@ BEGIN
     updated_at
   ) VALUES (
     v_bot_user_id,
-    'Bot_' || substr(gen_random_uuid()::text, 1, 4),
+    'Bot_' || substr(v_bot_user_id::text, 1, 4),
     'default',
     now(),
     now()
