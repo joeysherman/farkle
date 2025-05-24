@@ -27,7 +27,7 @@ import { DebugPanel, CameraDebug } from "./DebugPanel";
 import { PokerTable } from "./PokerTable";
 
 let isDev = false;
-if (process.env.NODE_ENV === "development") {
+if (process.env.NODE_ENV !== "development") {
 	isDev = true;
 }
 

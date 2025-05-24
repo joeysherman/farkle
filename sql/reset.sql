@@ -1,3 +1,10 @@
+-- Drop all triggers
+DROP TRIGGER IF EXISTS update_game_rooms_updated_at ON public.game_rooms;
+DROP TRIGGER IF EXISTS maintain_current_players ON public.game_players;
+DROP TRIGGER IF EXISTS update_friends_updated_at ON public.friends;
+DROP TRIGGER IF EXISTS update_friend_invites_updated_at ON public.friend_invites;
+DROP TRIGGER IF EXISTS update_game_invites_updated_at ON public.game_invites;
+
 -- Drop all tables
 DROP TABLE IF EXISTS public.game_history CASCADE;
 DROP TABLE IF EXISTS public.turn_actions CASCADE;
@@ -42,13 +49,18 @@ DROP FUNCTION IF EXISTS block_user(UUID);
 DROP FUNCTION IF EXISTS unblock_user(UUID);
 DROP FUNCTION IF EXISTS send_game_invite(UUID, UUID);
 DROP FUNCTION IF EXISTS respond_to_game_invite(UUID, BOOLEAN);
+
+
 DROP FUNCTION IF EXISTS add_bot_player(UUID, bot_difficulty);
 DROP FUNCTION IF EXISTS score_options(INTEGER[]);
 DROP FUNCTION IF EXISTS farkle_probability(INTEGER);
 DROP FUNCTION IF EXISTS should_bank(INTEGER, INTEGER, INTEGER);
 DROP FUNCTION IF EXISTS get_bot_risk_limit(bot_difficulty);
-DROP FUNCTION IF EXISTS bot_play_turn(UUID, UUID, INTEGER);
+DROP FUNCTION IF EXISTS bot_play_turn(UUID);
 DROP FUNCTION IF EXISTS handle_bot_turns();
+
+
+
 
 -- Drop types (after functions that depend on them)
 DROP TYPE IF EXISTS turn_score_result CASCADE;

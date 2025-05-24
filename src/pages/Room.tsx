@@ -126,6 +126,16 @@ const updateTurnActions = async (
 	}
 };
 
+// function to handle the bot turn
+const handleBotTurn = async (gameId: string) => {
+	const { error } = await supabase.rpc("bot_play_turn", {
+		p_game_id: gameId,
+	});
+	if (error) {
+		console.error("Error handling bot turn:", error);
+	}
+};
+
 export function Room(): JSX.Element {
 	const navigate = useNavigate();
 	const search = useSearch({ from: RoomRoute.id });
@@ -204,6 +214,8 @@ export function Room(): JSX.Element {
 
 	// ref for presence subscription
 	const presenceSubscriptionRef = useRef<RealtimeChannel | null>(null);
+
+	const [isCurrentPlayerBot, setIsCurrentPlayerBot] = useState(false);
 
 	const handleStartGame = async () => {
 		try {
@@ -891,6 +903,27 @@ export function Room(): JSX.Element {
 		}
 	};
 
+	// Add this effect to check if current player is a bot
+	useEffect(() => {
+		const checkIfCurrentPlayerIsBot = async () => {
+			if (gameState?.current_player_id) {
+				const { data, error } = await supabase
+					.from("bot_players")
+					.select("*")
+					.eq("player_id", gameState.current_player_id)
+					.single();
+
+				if (!error && data) {
+					setIsCurrentPlayerBot(true);
+				} else {
+					setIsCurrentPlayerBot(false);
+				}
+			}
+		};
+
+		void checkIfCurrentPlayerIsBot();
+	}, [gameState?.current_player_id]);
+
 	if (loading) {
 		return (
 			<div className="min-h-screen bg-gray-50">
@@ -924,6 +957,22 @@ export function Room(): JSX.Element {
 
 	return (
 		<main className="max-w-[1600px] mx-auto h-[calc(100dvh-48px)] sm:h-[calc(100dvh-64px)] overflow-hidden">
+			{/* Add the floating panel for bot turns */}
+			{!isCurrentPlayerTurn &&
+				isCurrentPlayerBot &&
+				room?.status === "in_progress" && (
+					<div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50">
+						<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-4">
+							<button
+								onClick={() => handleBotTurn(roomId)}
+								className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+							>
+								Play Bot Turn
+							</button>
+						</div>
+					</div>
+				)}
+
 			{showSettingsDialog && (
 				<RoomSettingsDialog
 					roomId={roomId}

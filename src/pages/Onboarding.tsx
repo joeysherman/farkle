@@ -77,6 +77,7 @@ export const Onboarding = (): FunctionComponent => {
 	const [[page, direction], setPage] = useState([0, 0]);
 
 	const paginate = (newDirection: number) => {
+		debugger;
 		setPage([page + newDirection, newDirection]);
 	};
 
@@ -212,6 +213,7 @@ export const Onboarding = (): FunctionComponent => {
 			} else if (currentStep === "accountInfo") {
 				setCurrentStep("confirmation");
 			} else if (currentStep === "confirmation") {
+				debugger;
 				await updateProfile({
 					username: state.username.trim(),
 					avatar_name: state.avatarName,

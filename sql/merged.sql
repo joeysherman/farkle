@@ -687,6 +687,7 @@ DECLARE
   v_roll_results INTEGER[];
   v_score_result turn_score_result;
   v_available_dice INTEGER;
+  v_bot_player bot_players;
 BEGIN
   -- Get current game state
   SELECT gs.* INTO v_game_state
@@ -697,16 +698,6 @@ BEGIN
     RAISE EXCEPTION 'Game state not found';
   END IF;
 
-  -- Get current player
-  SELECT gp.* INTO v_player
-  FROM game_players gp
-  WHERE gp.id = v_game_state.current_player_id;
-
-  -- Verify it's the user's turn
-  IF v_player.user_id != auth.uid() THEN
-    RAISE EXCEPTION 'Not your turn';
-  END IF;
-
   -- Verify game is in progress
   IF NOT EXISTS (
     SELECT 1 FROM game_rooms gr
@@ -714,6 +705,25 @@ BEGIN
     AND gr.status = 'in_progress'
   ) THEN
     RAISE EXCEPTION 'Game is not in progress';
+  END IF;
+
+  -- Get current player
+  SELECT gp.* INTO v_player
+  FROM game_players gp
+  WHERE gp.id = v_game_state.current_player_id;
+
+  -- Verify it's the user's turn
+  IF v_player.user_id != auth.uid() THEN
+      -- check if the player is a bot
+      -- find the bot_players record where the player_id is v_player.id
+    SELECT bp.* INTO v_bot_player
+    FROM bot_players bp
+    WHERE bp.player_id = v_player.id; 
+
+    -- if v_bot_player is null, raise an exception
+    IF v_bot_player IS NULL THEN
+      RAISE EXCEPTION 'Not the bots turn';
+    END IF;
   END IF;
 
   -- Get or create current turn
@@ -2230,131 +2240,66 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- Main function to handle bot's turn
-CREATE OR REPLACE FUNCTION bot_play_turn(p_game_id UUID, p_bot_id UUID, p_risk_limit INTEGER DEFAULT 300)
+CREATE OR REPLACE FUNCTION bot_play_turn(p_game_id UUID)
 RETURNS JSONB AS $$
 DECLARE
-  v_turn_id UUID;
-  v_current_score INTEGER := 0;
-  v_roll_result INTEGER[];
-  v_selected_dice INTEGER[] := ARRAY[]::INTEGER[];
-  v_best_option RECORD;
-  v_total_score INTEGER := 0;
-  v_action_outcome turn_action_outcome;
-  v_available_dice INTEGER := 6;
+  v_current_player_id UUID;
+  v_current_turn_id UUID;
+  v_bot_player_id UUID;
+  v_current_turn game_turns;
   v_latest_action turn_actions;
-  v_should_bank BOOLEAN;
-  v_log JSONB := '[]'::JSONB;
 BEGIN
-  -- Get the current turn for this bot
-  SELECT id INTO v_turn_id
-  FROM game_turns
-  WHERE game_id = p_game_id
-  AND player_id = (
-    SELECT id FROM game_players WHERE game_id = p_game_id AND user_id = p_bot_id
-  )
-  AND ended_at IS NULL;
-  
-  -- If no active turn, exit
-  IF v_turn_id IS NULL THEN
-    RETURN jsonb_build_object('status', 'error', 'message', 'No active turn found for bot');
-  END IF;
-  
-  -- Main turn loop
-  WHILE TRUE LOOP
-    -- 1. Roll the dice
-    PERFORM perform_roll(p_game_id, v_available_dice);
-    
-    -- Get the latest action to see the roll results
+  -- get the current_player from the game_states table
+  SELECT current_player_id, current_turn INTO v_current_player_id, v_current_turn_id
+  FROM game_states
+  WHERE game_id = p_game_id;
+
+  -- get the bot_player.player_id from the bot_players table
+  SELECT player_id INTO v_bot_player_id
+  FROM bot_players
+  WHERE game_id = p_game_id AND player_id = v_current_player_id;
+
+  -- Debug information
+  RAISE NOTICE 'Bot player ID: %', v_bot_player_id;
+
+  -- Only proceed if we found a bot player
+  IF v_bot_player_id IS NOT NULL THEN
+    -- get the game_turn from the game_turns table
+    SELECT * INTO v_current_turn
+    FROM game_turns
+    WHERE id = v_current_turn_id;
+
+    -- get the latest turn_action from the turn_actions table
     SELECT * INTO v_latest_action
     FROM turn_actions
-    WHERE turn_id = v_turn_id
+    WHERE turn_id = v_current_turn_id
     ORDER BY action_number DESC
     LIMIT 1;
-    
-    -- Log the roll
-    v_log := v_log || jsonb_build_object(
-      'action', 'roll',
-      'dice', v_latest_action.dice_values,
-      'scoring_dice', v_latest_action.scoring_dice
-    );
-    
-    -- 2. If no scoring dice, it's a farkle - end turn
-    IF array_length(v_latest_action.scoring_dice, 1) IS NULL OR array_length(v_latest_action.scoring_dice, 1) = 0 THEN
-      -- Process bust outcome
-      PERFORM process_turn_action(p_game_id, 'bust');
-      
-      -- Log the bust
-      v_log := v_log || jsonb_build_object('action', 'bust', 'reason', 'No scoring dice');
-      EXIT;
-    END IF;
-    
-    -- 3. Select the best scoring option (for now, just take all valid scoring dice)
-    -- Use select_dice to update the selected dice
-    PERFORM select_dice(v_latest_action.id, 
-      (SELECT array_agg(i - 1) 
-       FROM generate_series(1, array_length(v_latest_action.dice_values, 1)) i
-       WHERE v_latest_action.dice_values[i] = ANY(v_latest_action.scoring_dice))
-    );
-    
-    -- Get the updated action after selecting dice
-    SELECT * INTO v_latest_action
-    FROM turn_actions
-    WHERE id = v_latest_action.id;
-    
-    -- Add to running score
-    v_total_score := v_total_score + v_latest_action.score;
-    
-    -- Log the selection
-    v_log := v_log || jsonb_build_object(
-      'action', 'select',
-      'selected_dice', v_latest_action.selected_dice,
-      'score', v_latest_action.score,
-      'total_score', v_total_score
-    );
-    
-    -- 4. Decide whether to bank or continue
-    v_available_dice := COALESCE(v_latest_action.available_dice, 0);
-    
-    -- If all dice were used, get 6 new dice
-    IF v_available_dice = 0 AND array_length(v_latest_action.selected_dice, 1) > 0 THEN
-      v_available_dice := 6;
-    END IF;
-    
-    -- Decide to bank or continue
-    v_should_bank := should_bank(v_total_score, v_available_dice, p_risk_limit);
-    
-    IF v_should_bank THEN
-      -- Process bank outcome
-      PERFORM process_turn_action(p_game_id, 'bank');
-      
-      -- Log the bank decision
-      v_log := v_log || jsonb_build_object(
-        'action', 'bank',
-        'total_score', v_total_score,
-        'reason', 'Reached target or high risk'
+
+    -- Debug information
+    RAISE NOTICE 'Latest action: %', v_latest_action;
+
+    -- Check if we found a turn action
+    IF v_latest_action.id IS NOT NULL THEN
+      RETURN jsonb_build_object(
+        'status', 'success',
+        'message', 'should process action',
+        'turn', v_current_turn,
+        'turn_id', v_current_turn_id,
+        'turn_action', v_latest_action
       );
-      EXIT;
     ELSE
-      -- Process continue outcome
-      PERFORM process_turn_action(p_game_id, 'continue');
-      
-      -- Log the continue decision
-      v_log := v_log || jsonb_build_object(
-        'action', 'continue',
-        'remaining_dice', v_available_dice,
-        'reason', 'Low risk, continuing for higher score'
+      RETURN jsonb_build_object(
+        'status', 'success',
+        'message', 'should perform roll',
+        'turn', v_current_turn,
+        'turn_id', v_current_turn_id,
+        'turn_action', v_latest_action
       );
     END IF;
-    
-    -- Small delay to prevent infinite loops during debugging
-    PERFORM pg_sleep(0.2);
-  END LOOP;
-  
-  RETURN jsonb_build_object(
-    'status', 'success',
-    'total_score', v_total_score,
-    'actions', v_log
-  );
+  END IF;
+
+  RETURN NULL;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -2391,7 +2336,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create trigger to automatically play bot turns
-CREATE TRIGGER bot_turn_trigger
-  AFTER UPDATE OF current_player_id ON game_states
-  FOR EACH ROW
-  EXECUTE FUNCTION handle_bot_turns(); 
+-- CREATE TRIGGER bot_turn_trigger
+--   AFTER UPDATE OF current_player_id ON game_states
+--   FOR EACH ROW
+--   EXECUTE FUNCTION handle_bot_turns(); 
+
+-- Create function to 
