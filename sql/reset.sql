@@ -58,9 +58,7 @@ DROP FUNCTION IF EXISTS should_bank(INTEGER, INTEGER, INTEGER);
 DROP FUNCTION IF EXISTS get_bot_risk_limit(bot_difficulty);
 DROP FUNCTION IF EXISTS bot_play_turn(UUID);
 DROP FUNCTION IF EXISTS handle_bot_turns();
-
-
-
+DROP FUNCTION IF EXISTS cron_play_bot_turns();
 
 -- Drop types (after functions that depend on them)
 DROP TYPE IF EXISTS turn_score_result CASCADE;

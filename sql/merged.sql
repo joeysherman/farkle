@@ -2277,10 +2277,26 @@ BEGIN
     LIMIT 1;
 
     -- Debug information
-    RAISE NOTICE 'Latest action: %', v_latest_action;
+    -- RAISE NOTICE 'Latest action: %', v_latest_action;
 
     -- Check if we found a turn action
     IF v_latest_action.id IS NOT NULL THEN
+     -- if v_latest_action.score is > 0
+     IF v_latest_action.score > 0 THEN
+      -- if v_latest_action.action_number is >= 3
+      -- maybe bank instead of continue
+      IF v_latest_action.action_number >= 3 THEN
+        -- perform process_turn_action game_id with "bank"
+        PERFORM process_turn_action(p_game_id, 'bank');
+      ELSE
+        -- perform process_turn_action game_id with "continue"
+        PERFORM process_turn_action(p_game_id, 'continue');
+      END IF;
+     ELSE
+      -- process the turn with "bust"
+      PERFORM process_turn_action(p_game_id, 'bust');
+     END IF;
+    
       RETURN jsonb_build_object(
         'status', 'success',
         'message', 'should process action',
@@ -2289,6 +2305,8 @@ BEGIN
         'turn_action', v_latest_action
       );
     ELSE
+      -- perform a roll
+      PERFORM perform_roll(p_game_id, 6);
       RETURN jsonb_build_object(
         'status', 'success',
         'message', 'should perform roll',
@@ -2304,36 +2322,36 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger function to automatically play bot turns
-CREATE OR REPLACE FUNCTION handle_bot_turns()
-RETURNS TRIGGER AS $$
-DECLARE
-  v_bot_id UUID;
-  v_bot_difficulty bot_difficulty;
-  v_risk_limit INTEGER;
-  v_bot_user_id UUID;
-BEGIN
-  -- Check if the current player is a bot
-  SELECT bp.player_id, bp.difficulty, gp.user_id 
-  INTO v_bot_id, v_bot_difficulty, v_bot_user_id
-  FROM bot_players bp
-  JOIN game_players gp ON bp.player_id = gp.id
-  WHERE gp.id = NEW.current_player_id;
+-- CREATE OR REPLACE FUNCTION handle_bot_turns()
+-- RETURNS TRIGGER AS $$
+-- DECLARE
+--   v_bot_id UUID;
+--   v_bot_difficulty bot_difficulty;
+--   v_risk_limit INTEGER;
+--   v_bot_user_id UUID;
+-- BEGIN
+--   -- Check if the current player is a bot
+--   SELECT bp.player_id, bp.difficulty, gp.user_id 
+--   INTO v_bot_id, v_bot_difficulty, v_bot_user_id
+--   FROM bot_players bp
+--   JOIN game_players gp ON bp.player_id = gp.id
+--   WHERE gp.id = NEW.current_player_id;
   
-  -- If it's a bot's turn, play automatically
-  IF v_bot_id IS NOT NULL THEN
-    -- Get risk limit based on difficulty
-    v_risk_limit := get_bot_risk_limit(v_bot_difficulty);
+--   -- If it's a bot's turn, play automatically
+--   IF v_bot_id IS NOT NULL THEN
+--     -- Get risk limit based on difficulty
+--     v_risk_limit := get_bot_risk_limit(v_bot_difficulty);
     
-    -- Slight delay to make it feel more natural
-    PERFORM pg_sleep(1);
+--     -- Slight delay to make it feel more natural
+--     PERFORM pg_sleep(1);
     
-    -- Execute the bot's turn
-    PERFORM bot_play_turn(NEW.game_id, v_bot_user_id, v_risk_limit);
-  END IF;
+--     -- Execute the bot's turn
+--     PERFORM bot_play_turn(NEW.game_id, v_bot_user_id, v_risk_limit);
+--   END IF;
   
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+--   RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 -- Create trigger to automatically play bot turns
 -- CREATE TRIGGER bot_turn_trigger
@@ -2341,4 +2359,37 @@ $$ LANGUAGE plpgsql;
 --   FOR EACH ROW
 --   EXECUTE FUNCTION handle_bot_turns(); 
 
--- Create function to 
+-- Create function to play bot turns when called from pg_cron
+CREATE OR REPLACE FUNCTION cron_play_bot_turns()
+RETURNS void AS $$
+DECLARE
+  v_bot_player bot_players;
+  v_game_state game_states;
+BEGIN
+  -- Iterate through each bot player directly from the table
+  FOR v_bot_player IN 
+    SELECT * FROM bot_players
+  LOOP
+    -- get the game_states where the current_player_id is the bot_player.player_id
+    SELECT * INTO v_game_state
+    FROM game_states
+    WHERE current_player_id = v_bot_player.player_id;
+
+    -- if the v_game_state.game_id is not NULL
+    -- play the turn
+    IF v_game_state.game_id IS NOT NULL THEN
+      PERFORM bot_play_turn(v_game_state.game_id);
+      RETURN;
+    END IF;
+  END LOOP;
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Schedule the bot turns function to run every 10 seconds
+SELECT cron.schedule(
+  'play-bot-turns',  -- job name
+  '*/10 * * * * *', -- schedule (every 10 seconds)
+  'SELECT cron_play_bot_turns();'  -- command
+);
