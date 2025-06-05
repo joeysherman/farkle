@@ -180,6 +180,7 @@ export const Onboarding = (): FunctionComponent => {
 	});
 	const [usernameAvailable, setUsernameAvailable] = useState(false);
 	const [checkingUsername, setCheckingUsername] = useState(false);
+	const [isCurrentUsername, setIsCurrentUsername] = useState(false);
 	const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
 	const slideVariants = {
@@ -277,11 +278,37 @@ export const Onboarding = (): FunctionComponent => {
 		if (!state.username.trim()) {
 			setUsernameAvailable(false);
 			setCheckingUsername(false);
+			setIsCurrentUsername(false);
 			return;
 		}
 		if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 		debounceTimeout.current = setTimeout(async () => {
 			setCheckingUsername(true);
+
+			// First check if this is the user's current username
+			let currentUsernameCheck = false;
+			if (authProfile) {
+				try {
+					const { data: currentProfile } = await supabase
+						.from("profiles")
+						.select("username")
+						.eq("id", authUser?.id || "")
+						.single();
+					currentUsernameCheck =
+						currentProfile?.username === state.username.trim();
+				} catch (error) {
+					console.error("Error checking current username:", error);
+				}
+			}
+
+			if (currentUsernameCheck) {
+				setUsernameAvailable(true);
+				setIsCurrentUsername(true);
+				setError("");
+				setCheckingUsername(false);
+				return;
+			}
+
 			// Check username availability (exclude current user)
 			const { data, error } = await supabase
 				.from("profiles")
@@ -291,9 +318,11 @@ export const Onboarding = (): FunctionComponent => {
 				.maybeSingle();
 			if (!error && data) {
 				setUsernameAvailable(false);
+				setIsCurrentUsername(false);
 				setError("Username is already taken");
 			} else {
 				setUsernameAvailable(true);
+				setIsCurrentUsername(false);
 				if (error) {
 					setError("Error checking username");
 				} else {
@@ -305,7 +334,7 @@ export const Onboarding = (): FunctionComponent => {
 		return () => {
 			if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 		};
-	}, [state.username, currentStep, authUser?.id]);
+	}, [state.username, currentStep, authUser?.id, authProfile]);
 
 	// Save progress to database
 	const saveProgress = async (
@@ -401,7 +430,10 @@ export const Onboarding = (): FunctionComponent => {
 				});
 				setCurrentStep("personalInfo");
 			} else if (currentStep === "confirmation") {
-				// No need to save, just go back
+				// Save that we're going back to account info step
+				await saveProgress({
+					onboarding_step: "accountInfo",
+				});
 				setCurrentStep("accountInfo");
 			}
 		} catch (error) {
@@ -419,12 +451,16 @@ export const Onboarding = (): FunctionComponent => {
 				!error
 			: true);
 
-	if (loading) {
+	if (loading || isAuthChecking) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-gray-50">
 				<div className="text-center">
 					<div className="w-16 h-16 border-t-4 border-blue-600 border-solid rounded-full animate-spin mx-auto"></div>
-					<p className="mt-4 text-gray-600">Loading...</p>
+					<p className="mt-4 text-gray-600 font-medium">
+						{isAuthChecking
+							? "Verifying your account..."
+							: "Loading your onboarding..."}
+					</p>
 				</div>
 			</div>
 		);
@@ -533,7 +569,9 @@ export const Onboarding = (): FunctionComponent => {
 																d="M5 13l4 4L19 7"
 															/>
 														</svg>
-														Username is available
+														{isCurrentUsername
+															? "This is your current username"
+															: "Username is available"}
 													</div>
 												)}
 										</div>
@@ -557,7 +595,15 @@ export const Onboarding = (): FunctionComponent => {
 									)}
 
 									{currentStep === "confirmation" && (
-										<div className="space-y-4">
+										<div
+											className="space-y-4"
+											tabIndex={0}
+											ref={(div) => {
+												if (currentStep === "confirmation" && div) {
+													div.focus();
+												}
+											}}
+										>
 											<h3 className="text-2xl font-semibold text-gray-900">
 												Almost done!
 											</h3>
@@ -581,6 +627,10 @@ export const Onboarding = (): FunctionComponent => {
 											<p className="text-lg text-gray-600">
 												Your profile has been set up. Click finish to start
 												playing!
+											</p>
+											<p className="text-sm text-gray-500 italic">
+												Press Enter to continue or click the Finish button
+												below.
 											</p>
 										</div>
 									)}
