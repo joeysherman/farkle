@@ -3,10 +3,21 @@ import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
 import type { FunctionComponent } from "../common/types";
-import { AvatarSelector, type AvatarName } from "../components/AvatarSelector";
 import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../contexts/AuthContext";
 
 type OnboardingStep = "personalInfo" | "accountInfo" | "confirmation";
+
+const AVAILABLE_AVATARS = [
+	"default",
+	"avatar_1",
+	"avatar_2",
+	"avatar_3",
+	"avatar_4",
+	"avatar_5",
+] as const;
+
+export type AvatarName = (typeof AVAILABLE_AVATARS)[number];
 
 interface OnboardingState {
 	username: string;
@@ -16,9 +27,9 @@ interface OnboardingState {
 interface DatabaseProfile {
 	id: string;
 	username: string | null;
-	avatarName: string;
-	onboardingStep: OnboardingStep | null;
-	onboardingCompleted: boolean;
+	avatar_name: string;
+	onboarding_step: OnboardingStep | null;
+	onboarding_completed: boolean;
 }
 
 interface SupabaseResponse<T> {
@@ -32,19 +43,134 @@ const STEPS = [
 	{ label: "Confirmation", id: "confirmation" },
 ] as const;
 
-const AVAILABLE_AVATARS = [
-	"default",
-	"avatar1",
-	"avatar2",
-	"avatar3",
-	"avatar4",
-	"avatar5",
-] as const;
+// Keyboard-navigable Avatar Selector for onboarding
+interface OnboardingAvatarSelectorProps {
+	currentAvatar: AvatarName;
+	onSelect: (avatarName: AvatarName) => void;
+}
+
+const OnboardingAvatarSelector = ({
+	currentAvatar,
+	onSelect,
+}: OnboardingAvatarSelectorProps): JSX.Element => {
+	const [selectedIndex, setSelectedIndex] = useState(() =>
+		AVAILABLE_AVATARS.findIndex((avatar) => avatar === currentAvatar)
+	);
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	// Update selectedIndex when currentAvatar changes
+	useEffect(() => {
+		const index = AVAILABLE_AVATARS.findIndex(
+			(avatar) => avatar === currentAvatar
+		);
+		setSelectedIndex(index);
+	}, [currentAvatar]);
+
+	// Handle keyboard navigation
+	useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			switch (event.key) {
+				case "ArrowLeft":
+					event.preventDefault();
+					setSelectedIndex((prev) => {
+						const newIndex = prev > 0 ? prev - 1 : AVAILABLE_AVATARS.length - 1;
+						onSelect(AVAILABLE_AVATARS[newIndex]);
+						return newIndex;
+					});
+					break;
+				case "ArrowRight":
+					event.preventDefault();
+					setSelectedIndex((prev) => {
+						const newIndex = prev < AVAILABLE_AVATARS.length - 1 ? prev + 1 : 0;
+						onSelect(AVAILABLE_AVATARS[newIndex]);
+						return newIndex;
+					});
+					break;
+				case "ArrowUp":
+					event.preventDefault();
+					setSelectedIndex((prev) => {
+						const cols = 3; // 3 columns in mobile, adjust as needed
+						const newIndex = prev - cols >= 0 ? prev - cols : prev;
+						onSelect(AVAILABLE_AVATARS[newIndex]);
+						return newIndex;
+					});
+					break;
+				case "ArrowDown":
+					event.preventDefault();
+					setSelectedIndex((prev) => {
+						const cols = 3;
+						const newIndex =
+							prev + cols < AVAILABLE_AVATARS.length ? prev + cols : prev;
+						onSelect(AVAILABLE_AVATARS[newIndex]);
+						return newIndex;
+					});
+					break;
+				case " ":
+					event.preventDefault();
+					onSelect(AVAILABLE_AVATARS[selectedIndex]);
+					break;
+			}
+		};
+
+		if (containerRef.current) {
+			containerRef.current.addEventListener("keydown", handleKeyDown);
+			containerRef.current.focus();
+		}
+
+		return () => {
+			if (containerRef.current) {
+				containerRef.current.removeEventListener("keydown", handleKeyDown);
+			}
+		};
+	}, [selectedIndex, onSelect]);
+
+	return (
+		<div
+			ref={containerRef}
+			tabIndex={0}
+			className="bg-white rounded-lg p-6 max-w-2xl w-full mx-auto outline-none"
+		>
+			<div className="mb-4">
+				<h3 className="text-lg font-medium text-gray-900 mb-2">
+					Select Avatar
+				</h3>
+				<p className="text-sm text-gray-500">
+					Use arrow keys to navigate, Enter to select
+				</p>
+			</div>
+			<div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
+				{AVAILABLE_AVATARS.map((avatarName, index) => (
+					<button
+						key={avatarName}
+						onClick={() => {
+							setSelectedIndex(index);
+							onSelect(avatarName);
+						}}
+						className={`relative rounded-lg p-2 flex items-center justify-center transition-all ${
+							index === selectedIndex
+								? "ring-2 ring-indigo-500 bg-indigo-50"
+								: currentAvatar === avatarName
+									? "ring-2 ring-gray-300"
+									: "hover:bg-gray-50"
+						}`}
+					>
+						<img
+							alt={`Avatar ${avatarName}`}
+							src={`/avatars/${avatarName}.svg`}
+							className="w-16 h-16 rounded-full"
+						/>
+					</button>
+				))}
+			</div>
+		</div>
+	);
+};
 
 export const Onboarding = (): FunctionComponent => {
 	const navigate = useNavigate();
+	const { user: authUser, profile: authProfile, isAuthChecking } = useAuth();
 	const [loading, setLoading] = useState(true);
-	const [user, setUser] = useState<User | null>(null);
+	const [saving, setSaving] = useState(false);
 	const [currentStep, setCurrentStep] =
 		useState<OnboardingStep>("personalInfo");
 	const [error, setError] = useState("");
@@ -55,7 +181,6 @@ export const Onboarding = (): FunctionComponent => {
 	const [usernameAvailable, setUsernameAvailable] = useState(false);
 	const [checkingUsername, setCheckingUsername] = useState(false);
 	const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
-	const avatarStepRef = useRef<HTMLDivElement>(null);
 
 	const slideVariants = {
 		enter: (direction: number) => ({
@@ -77,7 +202,6 @@ export const Onboarding = (): FunctionComponent => {
 	const [[page, direction], setPage] = useState([0, 0]);
 
 	const paginate = (newDirection: number) => {
-		debugger;
 		setPage([page + newDirection, newDirection]);
 	};
 
@@ -92,51 +216,62 @@ export const Onboarding = (): FunctionComponent => {
 		return "upcoming";
 	};
 
-	const stepperSteps = STEPS.map((step) => ({
-		label: step.label,
-		status: getStepStatus(step, currentStep),
-	}));
-
+	// Load existing profile data on mount - use AuthContext instead of separate auth check
 	useEffect(() => {
-		const checkAuth = async (): Promise<void> => {
-			const {
-				data: { user: authUser },
-			} = await supabase.auth.getUser();
+		const loadProfileData = async (): Promise<void> => {
+			// Wait for auth checking to complete
+			if (isAuthChecking) return;
+
+			// If not authenticated, redirect to signup
 			if (!authUser) {
 				void navigate({ to: "/signup" });
 				return;
 			}
-			setUser(authUser);
 
-			// Check if user already has a profile
-			const { data: profile }: SupabaseResponse<DatabaseProfile> =
-				await supabase
-					.from("profiles")
-					.select("*")
-					.eq("id", authUser.id)
-					.single();
-
-			if (profile?.onboarding_completed) {
+			// If onboarding is already completed, redirect to dashboard
+			if (authProfile?.onboarding_completed) {
 				void navigate({ to: "/app/dashboard" });
 				return;
 			}
 
-			// Set current step from profile if it exists
+			// Load existing data from profile if it exists
+			if (authProfile) {
+				// Fetch full profile data for onboarding
+				try {
+					const { data: fullProfile }: SupabaseResponse<DatabaseProfile> =
+						await supabase
+							.from("profiles")
+							.select("*")
+							.eq("id", authUser.id)
+							.single();
 
-			if (profile?.onboarding_step) {
-				setCurrentStep(profile.onboarding_step);
+					if (fullProfile) {
+						setState({
+							username: fullProfile.username || "",
+							avatarName: (fullProfile.avatar_name as AvatarName) || "default",
+						});
+
+						if (fullProfile.onboarding_step) {
+							setCurrentStep(fullProfile.onboarding_step);
+						}
+					}
+				} catch (error) {
+					console.error("Error loading profile data:", error);
+				}
 			}
 
 			setLoading(false);
 		};
 
-		void checkAuth();
-	}, [navigate]);
+		void loadProfileData();
+	}, [isAuthChecking, authUser, authProfile, navigate]);
 
+	// Update page when step changes
 	useEffect(() => {
 		setPage([STEPS.findIndex((step) => step.id === currentStep), 0]);
 	}, [currentStep]);
 
+	// Username availability checking
 	useEffect(() => {
 		if (currentStep !== "personalInfo") return;
 		if (!state.username.trim()) {
@@ -147,11 +282,12 @@ export const Onboarding = (): FunctionComponent => {
 		if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 		debounceTimeout.current = setTimeout(async () => {
 			setCheckingUsername(true);
-			// Check username availability
+			// Check username availability (exclude current user)
 			const { data, error } = await supabase
 				.from("profiles")
 				.select("id")
 				.eq("username", state.username.trim())
+				.neq("id", authUser?.id || "")
 				.maybeSingle();
 			if (!error && data) {
 				setUsernameAvailable(false);
@@ -160,9 +296,7 @@ export const Onboarding = (): FunctionComponent => {
 				setUsernameAvailable(true);
 				if (error) {
 					setError("Error checking username");
-				} else if (error === null && !data && error !== null) {
-					setError("");
-				} else if (error === null && !data) {
+				} else {
 					setError("");
 				}
 			}
@@ -171,32 +305,37 @@ export const Onboarding = (): FunctionComponent => {
 		return () => {
 			if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [state.username, currentStep]);
+	}, [state.username, currentStep, authUser?.id]);
 
-	const updateProfile = async (
+	// Save progress to database
+	const saveProgress = async (
 		updates: Partial<{
 			username: string;
 			avatar_name: string;
 			onboarding_step: OnboardingStep;
 			onboarding_completed: boolean;
 		}>
-	): Promise<void> => {
-		if (!user) return;
+	): Promise<boolean> => {
+		if (!authUser) return false;
 
 		try {
+			setSaving(true);
 			const { error: updateError } = await supabase
 				.from("profiles")
 				.upsert({
-					id: user.id,
+					id: authUser.id,
 					...updates,
 				})
 				.select();
 
 			if (updateError) throw updateError;
+			return true;
 		} catch (error) {
-			console.error("Error updating profile:", error);
+			console.error("Error saving progress:", error);
 			setError(error instanceof Error ? error.message : "An error occurred");
+			return false;
+		} finally {
+			setSaving(false);
 		}
 	};
 
@@ -209,17 +348,41 @@ export const Onboarding = (): FunctionComponent => {
 					setError("Username is required");
 					return;
 				}
-				setCurrentStep("accountInfo");
-			} else if (currentStep === "accountInfo") {
-				setCurrentStep("confirmation");
-			} else if (currentStep === "confirmation") {
-				debugger;
-				await updateProfile({
+				if (!usernameAvailable || checkingUsername) {
+					setError(
+						"Please wait for username validation or choose a different username"
+					);
+					return;
+				}
+
+				// Save username and move to next step
+				const success = await saveProgress({
 					username: state.username.trim(),
+					onboarding_step: "accountInfo",
+				});
+
+				if (success) {
+					setCurrentStep("accountInfo");
+				}
+			} else if (currentStep === "accountInfo") {
+				// Save avatar and move to confirmation
+				const success = await saveProgress({
 					avatar_name: state.avatarName,
+					onboarding_step: "confirmation",
+				});
+
+				if (success) {
+					setCurrentStep("confirmation");
+				}
+			} else if (currentStep === "confirmation") {
+				// Complete onboarding
+				const success = await saveProgress({
 					onboarding_completed: true,
 				});
-				void navigate({ to: "/app/dashboard" });
+
+				if (success) {
+					void navigate({ to: "/app/dashboard" });
+				}
 			}
 		} catch (error) {
 			console.error("Error:", error);
@@ -231,8 +394,14 @@ export const Onboarding = (): FunctionComponent => {
 		try {
 			setError("");
 			if (currentStep === "accountInfo") {
+				// Save current progress and go back
+				await saveProgress({
+					avatar_name: state.avatarName,
+					onboarding_step: "personalInfo",
+				});
 				setCurrentStep("personalInfo");
 			} else if (currentStep === "confirmation") {
+				// No need to save, just go back
 				setCurrentStep("accountInfo");
 			}
 		} catch (error) {
@@ -242,12 +411,13 @@ export const Onboarding = (): FunctionComponent => {
 	};
 
 	const isNextEnabled =
-		currentStep === "personalInfo"
+		!saving &&
+		(currentStep === "personalInfo"
 			? state.username.trim() &&
 				usernameAvailable &&
 				!checkingUsername &&
 				!error
-			: true;
+			: true);
 
 	if (loading) {
 		return (
@@ -274,7 +444,7 @@ export const Onboarding = (): FunctionComponent => {
 			<div className="max-w-3xl mx-auto">
 				<div className="bg-white shadow sm:rounded-lg overflow-hidden">
 					<div className="px-4 py-5 sm:p-6">
-						{/* Responsive daisyUI Steps */}
+						{/* Progress Steps */}
 						<ul className="steps steps-horizontal w-full mb-8">
 							<li
 								className={`step${currentStep === "personalInfo" ? " step-primary" : currentStep !== "personalInfo" ? " step-primary" : ""}`}
@@ -292,6 +462,7 @@ export const Onboarding = (): FunctionComponent => {
 								Tutorial
 							</li>
 						</ul>
+
 						{/* Step Content */}
 						<div className="relative min-h-[400px] overflow-hidden">
 							<AnimatePresence initial={false} mode="wait" custom={direction}>
@@ -319,7 +490,7 @@ export const Onboarding = (): FunctionComponent => {
 														input.focus();
 												}}
 												className={`input input-bordered input-lg w-full${error ? " input-error" : ""}`}
-												placeholder="John Doe"
+												placeholder="Enter your username"
 												type="text"
 												value={state.username}
 												onChange={(event) => {
@@ -367,42 +538,46 @@ export const Onboarding = (): FunctionComponent => {
 												)}
 										</div>
 									)}
+
 									{currentStep === "accountInfo" && (
 										<div className="space-y-4">
 											<h3 className="text-2xl font-semibold text-gray-900">
 												Choose your avatar
 											</h3>
-											<div
-												ref={avatarStepRef}
-												tabIndex={0}
-												onKeyDown={(event) => {
-													if (event.key === "Enter") {
-														event.preventDefault();
-														paginate(1);
-														void handleNext();
-													}
+											<OnboardingAvatarSelector
+												currentAvatar={state.avatarName}
+												onSelect={(avatarName) => {
+													setState((previous) => ({
+														...previous,
+														avatarName,
+													}));
 												}}
-											>
-												<AvatarSelector
-													currentAvatar={state.avatarName}
-													showCloseButton={false}
-													onSelect={(avatarName) => {
-														setState((previous) => ({
-															...previous,
-															avatarName,
-														}));
-														// Use the ref to focus the div
-														avatarStepRef.current?.focus();
-													}}
-												/>
-											</div>
+											/>
 										</div>
 									)}
+
 									{currentStep === "confirmation" && (
 										<div className="space-y-4">
 											<h3 className="text-2xl font-semibold text-gray-900">
 												Almost done!
 											</h3>
+											<div className="bg-gray-50 rounded-lg p-6 space-y-4">
+												<div className="flex items-center space-x-4">
+													<img
+														alt="Your avatar"
+														src={`/avatars/${state.avatarName}.svg`}
+														className="w-16 h-16 rounded-full"
+													/>
+													<div>
+														<h4 className="text-lg font-medium text-gray-900">
+															{state.username}
+														</h4>
+														<p className="text-sm text-gray-500">
+															Ready to start playing!
+														</p>
+													</div>
+												</div>
+											</div>
 											<p className="text-lg text-gray-600">
 												Your profile has been set up. Click finish to start
 												playing!
@@ -412,6 +587,8 @@ export const Onboarding = (): FunctionComponent => {
 								</motion.div>
 							</AnimatePresence>
 						</div>
+
+						{/* Navigation Buttons */}
 						<div className="bottom-0 left-0 right-0 mt-6 flex justify-between px-4">
 							{currentStep !== "personalInfo" && (
 								<button
@@ -420,21 +597,32 @@ export const Onboarding = (): FunctionComponent => {
 										paginate(-1);
 										void handleBack();
 									}}
+									disabled={saving}
 								>
 									Back
 								</button>
 							)}
 							<button
-								className={`btn btn-primary${currentStep === "personalInfo" ? " ml-auto" : ""}`}
+								className={`btn btn-primary${currentStep === "personalInfo" ? " ml-auto" : ""} ${saving ? "loading" : ""}`}
 								onClick={() => {
 									paginate(1);
 									void handleNext();
 								}}
 								disabled={!isNextEnabled}
 							>
-								{currentStep === "confirmation" ? "Finish" : "Next"}
+								{saving
+									? "Saving..."
+									: currentStep === "confirmation"
+										? "Finish"
+										: "Next"}
 							</button>
 						</div>
+
+						{error && (
+							<div className="mt-4 text-sm text-red-600 text-center">
+								{error}
+							</div>
+						)}
 					</div>
 				</div>
 			</div>

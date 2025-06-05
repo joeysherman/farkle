@@ -40,6 +40,21 @@ export function AuthProvider({
 	const [user, setUser] = useState<User | null>(null);
 	const [profile, setProfile] = useState<Profile | null>(null);
 
+	// Helper function to fetch user profile
+	const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
+		try {
+			const { data: profileData } = await supabase
+				.from("profiles")
+				.select("id, onboarding_completed")
+				.eq("id", userId)
+				.single();
+			return profileData;
+		} catch (error) {
+			console.error("Error fetching profile:", error);
+			return null;
+		}
+	};
+
 	useEffect(() => {
 		const initializeAuth = async (): Promise<void> => {
 			const {
@@ -49,6 +64,12 @@ export function AuthProvider({
 
 			if (error) {
 				console.error("Auth initialization error:", error);
+			}
+
+			if (user) {
+				// Fetch profile data for authenticated user
+				const profileData = await fetchUserProfile(user.id);
+				setProfile(profileData);
 			}
 
 			setUser(user);
@@ -64,12 +85,7 @@ export function AuthProvider({
 			if (session?.user) {
 				console.log("session", session);
 				// Fetch user profile when authenticated
-				const { data: profileData } = await supabase
-					.from("profiles")
-					.select("id, onboarding_completed")
-					.eq("id", session.user.id)
-					.single();
-
+				const profileData = await fetchUserProfile(session.user.id);
 				setProfile(profileData);
 			} else {
 				setProfile(null);

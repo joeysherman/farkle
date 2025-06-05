@@ -14,7 +14,7 @@ export type AvatarName = (typeof AVAILABLE_AVATARS)[number];
 
 interface AvatarSelectorProps {
 	currentAvatar: AvatarName;
-	onSelect: (avatarName: AvatarName) => Promise<void>;
+	onSelect: (avatarName: AvatarName) => Promise<void> | void;
 	onClose?: () => void;
 	showCloseButton?: boolean;
 }
@@ -30,8 +30,13 @@ export const AvatarSelector = ({
 	const handleAvatarSelect = async (avatarName: AvatarName): Promise<void> => {
 		try {
 			setLoadingAvatar(avatarName);
-			await onSelect(avatarName);
-			void toast.success("Avatar updated successfully!");
+			const result = onSelect(avatarName);
+
+			// Handle both async and sync onSelect functions
+			if (result instanceof Promise) {
+				await result;
+				void toast.success("Avatar updated successfully!");
+			}
 		} catch (error) {
 			console.error("Failed to update avatar:", error);
 			void toast.error("Failed to update avatar. Please try again.");
