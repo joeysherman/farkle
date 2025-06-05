@@ -38,5 +38,18 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				to: "/signin",
 			});
 		}
+
+		// Check onboarding status - redirect to onboarding if not completed
+		if (
+			!context.auth.isAuthChecking &&
+			context.auth.isAuthenticated &&
+			context.auth.profile &&
+			!context.auth.profile.onboarding_completed &&
+			location.pathname !== "/app/onboarding"
+		) {
+			throw redirect({
+				to: "/app/onboarding",
+			});
+		}
 	},
 });

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Onboarding } from "../pages/Onboarding";
+import { Onboarding } from "../../pages/Onboarding";
 
-export const Route = createFileRoute("/onboarding")({
+export const Route = createFileRoute("/app/onboarding")({
 	component: Onboarding,
 	// validateSearch: (
 	//   search: Record<string, unknown>

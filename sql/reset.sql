@@ -59,6 +59,7 @@ DROP FUNCTION IF EXISTS get_bot_risk_limit(bot_difficulty);
 DROP FUNCTION IF EXISTS bot_play_turn(UUID);
 DROP FUNCTION IF EXISTS handle_bot_turns();
 DROP FUNCTION IF EXISTS cron_play_bot_turns();
+DROP FUNCTION IF EXISTS handle_new_user();
 
 -- Drop types (after functions that depend on them)
 DROP TYPE IF EXISTS turn_score_result CASCADE;
@@ -73,6 +74,9 @@ DROP PUBLICATION IF EXISTS supabase_realtime;
 
 -- Delete all auth.users
 DELETE FROM auth.users;
+
+-- Remove all cron jobs
+SELECT cron.unschedule('play-bot-turns');
 
 -- Run the merged SQL to recreate everything
 
