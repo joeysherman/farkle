@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { BouncingDice } from "../components/BouncingDice";
 import { useAuth } from "../contexts/AuthContext";
@@ -6,6 +6,7 @@ import { useAuth } from "../contexts/AuthContext";
 export function Signin(): JSX.Element {
 	const router = useRouter();
 	const navigate = useNavigate();
+
 	const { signIn } = useAuth();
 
 	const [email, setEmail] = useState("");
@@ -17,30 +18,37 @@ export function Signin(): JSX.Element {
 		text: string;
 	} | null>(null);
 
-	const handleSubmit = async (event: React.FormEvent): Promise<void> => {
-		event.preventDefault();
+	const handleSubmit = useCallback(
+		async (event: React.FormEvent): Promise<void> => {
+			event.preventDefault();
+			event.stopPropagation();
 
-		try {
-			setLoading(true);
-			setMessage(null);
+			try {
+				setLoading(true);
+				setMessage(null);
 
-			const { error } = await signIn(email, password);
+				const { error } = await signIn(email, password);
 
-			if (error) throw error;
+				if (error) throw error;
+				debugger;
+				console.log("Navigating to dashboard");
+				//setLoading(false);
+				// replace the current route with the dashboard route
 
-			await navigate({ to: "/app/dashboard" });
-			//await router.invalidate();
-			console.log("Navigating to dashboard");
-			// Then navigate to dashboard
-		} catch (error) {
-			setMessage({
-				type: "error",
-				text: error instanceof Error ? error.message : "An error occurred",
-			});
-		} finally {
-			//setLoading(false);
-		}
-	};
+				// navigate to the dashboard route using js
+				router.history.replace("/app/dashboard");
+			} catch (error) {
+				debugger;
+				setMessage({
+					type: "error",
+					text: error instanceof Error ? error.message : "An error occurred",
+				});
+			} finally {
+				//setLoading(false);
+			}
+		},
+		[signIn, router, email, password, navigate]
+	);
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 px-4 sm:px-6 lg:px-8">
@@ -71,7 +79,7 @@ export function Signin(): JSX.Element {
 					</div>
 				)}
 
-				<form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+				<form className="mt-8 space-y-6">
 					<div>
 						<label
 							className="block text-sm font-medium text-gray-700"
@@ -126,6 +134,7 @@ export function Signin(): JSX.Element {
 						<button
 							className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
 							disabled={loading}
+							onClick={handleSubmit}
 							type="submit"
 						>
 							{loading ? "Signing in..." : "Sign in"}

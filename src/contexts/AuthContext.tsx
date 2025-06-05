@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { supabase } from "../lib/supabaseClient";
-import type { User, AuthError, Session } from "@supabase/supabase-js";
+import type { User, AuthError } from "@supabase/supabase-js";
 
 type Profile = {
 	id: string;
@@ -10,9 +10,9 @@ type Profile = {
 
 export interface AuthContextType {
 	user: User | null;
-	session: Session | null;
 	isAuthChecking: boolean;
 	isAuthenticated: boolean;
+
 	signIn: (
 		email: string,
 		password: string
@@ -36,64 +36,33 @@ export function AuthProvider({
 	children: ReactNode;
 }): JSX.Element {
 	const [isAuthChecking, setIsAuthChecking] = useState(true);
-	const [profile, setProfile] = useState<Profile | null>(null);
 	const [user, setUser] = useState<User | null>(null);
-	const [session, setSession] = useState<Session | null>(null);
 
 	useEffect(() => {
 		const initializeAuth = async (): Promise<void> => {
-			try {
-				// First check for existing session in local storage
-				const {
-					data: { session: currentSession },
-				} = await supabase.auth.getSession();
+			debugger;
+			const {
+				data: { user },
+				error,
+			} = await supabase.auth.getUser();
 
-				if (currentSession) {
-					setSession(currentSession);
-
-					// Then verify the session with the server
-					const {
-						data: { user: authUser },
-						error,
-					} = await supabase.auth.getUser();
-
-					if (error) {
-						console.error("Auth verification error:", error);
-						setUser(null);
-						setSession(null);
-						return;
-					}
-
-					if (authUser) {
-						const { data: profile } = await supabase
-							.from("profiles")
-							.select("*")
-							.eq("id", authUser.id)
-							.single();
-
-						if (!profile) {
-							setUser(authUser);
-							return;
-						}
-
-						if (profile) {
-							setUser(authUser);
-							setProfile(profile);
-
-							return;
-						}
-					}
-				}
-			} catch (error) {
+			if (error) {
+				setIsAuthChecking(false);
+				setUser(null);
 				console.error("Auth initialization error:", error);
-			} finally {
+			} else {
+				setUser(user);
 				setIsAuthChecking(false);
 			}
 		};
 
 		void initializeAuth();
+		return () => {
+			setIsAuthChecking(true);
+			setUser(null);
+		};
 	}, []);
-
+	debugger;
 	// Sign in with email and password
 	const signIn = async (
 		email: string,
@@ -103,9 +72,10 @@ export function AuthProvider({
 			email,
 			password,
 		});
+		debugger;
 		if (data?.user) {
 			setUser(data.user);
-			setSession(data.session);
+
 			setIsAuthChecking(false);
 		}
 		return { error };
@@ -127,7 +97,7 @@ export function AuthProvider({
 	const signOut = async (): Promise<void> => {
 		await supabase.auth.signOut();
 		setUser(null);
-		setSession(null);
+
 		setIsAuthChecking(false);
 	};
 
@@ -153,8 +123,6 @@ export function AuthProvider({
 
 	const value = {
 		user,
-		session,
-		profile,
 		isAuthChecking,
 		isAuthenticated: !!user,
 		signIn,
