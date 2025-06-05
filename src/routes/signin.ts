@@ -4,13 +4,12 @@ import { Signin } from "../pages/Signin";
 
 export const Route = createFileRoute("/signin")({
   component: Signin,
-  // beforeLoad: ({ context }) => {
-    
-  //   // If user is already authenticated, redirect to home
-  //   if (context.auth.isAuthenticated) {
-  //     throw redirect({
-  //       to: "/app/dashboard",
-  //     });
-  //   }
-  // },
+  beforeLoad: ({ context }) => {
+    // If user is already authenticated, redirect to dashboard
+    if (!context.auth.isAuthChecking && context.auth.isAuthenticated) {
+      throw redirect({
+        to: "/app/dashboard",
+      });
+    }
+  },
 }); 

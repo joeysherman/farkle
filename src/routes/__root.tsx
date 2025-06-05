@@ -22,27 +22,21 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			<TanStackRouterDevtools position="bottom-right" initialIsOpen={false} />
 		</div>
 	),
-	// beforeLoad: ({ context, location }) => {
-	// 	// Skip auth check for auth-related routes
-	// 	if (location.pathname === "/signin" || location.pathname === "/signup") {
-	// 		return;
-	// 	}
+	beforeLoad: ({ context, location }) => {
+		// Skip auth check for auth-related routes and root
+		if (
+			location.pathname === "/signin" ||
+			location.pathname === "/signup" ||
+			location.pathname === "/"
+		) {
+			return;
+		}
 
-	// 	// If user is not authenticated, redirect to signin
-	// 	if (!context.auth.isAuthenticated) {
-	// 		throw redirect({
-	// 			to: "/signin",
-	// 		});
-	// 	}
-
-	// 	// Check onboarding status
-	// 	if (
-	// 		!context.auth.profile?.onboarding_completed &&
-	// 		location.pathname !== "/onboarding"
-	// 	) {
-	// 		throw redirect({
-	// 			to: "/onboarding",
-	// 		});
-	// 	}
-	// },
+		// If user is not authenticated, redirect to signin
+		if (!context.auth.isAuthChecking && !context.auth.isAuthenticated) {
+			throw redirect({
+				to: "/signin",
+			});
+		}
+	},
 });

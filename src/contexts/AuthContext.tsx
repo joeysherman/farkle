@@ -40,44 +40,48 @@ export function AuthProvider({
 
 	useEffect(() => {
 		const initializeAuth = async (): Promise<void> => {
-			debugger;
 			const {
 				data: { user },
 				error,
 			} = await supabase.auth.getUser();
 
 			if (error) {
-				setIsAuthChecking(false);
-				setUser(null);
 				console.error("Auth initialization error:", error);
-			} else {
-				setUser(user);
-				setIsAuthChecking(false);
 			}
+
+			setUser(user);
+			setIsAuthChecking(false);
 		};
 
 		void initializeAuth();
+
+		// Listen for auth changes
+		const {
+			data: { subscription },
+		} = supabase.auth.onAuthStateChange(async (event, session) => {
+			setUser(session?.user ?? null);
+			setIsAuthChecking(false);
+		});
+
 		return () => {
-			setIsAuthChecking(true);
-			setUser(null);
+			subscription.unsubscribe();
 		};
 	}, []);
-	debugger;
 	// Sign in with email and password
 	const signIn = async (
 		email: string,
 		password: string
 	): Promise<{ error: AuthError | null }> => {
+		setIsAuthChecking(true);
 		const { error, data } = await supabase.auth.signInWithPassword({
 			email,
 			password,
 		});
-		debugger;
-		if (data?.user) {
-			setUser(data.user);
 
+		if (error) {
 			setIsAuthChecking(false);
 		}
+		// Don't manually set user here - let onAuthStateChange handle it
 		return { error };
 	};
 
@@ -95,10 +99,9 @@ export function AuthProvider({
 
 	// Sign out
 	const signOut = async (): Promise<void> => {
+		setIsAuthChecking(true);
 		await supabase.auth.signOut();
-		setUser(null);
-
-		setIsAuthChecking(false);
+		// Don't manually set user here - let onAuthStateChange handle it
 	};
 
 	// Reset password (send reset email)

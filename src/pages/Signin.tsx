@@ -1,10 +1,9 @@
 import { useCallback, useState } from "react";
-import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { BouncingDice } from "../components/BouncingDice";
 import { useAuth } from "../contexts/AuthContext";
 
 export function Signin(): JSX.Element {
-	const router = useRouter();
 	const navigate = useNavigate();
 
 	const { signIn } = useAuth();
@@ -30,24 +29,19 @@ export function Signin(): JSX.Element {
 				const { error } = await signIn(email, password);
 
 				if (error) throw error;
-				debugger;
-				console.log("Navigating to dashboard");
-				//setLoading(false);
-				// replace the current route with the dashboard route
 
-				// navigate to the dashboard route using js
-				router.history.replace("/app/dashboard");
+				// Navigate to dashboard after successful signin
+				await navigate({ to: "/app/dashboard", replace: true });
 			} catch (error) {
-				debugger;
 				setMessage({
 					type: "error",
 					text: error instanceof Error ? error.message : "An error occurred",
 				});
 			} finally {
-				//setLoading(false);
+				setLoading(false);
 			}
 		},
-		[signIn, router, email, password, navigate]
+		[signIn, navigate, email, password]
 	);
 
 	return (
