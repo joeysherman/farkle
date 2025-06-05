@@ -2092,7 +2092,7 @@ BEGIN
   -- Generate a UUID for the bot user
   v_bot_user_id := gen_random_uuid();
 
-  -- Create a bot user if it doesn't exist
+  -- Create a bot user
   INSERT INTO auth.users (
     id,
     email,
@@ -2117,20 +2117,13 @@ BEGIN
     'authenticated'
   );
 
-  -- Create bot profile
-  INSERT INTO profiles (
-    id,
-    username,
-    avatar_name,
-    created_at,
-    updated_at
-  ) VALUES (
-    v_bot_user_id,
-    'Bot_' || substr(v_bot_user_id::text, 1, 4),
-    'default',
-    now(),
-    now()
-  );
+  -- Note: Profile is automatically created by the handle_new_user() trigger
+  -- Update the auto-created profile with bot-specific settings
+  UPDATE profiles 
+  SET 
+    username = 'Bot_' || substr(v_bot_user_id::text, 1, 4),
+    avatar_name = 'default'
+  WHERE id = v_bot_user_id;
 
   -- Get next player order
   SELECT COALESCE(MAX(player_order), 0) + 1

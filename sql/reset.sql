@@ -4,6 +4,7 @@ DROP TRIGGER IF EXISTS maintain_current_players ON public.game_players;
 DROP TRIGGER IF EXISTS update_friends_updated_at ON public.friends;
 DROP TRIGGER IF EXISTS update_friend_invites_updated_at ON public.friend_invites;
 DROP TRIGGER IF EXISTS update_game_invites_updated_at ON public.game_invites;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
 -- Drop all tables
 DROP TABLE IF EXISTS public.game_history CASCADE;
