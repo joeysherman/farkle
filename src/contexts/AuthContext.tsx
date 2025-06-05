@@ -10,6 +10,7 @@ type Profile = {
 
 export interface AuthContextType {
 	user: User | null;
+	profile: Profile | null;
 	isAuthChecking: boolean;
 	isAuthenticated: boolean;
 
@@ -37,6 +38,7 @@ export function AuthProvider({
 }): JSX.Element {
 	const [isAuthChecking, setIsAuthChecking] = useState(true);
 	const [user, setUser] = useState<User | null>(null);
+	const [profile, setProfile] = useState<Profile | null>(null);
 
 	useEffect(() => {
 		const initializeAuth = async (): Promise<void> => {
@@ -59,6 +61,19 @@ export function AuthProvider({
 		const {
 			data: { subscription },
 		} = supabase.auth.onAuthStateChange(async (event, session) => {
+			if (session?.user) {
+				console.log("session", session);
+				// Fetch user profile when authenticated
+				const { data: profileData } = await supabase
+					.from("profiles")
+					.select("id, onboarding_completed")
+					.eq("id", session.user.id)
+					.single();
+
+				setProfile(profileData);
+			} else {
+				setProfile(null);
+			}
 			setUser(session?.user ?? null);
 			setIsAuthChecking(false);
 		});
@@ -126,6 +141,7 @@ export function AuthProvider({
 
 	const value = {
 		user,
+		profile,
 		isAuthChecking,
 		isAuthenticated: !!user,
 		signIn,

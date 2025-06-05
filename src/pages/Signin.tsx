@@ -30,8 +30,9 @@ export function Signin(): JSX.Element {
 
 				if (error) throw error;
 
-				// Navigate to dashboard after successful signin
-				await navigate({ to: "/app/dashboard", replace: true });
+				// Navigation will be handled by auth state change and route guards
+				// Just trigger a navigation to let the guards handle the redirect
+				await navigate({ to: "/", replace: true });
 			} catch (error) {
 				setMessage({
 					type: "error",
