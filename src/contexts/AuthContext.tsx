@@ -62,7 +62,7 @@ export function AuthProvider({
 			setLoadingState("fetching-profile");
 			const { data: profileData } = await supabase
 				.from("profiles")
-				.select("id, onboarding_completed")
+				.select("*")
 				.eq("id", userId)
 				.single();
 			return profileData;
