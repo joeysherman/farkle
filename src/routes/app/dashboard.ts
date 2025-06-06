@@ -12,6 +12,8 @@ export const Route = createFileRoute("/app/dashboard")({
 			});
 		}
 
+		// log context
+		console.log("context", context);
 		// If user is authenticated but onboarding is not completed, redirect to onboarding
 		if (
 			!context.auth.isAuthChecking &&

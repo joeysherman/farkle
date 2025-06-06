@@ -1,5 +1,10 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import type { ReactNode } from "react";
+import {
+	createContext,
+	useContext,
+	useState,
+	useEffect,
+	type ReactNode,
+} from "react";
 import { supabase } from "../lib/supabaseClient";
 import type { User, AuthError } from "@supabase/supabase-js";
 
@@ -79,15 +84,20 @@ export function AuthProvider({
 				console.error("Auth initialization error:", error);
 			}
 
+			setUser(user);
+			setLoadingState("idle");
+
 			if (user) {
 				// Fetch profile data for authenticated user
 				const profileData = await fetchUserProfile(user.id);
 				setProfile(profileData);
+				// Mark auth checking as complete after profile is loaded
+				setIsAuthChecking(false);
+			} else {
+				// No user, can immediately mark as complete
+				setProfile(null);
+				setIsAuthChecking(false);
 			}
-
-			setUser(user);
-			setLoadingState("idle");
-			setIsAuthChecking(false);
 		};
 
 		void initializeAuth();
@@ -95,23 +105,35 @@ export function AuthProvider({
 		// Listen for auth changes
 		const {
 			data: { subscription },
-		} = supabase.auth.onAuthStateChange(async (event, session) => {
+		} = supabase.auth.onAuthStateChange((event, session) => {
 			console.log("Auth state change:", event);
 
-			if (session?.user) {
-				console.log("session", session);
-				// Fetch user profile when authenticated
-				const profileData = await fetchUserProfile(session.user.id);
-				setProfile(profileData);
-			} else {
-				setProfile(null);
-			}
+			// Update user state immediately
 			setUser(session?.user ?? null);
 			setLoadingState("idle");
-			setIsAuthChecking(false);
+
+			// If no user, we can immediately mark auth checking as complete
+			if (!session?.user) {
+				setProfile(null);
+				setIsAuthChecking(false);
+				return;
+			}
+
+			// Defer profile fetching to avoid deadlocks, but keep auth checking true until profile is loaded
+			setTimeout(() => {
+				const loadProfile = async (): Promise<void> => {
+					console.log("session", session);
+					// Fetch user profile when authenticated
+					const profileData = await fetchUserProfile(session.user.id);
+					setProfile(profileData);
+					// Only mark auth checking as complete after profile is loaded
+					setIsAuthChecking(false);
+				};
+				void loadProfile();
+			}, 0);
 		});
 
-		return () => {
+		return (): void => {
 			subscription.unsubscribe();
 		};
 	}, []);
@@ -123,7 +145,7 @@ export function AuthProvider({
 	): Promise<{ error: AuthError | null }> => {
 		setIsAuthChecking(true);
 		setLoadingState("signing-in");
-		const { error, data } = await supabase.auth.signInWithPassword({
+		const { error } = await supabase.auth.signInWithPassword({
 			email,
 			password,
 		});

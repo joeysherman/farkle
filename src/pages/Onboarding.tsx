@@ -409,9 +409,7 @@ export const Onboarding = (): FunctionComponent => {
 					onboarding_completed: true,
 				});
 
-				if (success) {
-					void navigate({ to: "/app/dashboard" });
-				}
+				void navigate({ to: "/app/dashboard" });
 			}
 		} catch (error) {
 			console.error("Error:", error);
