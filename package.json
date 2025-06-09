@@ -55,6 +55,7 @@
 		"@tanstack/react-router": "^1.120.13",
 		"@tanstack/react-table": "^8.20.5",
 		"@uidotdev/usehooks": "^2.4.1",
+		"avataaars": "^2.0.0",
 		"dat.gui": "^0.7.9",
 		"date-fns": "^4.1.0",
 		"dayjs": "^1.11.13",

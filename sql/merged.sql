@@ -2218,9 +2218,6 @@ DECLARE
   v_farkle_probability NUMERIC;
 BEGIN
   -- Bot will bank if it has reached its target score for the turn
-  IF p_turn_score >= p_risk_limit THEN
-    RETURN TRUE;
-  END IF;
   
   -- Calculate farkle probability
   v_farkle_probability := farkle_probability(p_remaining_dice);
@@ -2262,6 +2259,14 @@ DECLARE
   v_bot_player_id UUID;
   v_current_turn game_turns;
   v_latest_action turn_actions;
+
+  c_should_bank BOOLEAN;
+  c_farkle_probability NUMERIC;
+  c_risk_limit INTEGER;
+  c_score_options JSONB;
+  
+  v_roll_score INTEGER;
+  
 BEGIN
   -- get the current_player from the game_states table
   SELECT current_player_id, current_turn INTO v_current_player_id, v_current_turn_id
@@ -2274,7 +2279,7 @@ BEGIN
   WHERE game_id = p_game_id AND player_id = v_current_player_id;
 
   -- Debug information
-  RAISE NOTICE 'Bot player ID: %', v_bot_player_id;
+  --RAISE NOTICE 'Bot player ID: %', v_bot_player_id;
 
   -- Only proceed if we found a bot player
   IF v_bot_player_id IS NOT NULL THEN
@@ -2297,15 +2302,47 @@ BEGIN
     IF v_latest_action.id IS NOT NULL THEN
      -- if v_latest_action.score is > 0
      IF v_latest_action.score > 0 THEN
-      -- if v_latest_action.action_number is >= 3
-      -- maybe bank instead of continue
-      IF v_latest_action.action_number >= 3 THEN
-        -- perform process_turn_action game_id with "bank"
-        PERFORM process_turn_action(p_game_id, 'bank');
-      ELSE
-        -- perform process_turn_action game_id with "continue"
-        PERFORM process_turn_action(p_game_id, 'continue');
-      END IF;
+       -- Get bot difficulty and current player's total score
+       SELECT gp.score INTO v_roll_score
+       FROM bot_players bp
+       JOIN game_players gp ON bp.player_id = gp.id
+       WHERE bp.player_id = v_current_player_id;
+
+               -- Calculate total turn score so far
+        SELECT COALESCE(SUM(score), 0) INTO v_roll_score
+        FROM turn_actions
+        WHERE turn_id = v_current_turn_id
+        AND outcome IS NOT NULL;
+
+        -- Use the new decision-making function
+        c_score_options := make_bot_decision(
+          v_latest_action.dice_values,
+          v_roll_score, -- total turn score so far
+          v_latest_action.available_dice,
+          (SELECT score FROM game_players WHERE id = v_current_player_id), -- player's total game score
+          10000, -- target score
+          p_game_id,
+          v_latest_action.id
+        );
+      -- If c_score_options.action is 
+       -- return the c_score_options
+       RETURN c_score_options;
+       -- Execute the decision
+       IF (c_score_options->>'action') = 'bank' THEN
+         -- Select the dice first, then bank
+         PERFORM select_dice(v_latest_action.id, 
+                           ARRAY(SELECT jsonb_array_elements_text(c_score_options->'selected_dice'))::INTEGER[]);
+         PERFORM process_turn_action(p_game_id, 'bank');
+       ELSIF (c_score_options->>'action') = 'continue' THEN
+         -- Select the dice first, then continue
+         PERFORM select_dice(v_latest_action.id, 
+                           ARRAY(SELECT jsonb_array_elements_text(c_score_options->'selected_dice'))::INTEGER[]);
+         PERFORM process_turn_action(p_game_id, 'continue');
+       ELSE
+         -- Bust case
+         PERFORM process_turn_action(p_game_id, 'bust');
+       END IF;
+
      ELSE
       -- process the turn with "bust"
       PERFORM process_turn_action(p_game_id, 'bust');
@@ -2316,7 +2353,11 @@ BEGIN
         'message', 'should process action',
         'turn', v_current_turn,
         'turn_id', v_current_turn_id,
-        'turn_action', v_latest_action
+        'turn_action', v_latest_action,
+        'should_bank', c_should_bank,
+        'farkle_probability', c_farkle_probability,
+        'risk_limit', c_risk_limit,
+        'score_options', c_score_options
       );
     ELSE
       -- perform a roll
@@ -2407,3 +2448,395 @@ SELECT cron.schedule(
   '*/10 * * * * *', -- schedule (every 10 seconds)
   'SELECT cron_play_bot_turns();'  -- command
 );
+
+-- Function to make bot decisions: which dice to keep and whether to bank
+CREATE OR REPLACE FUNCTION make_bot_decision(
+  p_dice_values INTEGER[],
+  p_current_turn_score INTEGER,
+  p_available_dice INTEGER,
+  p_player_total_score INTEGER DEFAULT 0,
+  p_target_score INTEGER DEFAULT 10000,
+  p_game_id UUID DEFAULT NULL,
+  p_turn_action_id UUID DEFAULT NULL
+) RETURNS JSONB AS $$
+DECLARE
+  v_scoring_options RECORD;
+  v_best_score INTEGER := 0;
+  v_best_remaining_dice INTEGER := 0;
+  v_best_indices INTEGER[] := ARRAY[]::INTEGER[];
+  v_best_expected_value NUMERIC := 0;
+  v_risk_limit INTEGER;
+  v_farkle_prob NUMERIC;
+  v_expected_value NUMERIC;
+  v_should_bank BOOLEAN := FALSE;
+  v_selected_indices INTEGER[] := ARRAY[]::INTEGER[];
+  v_temp_dice INTEGER[];
+  v_temp_result turn_score_result;
+  v_dice_counts INTEGER[6];
+  v_has_straight BOOLEAN := FALSE;
+  v_has_three_pairs BOOLEAN := FALSE;
+  i INTEGER;
+  j INTEGER;
+BEGIN
+  -- Get risk limit based on difficulty
+  -- v_risk_limit := get_bot_risk_limit(p_difficulty);
+  v_risk_limit := 350;
+  
+  -- Initialize dice counts for analysis
+  v_dice_counts := array_fill(0, array[6]);
+  FOR i IN 1..array_length(p_dice_values, 1) LOOP
+    v_dice_counts[p_dice_values[i]] := v_dice_counts[p_dice_values[i]] + 1;
+  END LOOP;
+
+  -- Check for special combinations (straight, three pairs)
+  -- Straight check (1-6)
+  IF array_length(p_dice_values, 1) = 6 THEN
+    v_has_straight := TRUE;
+    FOR i IN 1..6 LOOP
+      IF v_dice_counts[i] != 1 THEN
+        v_has_straight := FALSE;
+        EXIT;
+      END IF;
+    END LOOP;
+    
+    -- Three pairs check
+    IF NOT v_has_straight THEN
+      j := 0;
+      FOR i IN 1..6 LOOP
+        IF v_dice_counts[i] = 2 THEN
+          j := j + 1;
+        END IF;
+      END LOOP;
+      v_has_three_pairs := (j = 3);
+    END IF;
+  END IF;
+
+  -- If we have special combinations, take them
+  IF v_has_straight OR v_has_three_pairs THEN
+    FOR i IN 1..array_length(p_dice_values, 1) LOOP
+      v_selected_indices := array_append(v_selected_indices, i - 1);
+    END LOOP;
+    
+    v_temp_result := calculate_turn_score(p_dice_values);
+    -- process the turn
+    PERFORM process_turn_action(p_game_id, 'continue');
+
+    RETURN jsonb_build_object(
+      'action', 'continue',
+      'selected_dice', v_selected_indices,
+      'expected_score', v_temp_result.score,
+      'reasoning', CASE WHEN v_has_straight THEN 'Taking straight (1000 pts)' ELSE 'Taking three pairs (750 pts)' END
+    );
+  END IF;
+
+  -- Strategy 1: Identify all possible scoring combinations and their values
+  -- Best option tracking is now using individual variables
+
+  -- Strategy: Prefer keeping minimal scoring dice to maximize future rolls
+  -- Priority order: Groups of 3+ > Individual 1s > Individual 5s
+
+  -- Check for groups of 3 or more (highest priority)
+  FOR i IN 1..6 LOOP
+    IF v_dice_counts[i] >= 3 THEN
+      -- Keep the group of 3 (or more)
+      v_selected_indices := ARRAY[]::INTEGER[];
+      FOR j IN 1..array_length(p_dice_values, 1) LOOP
+        IF p_dice_values[j] = i AND array_length(v_selected_indices, 1) < v_dice_counts[i] THEN
+          v_selected_indices := array_append(v_selected_indices, j - 1);
+        END IF;
+      END LOOP;
+      
+      -- Calculate score for this group
+      v_temp_dice := ARRAY[]::INTEGER[];
+      FOR j IN 1..v_dice_counts[i] LOOP
+        v_temp_dice := array_append(v_temp_dice, i);
+      END LOOP;
+      v_temp_result := calculate_turn_score(v_temp_dice);
+      
+      -- Calculate expected value (score / dice used ratio)
+      v_expected_value := v_temp_result.score::NUMERIC / v_dice_counts[i];
+      
+      IF v_temp_result.score > v_best_score OR 
+         (v_temp_result.score = v_best_score AND v_expected_value > v_best_expected_value) THEN
+        v_best_score := v_temp_result.score;
+        v_best_remaining_dice := array_length(p_dice_values, 1) - v_dice_counts[i];
+        v_best_indices := v_selected_indices;
+        v_best_expected_value := v_expected_value;
+      END IF;
+    END IF;
+  END LOOP;
+
+  -- If no groups of 3+, consider individual 1s and 5s
+  IF v_best_score = 0 THEN
+    -- Strategy: Take minimum scoring dice
+    -- Prefer single 1s over 5s (better point ratio)
+    IF v_dice_counts[1] > 0 THEN
+      -- Take only one 1 if possible, unless we have many
+      FOR j IN 1..array_length(p_dice_values, 1) LOOP
+        IF p_dice_values[j] = 1 THEN
+          v_selected_indices := array_append(v_selected_indices, j - 1);
+          -- Take additional 1s if we have 3+ dice remaining and low turn score
+          IF array_length(p_dice_values, 1) > 3 AND p_current_turn_score < 300 AND v_dice_counts[1] > 1 THEN
+            CONTINUE;
+          ELSE
+            EXIT;
+          END IF;
+        END IF;
+      END LOOP;
+      
+      v_best_score := array_length(v_selected_indices, 1) * 100;
+      v_best_remaining_dice := array_length(p_dice_values, 1) - array_length(v_selected_indices, 1);
+      v_best_indices := v_selected_indices;
+    ELSIF v_dice_counts[5] > 0 THEN
+      -- Take one 5 if no 1s available
+      FOR j IN 1..array_length(p_dice_values, 1) LOOP
+        IF p_dice_values[j] = 5 THEN
+          v_selected_indices := array_append(v_selected_indices, j - 1);
+          EXIT; -- Only take one 5
+        END IF;
+      END LOOP;
+      
+      v_best_score := 50;
+      v_best_remaining_dice := array_length(p_dice_values, 1) - 1;
+      v_best_indices := v_selected_indices;
+    END IF;
+  END IF;
+
+  -- If no scoring dice found, must bust
+  IF v_best_score = 0 THEN
+    RETURN jsonb_build_object(
+      'action', 'bust',
+      'reasoning', 'No scoring combinations available'
+    );
+  END IF;
+
+  -- Banking decision logic
+  v_farkle_prob := farkle_probability(v_best_remaining_dice);
+  
+  -- Banking conditions based on difficulty and game state:
+  -- 1. High turn score with high farkle risk
+  -- 2. Close to winning
+  -- 3. Conservative play based on difficulty
+  
+  -- Condition 1: Risk vs Reward analysis
+  IF (p_current_turn_score + v_best_score) >= v_risk_limit AND v_farkle_prob > 0.3 THEN
+    v_should_bank := TRUE;
+  END IF;
+  
+  -- Condition 2: Close to winning (within 500 points)
+  IF (p_player_total_score + p_current_turn_score + v_best_score) >= (p_target_score - 500) THEN
+    v_should_bank := TRUE;
+  END IF;
+  
+  -- Condition 3: Very high farkle risk
+  IF v_farkle_prob > 0.6 THEN
+    v_should_bank := TRUE;
+  END IF;
+  
+  -- Condition 4: Excellent turn, don't get greedy
+  IF (p_current_turn_score + v_best_score) > 800 AND v_farkle_prob > 0.25 THEN
+    v_should_bank := TRUE;
+  END IF;
+
+  -- Condition 5: Only 1 die remaining with decent score
+  IF v_best_remaining_dice = 1 AND (p_current_turn_score + v_best_score) >= 250 THEN
+    v_should_bank := TRUE;
+  END IF;
+
+  -- Return decision
+  IF v_should_bank THEN
+    -- process the turn
+    PERFORM process_turn_action(p_game_id, 'bank');
+    RETURN jsonb_build_object(
+      'action', 'bank',
+      'selected_dice', v_best_indices,
+      'expected_score', v_best_score,
+      'total_turn_score', p_current_turn_score + v_best_score,
+      'farkle_probability', v_farkle_prob,
+      'reasoning', format('Banking with %s points (%s%% farkle risk)', 
+                         p_current_turn_score + v_best_score, 
+                         round(v_farkle_prob * 100, 1))
+    );
+  ELSE
+  -- if we have v_best_indices length, then we should select the dice with the selected_dice value
+  IF array_length(v_best_indices, 1) > 0 THEN
+    PERFORM select_dice(p_turn_action_id, v_best_indices);
+  END IF;
+  PERFORM process_turn_action(p_game_id, 'continue');
+  
+    RETURN jsonb_build_object(
+      'action', 'continue',
+      'selected_dice', v_best_indices,
+      'expected_score', v_best_score,
+      'remaining_dice', v_best_remaining_dice,
+      'farkle_probability', v_farkle_prob,
+      'reasoning', format('Continuing with %s dice (%s%% farkle risk)', 
+                         v_best_remaining_dice, 
+                         round(v_farkle_prob * 100, 1))
+    );
+  END IF;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Test function for bot decision making
+CREATE OR REPLACE FUNCTION test_bot_decisions()
+RETURNS SETOF text AS $$
+DECLARE
+  result JSONB;
+  expected_action TEXT;
+BEGIN
+  -- Test Case 1: Example from user - [1,3,4,2,2,2] should keep only the 1
+  result := make_bot_decision(ARRAY[1,3,4,2,2,2], 0, 6, 0, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'continue', 
+    format('Test 1 failed: Expected continue, got %s. Result: %s', expected_action, result::text);
+  ASSERT array_length(ARRAY(SELECT jsonb_array_elements_text(result->'selected_dice')), 1) = 1,
+    format('Test 1 failed: Should select only 1 die, selected %s dice', 
+           array_length(ARRAY(SELECT jsonb_array_elements_text(result->'selected_dice')), 1));
+  
+  -- Test Case 2: High turn score with few dice - should bank
+  result := make_bot_decision(ARRAY[1,3], 1200, 2, 5000, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'bank',
+    format('Test 2 failed: Expected bank with high score, got %s', expected_action);
+  
+  -- Test Case 3: Low turn score with few dice - should continue
+  result := make_bot_decision(ARRAY[1,6], 300, 2, 2000, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'continue',
+    format('Test 3 failed: Expected continue with low score, got %s', expected_action);
+  
+  -- Test Case 4: Three of a kind should be taken
+  result := make_bot_decision(ARRAY[3,3,3,1,2,6], 0, 6, 0, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'continue',
+    format('Test 4 failed: Expected continue with three 3s, got %s', expected_action);
+  ASSERT (result->>'expected_score')::INTEGER = 300,
+    format('Test 4 failed: Expected 300 points for three 3s, got %s', result->>'expected_score');
+  
+  -- Test Case 5: Straight should be taken
+  result := make_bot_decision(ARRAY[1,2,3,4,5,6], 0, 6, 0, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'continue',
+    format('Test 5 failed: Expected continue with straight, got %s', expected_action);
+  ASSERT (result->>'expected_score')::INTEGER = 1000,
+    format('Test 5 failed: Expected 1000 points for straight, got %s', result->>'expected_score');
+  
+  -- Test Case 6: Three pairs should be taken
+  result := make_bot_decision(ARRAY[2,2,4,4,6,6], 0, 6, 0, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'continue',
+    format('Test 6 failed: Expected continue with three pairs, got %s', expected_action);
+  ASSERT (result->>'expected_score')::INTEGER = 750,
+    format('Test 6 failed: Expected 750 points for three pairs, got %s', result->>'expected_score');
+  
+  -- Test Case 7: No scoring dice - should bust
+  result := make_bot_decision(ARRAY[2,3,4,6], 0, 4, 0, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'bust',
+    format('Test 7 failed: Expected bust with no scoring dice, got %s', expected_action);
+  
+  -- Test Case 8: Close to winning - should be conservative
+  result := make_bot_decision(ARRAY[1,5], 200, 2, 9500, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'bank',
+    format('Test 8 failed: Expected bank when close to winning, got %s', expected_action);
+  
+  -- Test Case 9: Easy difficulty - should bank earlier
+  result := make_bot_decision(ARRAY[1,4], 150, 2, 1000, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'continue', -- Updated expectation since we removed difficulty levels
+    format('Test 9 failed: Should continue with low score, got %s', expected_action);
+  
+  -- Test Case 10: Hard difficulty - should be more aggressive
+  result := make_bot_decision(ARRAY[5,6], 400, 2, 1000, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'bank', -- Updated expectation for high farkle risk
+    format('Test 10 failed: Should bank with high farkle risk, got %s', expected_action);
+  
+  -- Test Case 11: Four of a kind - should take all
+  result := make_bot_decision(ARRAY[4,4,4,4,1,2], 0, 6, 0, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'continue',
+    format('Test 11 failed: Expected continue with four 4s, got %s', expected_action);
+  ASSERT (result->>'expected_score')::INTEGER = 800,
+    format('Test 11 failed: Expected 800 points for four 4s, got %s', result->>'expected_score');
+  
+  -- Test Case 12: Multiple 1s with few dice - strategic choice
+  result := make_bot_decision(ARRAY[1,1,6,3], 100, 4, 2000, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'continue',
+    format('Test 12 failed: Expected continue with multiple 1s, got %s', expected_action);
+  
+  -- Test Case 13: High-value turn, should bank to avoid risk
+  result := make_bot_decision(ARRAY[1,4], 850, 2, 3000, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'bank',
+    format('Test 13 failed: Should bank with high-value turn, got %s', expected_action);
+  
+  -- Test Case 14: Single die remaining with decent score
+  result := make_bot_decision(ARRAY[5], 300, 1, 4000, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'bank',
+    format('Test 14 failed: Should bank with single die and decent score, got %s', expected_action);
+  
+  -- Test Case 15: Multiple 5s - should take one if early in turn
+  result := make_bot_decision(ARRAY[5,5,5,2,3,4], 0, 6, 1000, 10000);
+  expected_action := result->>'action';
+  ASSERT expected_action = 'continue',
+    format('Test 15 failed: Expected continue with three 5s, got %s', expected_action);
+  ASSERT (result->>'expected_score')::INTEGER = 500,
+    format('Test 15 failed: Expected 500 points for three 5s, got %s', result->>'expected_score');
+  
+  RETURN NEXT 'All bot decision tests passed!';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Test function for strategic scenarios
+CREATE OR REPLACE FUNCTION test_bot_strategy_scenarios()
+RETURNS SETOF text AS $$
+DECLARE
+  result JSONB;
+  dice_selected INTEGER[];
+BEGIN
+  -- Strategic Test 1: Mixed scoring options - prefer efficiency
+  -- Roll: [1,1,5,2,3,4] - should take both 1s for efficiency
+  result := make_bot_decision(ARRAY[1,1,5,2,3,4], 0, 6, 1000, 10000);
+  dice_selected := ARRAY(SELECT jsonb_array_elements_text(result->'selected_dice'))::INTEGER[];
+  
+  -- Should take optimal scoring dice
+  ASSERT (result->>'action') = 'continue',
+    format('Strategy Test 1 failed: Expected continue, got %s', result->>'action');
+  
+  -- Strategic Test 2: Risk assessment with medium score
+  -- Turn score: 500, Roll: [1,6] with 2 dice remaining
+  result := make_bot_decision(ARRAY[1,6], 500, 2, 3000, 10000);
+  ASSERT (result->>'action') = 'bank',
+    format('Strategy Test 2 failed: Should bank with moderate risk, got %s', result->>'action');
+  
+  -- Strategic Test 3: Aggressive play when behind
+  -- Player far behind, should take more risks
+  result := make_bot_decision(ARRAY[5,3], 250, 2, 2000, 10000);
+  -- Should continue with low farkle risk despite moderate score
+  ASSERT (result->>'action') = 'continue',
+    format('Strategy Test 3 failed: Should be aggressive when behind, got %s', result->>'action');
+  
+  -- Strategic Test 4: Conservative play when ahead
+  -- Player ahead, should be more conservative
+  result := make_bot_decision(ARRAY[1,2], 400, 2, 8000, 10000);
+  ASSERT (result->>'action') = 'bank',
+    format('Strategy Test 4 failed: Should be conservative when ahead, got %s', result->>'action');
+  
+  RETURN NEXT 'All strategic scenario tests passed!';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to run all bot tests
+CREATE OR REPLACE FUNCTION run_bot_tests()
+RETURNS SETOF text AS $$
+BEGIN
+  RETURN QUERY SELECT * FROM test_bot_decisions();
+  RETURN QUERY SELECT * FROM test_bot_strategy_scenarios();
+  RETURN NEXT 'All bot tests completed successfully!';
+END;
+$$ LANGUAGE plpgsql;

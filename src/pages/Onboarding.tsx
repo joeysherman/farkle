@@ -2,30 +2,24 @@ import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import { useState } from "react";
 import type { FunctionComponent } from "../common/types";
 import { supabase } from "../lib/supabaseClient";
-
+import { AvatarBuilder, type AvatarOptions } from "../components/AvatarBuilder";
 interface OnboardingData {
 	username: string;
-	avatar: string;
+	avatarOptions?: AvatarOptions;
 	preferences: {
 		notifications: boolean;
 		newsletter: boolean;
 	};
 }
 
-// Available avatars
-const AVATARS = [
-	{ id: "default", name: "Default", src: "/avatars/default.svg" },
-	{ id: "avatar_1", name: "Avatar 1", src: "/avatars/avatar_1.svg" },
-	{ id: "avatar_2", name: "Avatar 2", src: "/avatars/avatar_2.svg" },
-	{ id: "avatar_3", name: "Avatar 3", src: "/avatars/avatar_3.svg" },
-	{ id: "avatar_4", name: "Avatar 4", src: "/avatars/avatar_4.svg" },
-	{ id: "avatar_5", name: "Avatar 5", src: "/avatars/avatar_5.svg" },
-];
-
 // update the user profile where the id is the user id and the data is the data to update
 const updateUserProfile = async (
 	id: string,
-	data: OnboardingData
+	data: Partial<{
+		username: string;
+		avatar_name?: string;
+		onboarding_completed: boolean;
+	}>
 ): Promise<void> => {
 	const { error } = await supabase.from("profiles").update(data).eq("id", id);
 	if (error) throw error;
@@ -42,8 +36,8 @@ export const Onboarding = (): FunctionComponent => {
 
 	// Form data
 	const [data, setData] = useState<OnboardingData>({
-		username: context.auth.profile?.username ?? "",
-		avatar: context.auth.profile?.avatar_name ?? "default",
+		username: "",
+		avatarOptions: undefined,
 		preferences: {
 			notifications: true,
 			newsletter: false,
@@ -68,7 +62,7 @@ export const Onboarding = (): FunctionComponent => {
 	};
 
 	const validateStep2 = (): boolean => {
-		return !!data.avatar;
+		return !!data.avatarOptions;
 	};
 
 	const handleFinish = async (): Promise<void> => {
@@ -78,7 +72,7 @@ export const Onboarding = (): FunctionComponent => {
 			const { error } = await supabase.from("profiles").upsert({
 				id: context.auth.user?.id,
 				username: data.username,
-				avatar_name: data.avatar,
+				avatar_name: JSON.stringify(data.avatarOptions),
 				onboarding_completed: true,
 			});
 
@@ -99,12 +93,14 @@ export const Onboarding = (): FunctionComponent => {
 		setErrors({});
 
 		// update the user profile with the new data
-		await updateUserProfile(context.auth.user?.id, {
-			username: data.username,
-			avatar_name: data.avatar,
-
-			onboarding_completed: true,
-		});
+		if (context.auth.user?.id) {
+			await updateUserProfile(context.auth.user.id, {
+				username: data.username,
+				//avatar_name: JSON.stringify(data.avatarOptions),
+				avatar_name: "default",
+				onboarding_completed: true,
+			});
+		}
 
 		if (currentStep === 1 && !validateStep1()) {
 			return;
@@ -183,25 +179,12 @@ export const Onboarding = (): FunctionComponent => {
 					</p>
 				</div>
 
-				<div className="grid grid-cols-3 gap-3">
-					{AVATARS.map((avatar) => (
-						<button
-							key={avatar.id}
-							className={`btn btn-outline h-16 w-16 p-1 ${
-								data.avatar === avatar.id ? "btn-primary" : ""
-							}`}
-							onClick={() => {
-								setData((previous) => ({ ...previous, avatar: avatar.id }));
-							}}
-						>
-							<img
-								alt={avatar.name}
-								className="w-full h-full rounded-full object-cover"
-								src={avatar.src}
-							/>
-						</button>
-					))}
-				</div>
+				<AvatarBuilder
+					initialOptions={data.avatarOptions}
+					onAvatarChange={(options) => {
+						setData((previous) => ({ ...previous, avatarOptions: options }));
+					}}
+				/>
 			</div>
 		</div>
 	);
@@ -220,11 +203,9 @@ export const Onboarding = (): FunctionComponent => {
 
 				<div className="bg-base-200 rounded-lg p-4 mb-6">
 					<div className="flex items-center space-x-3">
-						<img
-							alt="Your avatar"
-							className="w-12 h-12 rounded-full"
-							src={AVATARS.find((a) => a.id === data.avatar)?.src}
-						/>
+						<div className="w-12 h-12 rounded-full bg-base-300 flex items-center justify-center">
+							{data.avatarOptions ? "🎨" : "👤"}
+						</div>
 						<div>
 							<h3 className="font-semibold">{data.username}</h3>
 							<p className="text-xs text-base-content/60">
