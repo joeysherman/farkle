@@ -35,7 +35,6 @@ const updateUserProfile = async (
 };
 
 export const Onboarding = (): FunctionComponent => {
-	const navigate = useNavigate();
 	const context = useRouteContext({ from: "/app/onboarding" });
 	const router = useRouter();
 	const avatarBuilderRef = useRef<AvatarBuilderRef>(null);
@@ -143,6 +142,7 @@ export const Onboarding = (): FunctionComponent => {
 				}
 				await updateUserProfile(context.auth.user!.id, {
 					username: data.username,
+					onboarding_step: 2,
 				});
 				setCurrentStep((previous: number) => previous + 1);
 			}
@@ -186,7 +186,11 @@ export const Onboarding = (): FunctionComponent => {
 
 	const handleBack = (): void => {
 		if (currentStep > 1) {
-			setCurrentStep((previous: number) => previous - 1);
+			updateUserProfile(context.auth.user!.id, {
+				onboarding_step: currentStep - 1,
+			}).then(() => {
+				setCurrentStep((previous: number) => previous - 1);
+			});
 		}
 	};
 
