@@ -1,8 +1,17 @@
-import { useNavigate, useRouteContext } from "@tanstack/react-router";
-import { useState } from "react";
+import {
+	useNavigate,
+	useRouteContext,
+	useRouter,
+} from "@tanstack/react-router";
+import { useState, useRef } from "react";
 import type { FunctionComponent } from "../common/types";
 import { supabase } from "../lib/supabaseClient";
-import { AvatarBuilder, type AvatarOptions } from "../components/AvatarBuilder";
+import {
+	AvatarBuilder,
+	type AvatarOptions,
+	type AvatarBuilderRef,
+} from "../components/AvatarBuilder";
+
 interface OnboardingData {
 	username: string;
 	avatarOptions?: AvatarOptions;
@@ -28,21 +37,76 @@ const updateUserProfile = async (
 export const Onboarding = (): FunctionComponent => {
 	const navigate = useNavigate();
 	const context = useRouteContext({ from: "/app/onboarding" });
+	const router = useRouter();
+	const avatarBuilderRef = useRef<AvatarBuilderRef>(null);
 
 	// Current step (1, 2, or 3)
-	const [currentStep, setCurrentStep] = useState(1);
+	const [currentStep, setCurrentStep] = useState(
+		context.auth.profile?.onboarding_step || 1
+	);
 	const [isLoading, setIsLoading] = useState(false);
+	const [uploadStatus, setUploadStatus] = useState<string>("");
 	const [errors, setErrors] = useState<Record<string, string>>({});
 
 	// Form data
 	const [data, setData] = useState<OnboardingData>({
-		username: "",
+		username: context.auth.profile?.username || "",
 		avatarOptions: undefined,
 		preferences: {
 			notifications: true,
 			newsletter: false,
 		},
 	});
+
+	// Upload avatar to Supabase storage
+	const uploadAvatar = async (): Promise<string | null> => {
+		if (!avatarBuilderRef.current || !context.auth.user?.id) {
+			return null;
+		}
+
+		try {
+			setUploadStatus("Generating your avatar...");
+
+			// Generate the avatar blob
+			const blob = await avatarBuilderRef.current.generateAvatarBlob();
+			if (!blob) {
+				throw new Error("Failed to generate avatar image");
+			}
+
+			setUploadStatus("Uploading avatar to cloud storage...");
+
+			// Create a unique filename
+			const fileName = `avatar-${context.auth.user.id}-${Date.now()}.png`;
+			const filePath = `avatars/${fileName}`;
+
+			// Upload to Supabase storage
+			const { error: uploadError } = await supabase.storage
+				.from("avatars")
+				.upload(filePath, blob, {
+					contentType: "image/png",
+					upsert: true,
+				});
+
+			if (uploadError) {
+				throw uploadError;
+			}
+
+			setUploadStatus("Finalizing avatar setup...");
+
+			// Get the public URL
+			const { data: urlData } = supabase.storage
+				.from("avatars")
+				.getPublicUrl(filePath);
+
+			setUploadStatus("");
+			console.log("urlData", urlData);
+			return urlData.publicUrl;
+		} catch (error) {
+			setUploadStatus("");
+			console.error("Error uploading avatar:", error);
+			throw error;
+		}
+	};
 
 	// Validation functions
 	const validateStep1 = (): boolean => {
@@ -65,63 +129,64 @@ export const Onboarding = (): FunctionComponent => {
 		return !!data.avatarOptions;
 	};
 
-	const handleFinish = async (): Promise<void> => {
-		setIsLoading(true);
-		try {
-			// Save to database
-			const { error } = await supabase.from("profiles").upsert({
-				id: context.auth.user?.id,
-				username: data.username,
-				avatar_name: JSON.stringify(data.avatarOptions),
-				onboarding_completed: true,
-			});
-
-			if (error) throw error;
-
-			// Navigate to dashboard
-			void navigate({ to: "/app/dashboard" });
-		} catch (error) {
-			console.error("Error completing onboarding:", error);
-			setErrors({ general: "Failed to save your data. Please try again." });
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
 	// Navigation functions
 	const handleNext = async (): Promise<void> => {
 		setErrors({});
+		setUploadStatus("");
+		setIsLoading(true);
 
-		// update the user profile with the new data
-		if (context.auth.user?.id) {
-			await updateUserProfile(context.auth.user.id, {
-				username: data.username,
-				//avatar_name: JSON.stringify(data.avatarOptions),
-				avatar_name: "default",
-				onboarding_completed: true,
-			});
+		try {
+			if (currentStep === 1) {
+				if (!validateStep1()) {
+					setIsLoading(false);
+					return;
+				}
+				await updateUserProfile(context.auth.user!.id, {
+					username: data.username,
+				});
+				setCurrentStep((previous: number) => previous + 1);
+			}
+
+			if (currentStep === 2) {
+				if (!validateStep2()) {
+					setErrors({
+						avatar: "Please customize your avatar before continuing",
+					});
+					setIsLoading(false);
+					return;
+				}
+
+				// Upload avatar to Supabase
+				const avatarUrl = await uploadAvatar();
+
+				await updateUserProfile(context.auth.user!.id, {
+					username: data.username,
+					avatar_name: avatarUrl || "default",
+				});
+				setCurrentStep((previous: number) => previous + 1);
+			}
+
+			if (currentStep === 3) {
+				// Final step - save data and complete onboarding
+				await updateUserProfile(context.auth.user!.id, {
+					onboarding_completed: true,
+				});
+				// clear the router cache
+				await router.invalidate();
+				await router.navigate({ to: "/app/dashboard" });
+			}
+		} catch (error) {
+			console.error("Error in handleNext:", error);
+			setErrors({ general: "Something went wrong. Please try again." });
+		} finally {
+			setIsLoading(false);
+			setUploadStatus("");
 		}
-
-		if (currentStep === 1 && !validateStep1()) {
-			return;
-		}
-
-		if (currentStep === 2 && !validateStep2()) {
-			return;
-		}
-
-		if (currentStep === 3) {
-			// Final step - save data and complete onboarding
-			await handleFinish();
-			return;
-		}
-
-		setCurrentStep((previous) => previous + 1);
 	};
 
 	const handleBack = (): void => {
 		if (currentStep > 1) {
-			setCurrentStep((previous) => previous - 1);
+			setCurrentStep((previous: number) => previous - 1);
 		}
 	};
 
@@ -168,24 +233,21 @@ export const Onboarding = (): FunctionComponent => {
 	);
 
 	const renderStep2 = (): JSX.Element => (
-		<div className="card bg-base-100 shadow-xl max-w-md mx-auto">
-			<div className="card-body">
-				<div className="text-center mb-6">
-					<h2 className="card-title text-xl justify-center mb-2">
-						Choose your avatar
-					</h2>
-					<p className="text-base-content/70 text-sm">
-						Pick an avatar that represents you
-					</p>
-				</div>
-
-				<AvatarBuilder
-					initialOptions={data.avatarOptions}
-					onAvatarChange={(options) => {
-						setData((previous) => ({ ...previous, avatarOptions: options }));
-					}}
-				/>
+		<div className="w-full max-w-5xl mx-auto">
+			<div className="text-center mb-6">
+				<h2 className="text-2xl font-bold mb-2">Choose your avatar</h2>
+				<p className="text-base-content/70">
+					Pick an avatar that represents you
+				</p>
 			</div>
+
+			<AvatarBuilder
+				ref={avatarBuilderRef}
+				initialOptions={data.avatarOptions}
+				onAvatarChange={(options) => {
+					setData((previous) => ({ ...previous, avatarOptions: options }));
+				}}
+			/>
 		</div>
 	);
 
@@ -264,10 +326,12 @@ export const Onboarding = (): FunctionComponent => {
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-base-200 to-base-300 py-8 px-4">
-			<div className="max-w-lg mx-auto">
+			<div
+				className={`mx-auto ${currentStep === 2 ? "max-w-6xl" : "max-w-lg"}`}
+			>
 				{/* Progress Steps */}
-				<div className="mb-8">
-					<ul className="steps w-full">
+				<div className="mb-8 flex justify-center">
+					<ul className="steps w-full max-w-lg mx-auto">
 						<li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}>
 							Personal
 						</li>
@@ -294,6 +358,22 @@ export const Onboarding = (): FunctionComponent => {
 					</div>
 				)}
 
+				{errors["avatar"] && (
+					<div className="alert alert-error max-w-md mx-auto mb-6">
+						<span>{errors["avatar"]}</span>
+					</div>
+				)}
+
+				{/* Upload Status */}
+				{uploadStatus && (
+					<div className="alert alert-info max-w-md mx-auto mb-6">
+						<div className="flex items-center">
+							<span className="loading loading-spinner loading-sm mr-2"></span>
+							<span>{uploadStatus}</span>
+						</div>
+					</div>
+				)}
+
 				{/* Navigation Buttons */}
 				<div className="flex justify-between items-center max-w-md mx-auto">
 					<button
@@ -310,6 +390,11 @@ export const Onboarding = (): FunctionComponent => {
 						onClick={() => void handleNext()}
 					>
 						{currentStep === 3 ? "Finish" : "Next"}
+						{isLoading && currentStep === 2 && (
+							<span className="ml-2">
+								{uploadStatus ? "" : "Processing..."}
+							</span>
+						)}
 					</button>
 				</div>
 			</div>

@@ -86,4 +86,5 @@ SELECT cron.unschedule('play-bot-turns');
 
 -- Run the merged SQL to recreate everything
 
-
+-- Remove all storage objects
+DELETE FROM storage.objects;
