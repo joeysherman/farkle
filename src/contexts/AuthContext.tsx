@@ -7,39 +7,11 @@ import {
 } from "react";
 import { supabase } from "../lib/supabaseClient";
 import type { User, AuthError } from "@supabase/supabase-js";
-
-type Profile = {
-	id: string;
-	onboarding_completed: boolean;
-};
-
-type LoadingState =
-	| "idle"
-	| "initializing"
-	| "signing-in"
-	| "signing-out"
-	| "fetching-profile"
-	| "updating-profile";
-
-export interface AuthContextType {
-	user: User | null;
-	profile: Profile | null;
-	isAuthChecking: boolean;
-	loadingState: LoadingState;
-	isAuthenticated: boolean;
-
-	signIn: (
-		email: string,
-		password: string
-	) => Promise<{ error: AuthError | null }>;
-	signUp: (
-		email: string,
-		password: string
-	) => Promise<{ error: AuthError | null }>;
-	signOut: () => Promise<void>;
-	resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
-	updatePassword: (password: string) => Promise<{ error: AuthError | null }>;
-}
+import type {
+	Profile,
+	LoadingState,
+	AuthContextType,
+} from "./AuthContext.types";
 
 export const AuthContext = createContext<AuthContextType | undefined>(
 	undefined
@@ -60,12 +32,18 @@ export function AuthProvider({
 	const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
 		try {
 			setLoadingState("fetching-profile");
-			const { data: profileData } = await supabase
+			const { data: profileData, error } = await supabase
 				.from("profiles")
 				.select("*")
 				.eq("id", userId)
 				.single();
-			return profileData;
+
+			if (error) {
+				console.error("Error fetching profile:", error);
+				return null;
+			}
+
+			return profileData as Profile;
 		} catch (error) {
 			console.error("Error fetching profile:", error);
 			return null;
@@ -74,6 +52,7 @@ export function AuthProvider({
 
 	useEffect(() => {
 		const initializeAuth = async (): Promise<void> => {
+			console.log("initializing auth");
 			setLoadingState("initializing");
 			const {
 				data: { user },
@@ -90,6 +69,8 @@ export function AuthProvider({
 			if (user) {
 				// Fetch profile data for authenticated user
 				const profileData = await fetchUserProfile(user.id);
+
+				console.log("setting profile in initializeAuth", profileData);
 				setProfile(profileData);
 				// Mark auth checking as complete after profile is loaded
 				setIsAuthChecking(false);
@@ -114,6 +95,7 @@ export function AuthProvider({
 
 			// If no user, we can immediately mark auth checking as complete
 			if (!session?.user) {
+				console.log("setting profile to null in onAuthStateChange");
 				setProfile(null);
 				setIsAuthChecking(false);
 				return;
@@ -125,6 +107,7 @@ export function AuthProvider({
 					console.log("session", session);
 					// Fetch user profile when authenticated
 					const profileData = await fetchUserProfile(session.user.id);
+					console.log("setting profile in onAuthStateChange", profileData);
 					setProfile(profileData);
 					// Only mark auth checking as complete after profile is loaded
 					setIsAuthChecking(false);
@@ -134,6 +117,7 @@ export function AuthProvider({
 		});
 
 		return (): void => {
+			console.log("unsubscribing from auth state change");
 			subscription.unsubscribe();
 		};
 	}, []);
@@ -206,6 +190,21 @@ export function AuthProvider({
 		return { error };
 	};
 
+	// Function to manually refetch profile
+	const refetchProfile = async (): Promise<void> => {
+		if (!user?.id) return;
+
+		console.log("🔄 AuthContext: Starting profile refetch for user:", user.id);
+		const profileData = await fetchUserProfile(user.id);
+		console.log("📊 AuthContext: Fetched profile data:", profileData);
+		console.log("🔄 AuthContext: Setting profile in context");
+		setProfile(profileData);
+		console.log(
+			"✅ AuthContext: Profile set in context - onboarding_completed:",
+			profileData?.onboarding_completed
+		);
+	};
+
 	const value = {
 		user,
 		profile,
@@ -217,6 +216,7 @@ export function AuthProvider({
 		signOut,
 		resetPassword,
 		updatePassword,
+		refetchProfile,
 	};
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

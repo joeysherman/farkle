@@ -1,9 +1,5 @@
-import {
-	useNavigate,
-	useRouteContext,
-	useRouter,
-} from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useRouteContext, useRouter } from "@tanstack/react-router";
+import { useState, useRef, useEffect } from "react";
 import type { FunctionComponent } from "../common/types";
 import { supabase } from "../lib/supabaseClient";
 import {
@@ -27,6 +23,7 @@ const updateUserProfile = async (
 	data: Partial<{
 		username: string;
 		avatar_name?: string;
+		onboarding_step?: number;
 		onboarding_completed: boolean;
 	}>
 ): Promise<void> => {
@@ -140,6 +137,7 @@ export const Onboarding = (): FunctionComponent => {
 					setIsLoading(false);
 					return;
 				}
+				console.log("📝 Updating profile for step 1");
 				await updateUserProfile(context.auth.user!.id, {
 					username: data.username,
 					onboarding_step: 2,
@@ -156,27 +154,60 @@ export const Onboarding = (): FunctionComponent => {
 					return;
 				}
 
+				console.log("🎨 Uploading avatar and updating profile for step 2");
 				// Upload avatar to Supabase
 				const avatarUrl = await uploadAvatar();
 
 				await updateUserProfile(context.auth.user!.id, {
 					username: data.username,
 					avatar_name: avatarUrl || "default",
+					onboarding_step: 3,
 				});
 				setCurrentStep((previous: number) => previous + 1);
 			}
 
 			if (currentStep === 3) {
+				console.log("🏁 Completing onboarding - updating profile");
 				// Final step - save data and complete onboarding
 				await updateUserProfile(context.auth.user!.id, {
 					onboarding_completed: true,
 				});
-				// clear the router cache
-				await router.invalidate();
-				await router.navigate({ to: "/app/dashboard" });
+
+				console.log("🔄 Refetching profile from context");
+				// Wait for the auth context to refetch the profile
+				await context.auth.refetchProfile();
+
+				console.log("✅ Profile refetch complete - checking profile state");
+				console.log("Current profile state:", context.auth.profile);
+
+				// Check if profile is updated, if not wait a bit
+				if (context.auth.profile?.onboarding_completed) {
+					console.log(
+						"🎉 Profile updated immediately - navigating to dashboard"
+					);
+					void router.navigate({ to: "/app/dashboard" });
+				} else {
+					console.log("⏳ Profile not yet updated, waiting 100ms...");
+					// Wait a bit for React state to update
+					await new Promise((resolve) => setTimeout(resolve, 100));
+					console.log("🔄 After delay - profile state:", context.auth.profile);
+
+					if (context.auth.profile?.onboarding_completed) {
+						console.log(
+							"✅ Profile updated after delay - navigating to dashboard"
+						);
+						void router.navigate({ to: "/app/dashboard" });
+					} else {
+						console.log(
+							"❌ Profile still not updated - forcing navigation anyway"
+						);
+						// Force navigation - the route guard should handle it
+						void router.navigate({ to: "/app/dashboard" });
+					}
+				}
 			}
 		} catch (error) {
-			console.error("Error in handleNext:", error);
+			console.error("❌ Error in handleNext:", error);
 			setErrors({ general: "Something went wrong. Please try again." });
 		} finally {
 			setIsLoading(false);
@@ -186,7 +217,7 @@ export const Onboarding = (): FunctionComponent => {
 
 	const handleBack = (): void => {
 		if (currentStep > 1) {
-			updateUserProfile(context.auth.user!.id, {
+			void updateUserProfile(context.auth.user!.id, {
 				onboarding_step: currentStep - 1,
 			}).then(() => {
 				setCurrentStep((previous: number) => previous - 1);
