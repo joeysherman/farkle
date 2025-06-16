@@ -13,7 +13,7 @@ interface MyRouterContext {
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: () => (
-		<div className="pt-12">
+		<div>
 			{/* <Navbar /> */}
 			<Outlet />
 			<TanStackRouterDevtools initialIsOpen={false} position="bottom-right" />
