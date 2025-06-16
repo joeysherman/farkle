@@ -153,55 +153,100 @@ export const Dashboard = (): FunctionComponent => {
 	};
 
 	return (
-		<div className="container mx-auto px-4 py-4 sm:py-8">
+		<div className="container mx-auto p-6 space-y-8">
 			{/* Hero Section */}
-			<div className="text-center mb-8 sm:mb-12">
-				<h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900">
-					Welcome to Farkle Online
-				</h1>
-				<p className="mt-3 max-w-md mx-auto text-gray-500 md:text-xl md:max-w-3xl">
-					Join the fun and play the classic dice game with friends online!
-				</p>
+			<div className="hero bg-base-200 rounded-2xl">
+				<div className="hero-content text-center py-12">
+					<div className="max-w-md">
+						<h1 className="text-5xl font-bold">Welcome to Farkle Online</h1>
+						<p className="py-6 text-base-content/70">
+							Join the fun and play the classic dice game with friends online!
+						</p>
+						<button
+							className={`btn btn-primary btn-lg ${loading ? "loading" : ""}`}
+							onClick={handleCreateRoom}
+							disabled={loading}
+						>
+							{loading ? "Creating..." : "Create New Game"}
+						</button>
+					</div>
+				</div>
 			</div>
 
-			{/* Current Rooms Section */}
-			<div className="mb-8">
-				<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
-					Your Current Games
-				</h2>
-				<div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			{/* Error Alert */}
+			{error && (
+				<div className="alert alert-error">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						className="stroke-current shrink-0 h-6 w-6"
+						fill="none"
+						viewBox="0 0 24 24"
+					>
+						<path
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth="2"
+							d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+					<span>{error}</span>
+					<button className="btn btn-sm btn-ghost" onClick={() => setError("")}>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							className="h-4 w-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth="2"
+								d="M6 18L18 6M6 6l12 12"
+							/>
+						</svg>
+					</button>
+				</div>
+			)}
+
+			{/* Current Games Section */}
+			<div className="space-y-4">
+				<h2 className="text-2xl font-bold">Your Current Games</h2>
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					{currentRooms &&
 						currentRooms.length > 0 &&
 						currentRooms.map((room) => (
-							<div
-								key={room.id}
-								className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
-							>
-								<div className="p-4 sm:p-6">
-									<div className="flex justify-between items-center mb-3 sm:mb-4">
-										<h3 className="text-base sm:text-lg font-medium text-gray-900 truncate">
-											{room.name}
-										</h3>
-										<span
-											className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+							<div key={room.id} className="card bg-base-100 shadow-xl">
+								<div className="card-body">
+									<div className="flex justify-between items-start mb-4">
+										<h3 className="card-title text-lg">{room.name}</h3>
+										<div
+											className={`badge ${
 												room?.status === "waiting"
-													? "bg-yellow-100 text-yellow-800"
-													: "bg-green-100 text-green-800"
+													? "badge-warning"
+													: "badge-success"
 											}`}
 										>
 											{room?.status === "waiting" ? "Waiting" : "In Progress"}
-										</span>
+										</div>
 									</div>
-									<div className="flex justify-between items-center">
-										<p className="mt-1 text-sm text-gray-500">
-											Created by:{" "}
-											{room.created_by === user?.id ? "You" : "Someone else"}
-										</p>
-										<p className="mt-1 text-sm text-gray-500">
-											Players: {room.current_players}/{room.max_players}
-										</p>
+
+									<div className="space-y-2 text-sm">
+										<div className="flex justify-between">
+											<span className="text-base-content/70">Created by:</span>
+											<span>
+												{room.created_by === user?.id ? "You" : "Someone else"}
+											</span>
+										</div>
+										<div className="flex justify-between">
+											<span className="text-base-content/70">Players:</span>
+											<span>
+												{room.current_players}/{room.max_players}
+											</span>
+										</div>
 									</div>
-									<div className="mt-4 flex gap-2">
+
+									<div className="card-actions justify-end mt-4 gap-2">
 										<button
 											onClick={() =>
 												navigate({
@@ -209,61 +254,61 @@ export const Dashboard = (): FunctionComponent => {
 													search: { roomId: room.id },
 												})
 											}
-											className={`flex-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
-												room?.status === "waiting"
-													? "bg-indigo-600 hover:bg-indigo-700"
-													: "bg-green-600 hover:bg-green-700"
-											} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+											className="btn btn-primary btn-sm flex-1"
 										>
-											{room?.status === "waiting"
-												? "Continue Game"
-												: "Continue Game"}
+											Continue Game
 										</button>
 										{user &&
 											room.created_by === user.id &&
 											room?.status === "in_progress" && (
 												<button
 													onClick={() => handleEndGame(room.id)}
-													className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+													className="btn btn-error btn-sm"
 												>
-													End Game
+													End
 												</button>
 											)}
 									</div>
 								</div>
 							</div>
 						))}
+
 					{currentRooms === null && (
 						<>
-							<div className="skeleton h-[146px] w-full opacity-70 rounded-lg shadow"></div>
-							<div className="skeleton h-[146px] w-full opacity-70 rounded-lg shadow"></div>
+							<div className="skeleton h-48 w-full"></div>
+							<div className="skeleton h-48 w-full"></div>
+							<div className="skeleton h-48 w-full"></div>
 						</>
 					)}
+
 					{currentRooms && currentRooms.length === 0 && (
-						<div className="min-h-[146px] w-full bg-white opacity-100 rounded-lg shadow hover:shadow-md transition-shadow duration-200">
-							<div className="p-6 text-center">
-								<h3 className="text-xl font-semibold text-gray-900 mb-3">
-									No games available
-								</h3>
-								<p className="text-sm text-gray-600 mb-6">
-									Create a new game and invite friends to play!
-								</p>
-								<button
-									className="inline-flex items-center justify-center px-6 pl-4 py-3 border-2 border-green-600 text-sm font-medium rounded-md text-green-600 bg-transparent hover:bg-green-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-sm hover:shadow transition-all duration-200 group"
-									onClick={handleCreateRoom}
-								>
+						<div className="card bg-base-100 shadow-xl border-2 border-dashed border-base-300">
+							<div className="card-body items-center text-center">
+								<div className="w-16 h-16 rounded-full bg-base-200 flex items-center justify-center mb-4">
 									<svg
-										className="h-5 w-5 mr-2 text-green-600 group-hover:text-white transition-colors duration-200"
-										fill="currentColor"
-										viewBox="0 0 20 20"
 										xmlns="http://www.w3.org/2000/svg"
+										className="h-8 w-8 text-base-content/50"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
 									>
 										<path
-											fillRule="evenodd"
-											d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-											clipRule="evenodd"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth="2"
+											d="M12 6v6m0 0v6m0-6h6m-6 0H6"
 										/>
 									</svg>
+								</div>
+								<h3 className="card-title">No active games</h3>
+								<p className="text-base-content/70">
+									Create a new game to get started!
+								</p>
+								<button
+									className="btn btn-primary mt-4"
+									onClick={handleCreateRoom}
+									disabled={loading}
+								>
 									Create Game
 								</button>
 							</div>
@@ -273,49 +318,37 @@ export const Dashboard = (): FunctionComponent => {
 			</div>
 
 			{/* Game Invites Section */}
-			<div className="mb-8">
-				<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
-					Game Invites
-				</h2>
-				<div className="bg-white shadow overflow-hidden sm:rounded-lg">
-					<div className="px-4 py-5 sm:p-6">
+			<div className="space-y-4">
+				<h2 className="text-2xl font-bold">Game Invites</h2>
+				<div className="card bg-base-100 shadow-xl">
+					<div className="card-body">
 						<GameInvites />
 					</div>
 				</div>
 			</div>
 
-			{/* Available Rooms Section */}
-			<div className="mb-8">
-				<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
-					Available Games
-				</h2>
-				<div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			{/* Available Games Section */}
+			<div className="space-y-4">
+				<h2 className="text-2xl font-bold">Available Games</h2>
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					{availableRooms &&
 						availableRooms.length > 0 &&
 						availableRooms.map((room) => (
-							<div
-								key={room.id}
-								className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
-							>
-								<div className="p-4 sm:p-6">
-									<div className="flex justify-between items-center mb-3 sm:mb-4">
-										<h3 className="text-base sm:text-lg font-medium text-gray-900 truncate">
-											{room.name}
-										</h3>
-										<span
-											className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-												room?.status === "waiting"
-													? "bg-yellow-100 text-yellow-800"
-													: "bg-green-100 text-green-800"
-											}`}
-										>
-											{room?.status === "waiting" ? "Waiting" : "In Progress"}
+							<div key={room.id} className="card bg-base-100 shadow-xl">
+								<div className="card-body">
+									<div className="flex justify-between items-start mb-4">
+										<h3 className="card-title text-lg">{room.name}</h3>
+										<div className="badge badge-warning">Waiting</div>
+									</div>
+
+									<div className="flex justify-between text-sm mb-4">
+										<span className="text-base-content/70">Players:</span>
+										<span>
+											{room.current_players}/{room.max_players}
 										</span>
 									</div>
-									<p className="mt-1 text-sm text-gray-500">
-										Players: {room.current_players}/{room.max_players}
-									</p>
-									<div className="mt-3 sm:mt-4 flex gap-2">
+
+									<div className="card-actions justify-end gap-2">
 										<button
 											onClick={() =>
 												navigate({
@@ -323,93 +356,91 @@ export const Dashboard = (): FunctionComponent => {
 													search: { roomId: room.id },
 												})
 											}
-											className={`flex-1 inline-flex justify-center py-2 px-3 sm:px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
-												room?.status === "waiting"
-													? "bg-indigo-600 hover:bg-indigo-700"
-													: "bg-green-600 hover:bg-green-700"
-											} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+											className="btn btn-primary btn-sm flex-1"
 										>
-											{room?.status === "waiting" ? "Join Game" : "View Game"}
+											Join Game
 										</button>
-										{user &&
-											room.created_by === user.id &&
-											room?.status === "in_progress" && (
-												<button
-													onClick={() => handleEndGame(room.id)}
-													className="inline-flex justify-center py-2 px-3 sm:px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-												>
-													End Game
-												</button>
-											)}
 									</div>
 								</div>
 							</div>
 						))}
+
 					{availableRooms === null && (
 						<>
-							<div className="skeleton h-[146px] w-full opacity-70 rounded-lg shadow"></div>
-							<div className="skeleton h-[146px] w-full opacity-70 rounded-lg shadow"></div>
+							<div className="skeleton h-48 w-full"></div>
+							<div className="skeleton h-48 w-full"></div>
+							<div className="skeleton h-48 w-full"></div>
 						</>
 					)}
+
 					{availableRooms && availableRooms.length === 0 && (
-						<div className="min-h-[146px] w-full bg-white opacity-100 rounded-lg shadow hover:shadow-md transition-shadow duration-200">
-							<div className="p-6 text-center">
-								<h3 className="text-xl font-semibold text-gray-900 mb-3">
-									No games available
-								</h3>
-								<p className="text-sm text-gray-600 mb-6">
-									Create a new game and invite friends to play!
-								</p>
-								<button
-									className="inline-flex items-center justify-center px-6 pl-4 py-3 border-2 border-green-600 text-sm font-medium rounded-md text-green-600 bg-transparent hover:bg-green-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-sm hover:shadow transition-all duration-200 group"
-									onClick={handleCreateRoom}
-								>
+						<div className="card bg-base-100 shadow-xl border-2 border-dashed border-base-300">
+							<div className="card-body items-center text-center">
+								<div className="w-16 h-16 rounded-full bg-base-200 flex items-center justify-center mb-4">
 									<svg
-										className="h-5 w-5 mr-2 text-green-600 group-hover:text-white transition-colors duration-200"
-										fill="currentColor"
-										viewBox="0 0 20 20"
 										xmlns="http://www.w3.org/2000/svg"
+										className="h-8 w-8 text-base-content/50"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
 									>
 										<path
-											fillRule="evenodd"
-											d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-											clipRule="evenodd"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth="2"
+											d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
 										/>
 									</svg>
-									Create Game
-								</button>
+								</div>
+								<h3 className="card-title">No games available</h3>
+								<p className="text-base-content/70">
+									Be the first to create a game!
+								</p>
 							</div>
 						</div>
 					)}
 				</div>
 			</div>
 
-			{/* Game Rules Section */}
-			<div className="pt-0">
-				<h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
-					How to Play
-				</h2>
-				<div className="bg-white shadow overflow-hidden sm:rounded-lg">
-					<div className="px-3 py-4 sm:p-6">
-						<dl className="grid grid-cols-1 gap-y-4 sm:gap-y-6 sm:grid-cols-2 sm:gap-x-4">
-							<div>
-								<dt className="text-sm font-medium text-gray-500">Objective</dt>
-								<dd className="mt-1 text-sm text-gray-900">
+			{/* How to Play Section */}
+			<div className="space-y-4">
+				<h2 className="text-2xl font-bold">How to Play</h2>
+				<div className="card bg-base-100 shadow-xl">
+					<div className="card-body">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+							<div className="space-y-3">
+								<h3 className="text-lg font-semibold">Objective</h3>
+								<p className="text-base-content/80">
 									Be the first player to score 10,000 points by rolling dice and
 									making strategic decisions.
-								</dd>
+								</p>
 							</div>
-							<div>
-								<dt className="text-sm font-medium text-gray-500">Scoring</dt>
-								<dd className="mt-1 text-sm text-gray-900 space-y-1">
-									<p>• Single 1: 100 points</p>
-									<p>• Single 5: 50 points</p>
-									<p>• Three of a kind: Value × 100 (1s are worth 1000)</p>
-									<p>• Three pairs: 750 points</p>
-									<p>• Straight (1-6): 1000 points</p>
-								</dd>
+							<div className="space-y-3">
+								<h3 className="text-lg font-semibold">Scoring</h3>
+								<div className="space-y-1 text-sm">
+									<div className="flex justify-between">
+										<span>Single 1:</span>
+										<span className="font-medium">100 points</span>
+									</div>
+									<div className="flex justify-between">
+										<span>Single 5:</span>
+										<span className="font-medium">50 points</span>
+									</div>
+									<div className="flex justify-between">
+										<span>Three of a kind:</span>
+										<span className="font-medium">Value × 100</span>
+									</div>
+									<div className="flex justify-between">
+										<span>Three pairs:</span>
+										<span className="font-medium">750 points</span>
+									</div>
+									<div className="flex justify-between">
+										<span>Straight (1-6):</span>
+										<span className="font-medium">1000 points</span>
+									</div>
+								</div>
 							</div>
-						</dl>
+						</div>
 					</div>
 				</div>
 			</div>

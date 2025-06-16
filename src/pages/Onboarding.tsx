@@ -1,5 +1,5 @@
 import { useRouteContext, useRouter } from "@tanstack/react-router";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import type { FunctionComponent } from "../common/types";
 import { supabase } from "../lib/supabaseClient";
 import {
@@ -189,7 +189,9 @@ export const Onboarding = (): FunctionComponent => {
 				} else {
 					console.log("⏳ Profile not yet updated, waiting 100ms...");
 					// Wait a bit for React state to update
-					await new Promise((resolve) => setTimeout(resolve, 100));
+					await new Promise<void>((resolve) => {
+						setTimeout(() => resolve(), 100);
+					});
 					console.log("🔄 After delay - profile state:", context.auth.profile);
 
 					if (context.auth.profile?.onboarding_completed) {
@@ -225,148 +227,14 @@ export const Onboarding = (): FunctionComponent => {
 		}
 	};
 
-	// Step content components
-	const renderStep1 = (): JSX.Element => (
-		<div className="card bg-base-100 shadow-xl max-w-md mx-auto">
-			<div className="card-body">
-				<div className="text-center mb-6">
-					<h2 className="card-title text-xl justify-center mb-2">
-						What should we call you?
-					</h2>
-					<p className="text-base-content/70 text-sm">
-						Choose a username that others will see
-					</p>
-				</div>
-
-				<div className="form-control w-full">
-					<label className="label">
-						<span className="label-text font-medium">Username</span>
-					</label>
-					<input
-						className={`input input-bordered w-full ${errors["username"] ? "input-error" : ""}`}
-						maxLength={20}
-						placeholder="Enter your username"
-						type="text"
-						value={data.username}
-						onChange={(event) => {
-							setData((previous) => ({
-								...previous,
-								username: event.target.value,
-							}));
-						}}
-					/>
-					{errors["username"] && (
-						<label className="label">
-							<span className="label-text-alt text-error">
-								{errors["username"]}
-							</span>
-						</label>
-					)}
-				</div>
-			</div>
-		</div>
-	);
-
-	const renderStep2 = (): JSX.Element => (
-		<div className="w-full max-w-5xl mx-auto">
-			<div className="text-center mb-6">
-				<h2 className="text-2xl font-bold mb-2">Choose your avatar</h2>
-				<p className="text-base-content/70">
-					Pick an avatar that represents you
-				</p>
-			</div>
-
-			<AvatarBuilder
-				ref={avatarBuilderRef}
-				initialOptions={data.avatarOptions}
-				onAvatarChange={(options) => {
-					setData((previous) => ({ ...previous, avatarOptions: options }));
-				}}
-			/>
-		</div>
-	);
-
-	const renderStep3 = (): JSX.Element => (
-		<div className="card bg-base-100 shadow-xl max-w-md mx-auto">
-			<div className="card-body">
-				<div className="text-center mb-6">
-					<h2 className="card-title text-xl justify-center mb-2">
-						Almost done!
-					</h2>
-					<p className="text-base-content/70 text-sm">
-						Set your preferences and finish setup
-					</p>
-				</div>
-
-				<div className="bg-base-200 rounded-lg p-4 mb-6">
-					<div className="flex items-center space-x-3">
-						<div className="w-12 h-12 rounded-full bg-base-300 flex items-center justify-center">
-							{data.avatarOptions ? "🎨" : "👤"}
-						</div>
-						<div>
-							<h3 className="font-semibold">{data.username}</h3>
-							<p className="text-xs text-base-content/60">
-								Ready to get started!
-							</p>
-						</div>
-					</div>
-				</div>
-
-				<div className="space-y-3">
-					<div className="form-control">
-						<label className="label cursor-pointer">
-							<span className="label-text font-medium">
-								Email notifications
-							</span>
-							<input
-								checked={data.preferences.notifications}
-								className="checkbox checkbox-primary"
-								type="checkbox"
-								onChange={(event) => {
-									setData((previous) => ({
-										...previous,
-										preferences: {
-											...previous.preferences,
-											notifications: event.target.checked,
-										},
-									}));
-								}}
-							/>
-						</label>
-					</div>
-
-					<div className="form-control">
-						<label className="label cursor-pointer">
-							<span className="label-text font-medium">Newsletter updates</span>
-							<input
-								checked={data.preferences.newsletter}
-								className="checkbox checkbox-primary"
-								type="checkbox"
-								onChange={(event) => {
-									setData((previous) => ({
-										...previous,
-										preferences: {
-											...previous.preferences,
-											newsletter: event.target.checked,
-										},
-									}));
-								}}
-							/>
-						</label>
-					</div>
-				</div>
-			</div>
-		</div>
-	);
-
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-base-200 to-base-300 py-8 px-4">
+		<div className="min-h-screen bg-base-200">
 			<div
-				className={`mx-auto ${currentStep === 2 ? "max-w-6xl" : "max-w-lg"}`}
+				className={`container mx-auto px-4 py-8 ${currentStep === 2 ? "max-w-6xl" : "max-w-lg"}`}
 			>
 				{/* Progress Steps */}
-				<div className="mb-8 flex justify-center">
-					<ul className="steps w-full max-w-lg mx-auto">
+				<div className="mb-8">
+					<ul className="steps w-full">
 						<li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}>
 							Personal
 						</li>
@@ -381,27 +249,165 @@ export const Onboarding = (): FunctionComponent => {
 
 				{/* Step Content */}
 				<div className="mb-6">
-					{currentStep === 1 && renderStep1()}
-					{currentStep === 2 && renderStep2()}
-					{currentStep === 3 && renderStep3()}
+					{currentStep === 1 && (
+						<div className="card bg-base-100 shadow-xl">
+							<div className="card-body">
+								<div className="text-center mb-6">
+									<h2 className="card-title text-2xl justify-center mb-2">
+										What should we call you?
+									</h2>
+									<p className="text-base-content/70">
+										Choose a username that others will see
+									</p>
+								</div>
+
+								<div className="form-control w-full">
+									<label className="label">
+										<span className="label-text">Username</span>
+									</label>
+									<input
+										type="text"
+										placeholder="Enter your username"
+										maxLength={20}
+										value={data.username}
+										className={`input input-bordered w-full ${
+											errors["username"] ? "input-error" : ""
+										}`}
+										onChange={(event) => {
+											setData((previous) => ({
+												...previous,
+												username: event.target.value,
+											}));
+										}}
+									/>
+									{errors["username"] && (
+										<label className="label">
+											<span className="label-text-alt text-error">
+												{errors["username"]}
+											</span>
+										</label>
+									)}
+								</div>
+							</div>
+						</div>
+					)}
+
+					{currentStep === 2 && (
+						<div className="card bg-base-100 shadow-xl">
+							<div className="card-body">
+								<div className="text-center mb-6">
+									<h2 className="card-title text-2xl justify-center mb-2">
+										Choose your avatar
+									</h2>
+									<p className="text-base-content/70">
+										Pick an avatar that represents you
+									</p>
+								</div>
+
+								<AvatarBuilder
+									ref={avatarBuilderRef}
+									initialOptions={data.avatarOptions}
+									onAvatarChange={(options) => {
+										setData((previous) => ({
+											...previous,
+											avatarOptions: options,
+										}));
+									}}
+								/>
+							</div>
+						</div>
+					)}
+
+					{currentStep === 3 && (
+						<div className="card bg-base-100 shadow-xl">
+							<div className="card-body">
+								<div className="text-center mb-6">
+									<h2 className="card-title text-2xl justify-center mb-2">
+										Almost done!
+									</h2>
+									<p className="text-base-content/70">
+										Set your preferences and finish setup
+									</p>
+								</div>
+
+								<div className="bg-base-200 rounded-lg p-4 mb-6">
+									<div className="flex items-center space-x-3">
+										<div className="avatar placeholder">
+											<div className="w-12 rounded-full bg-base-300">
+												<span>{data.avatarOptions ? "🎨" : "👤"}</span>
+											</div>
+										</div>
+										<div>
+											<h3 className="font-semibold">{data.username}</h3>
+											<p className="text-sm text-base-content/70">
+												Ready to get started!
+											</p>
+										</div>
+									</div>
+								</div>
+
+								<div className="space-y-4">
+									<div className="form-control">
+										<label className="label cursor-pointer justify-between">
+											<span className="label-text">Email notifications</span>
+											<input
+												type="checkbox"
+												className="checkbox checkbox-primary"
+												checked={data.preferences.notifications}
+												onChange={(event) => {
+													setData((previous) => ({
+														...previous,
+														preferences: {
+															...previous.preferences,
+															notifications: event.target.checked,
+														},
+													}));
+												}}
+											/>
+										</label>
+									</div>
+
+									<div className="form-control">
+										<label className="label cursor-pointer justify-between">
+											<span className="label-text">Newsletter updates</span>
+											<input
+												type="checkbox"
+												className="checkbox checkbox-primary"
+												checked={data.preferences.newsletter}
+												onChange={(event) => {
+													setData((previous) => ({
+														...previous,
+														preferences: {
+															...previous.preferences,
+															newsletter: event.target.checked,
+														},
+													}));
+												}}
+											/>
+										</label>
+									</div>
+								</div>
+							</div>
+						</div>
+					)}
 				</div>
 
 				{/* Error Message */}
 				{errors["general"] && (
-					<div className="alert alert-error max-w-md mx-auto mb-6">
+					<div className="alert alert-error">
 						<span>{errors["general"]}</span>
 					</div>
 				)}
 
 				{errors["avatar"] && (
-					<div className="alert alert-error max-w-md mx-auto mb-6">
+					<div className="alert alert-error">
 						<span>{errors["avatar"]}</span>
 					</div>
 				)}
 
 				{/* Upload Status */}
 				{uploadStatus && (
-					<div className="alert alert-info max-w-md mx-auto mb-6">
+					<div className="alert alert-info">
 						<div className="flex items-center">
 							<span className="loading loading-spinner loading-sm mr-2"></span>
 							<span>{uploadStatus}</span>
@@ -410,7 +416,7 @@ export const Onboarding = (): FunctionComponent => {
 				)}
 
 				{/* Navigation Buttons */}
-				<div className="flex justify-between items-center max-w-md mx-auto">
+				<div className="flex justify-between items-center">
 					<button
 						className={`btn btn-outline ${currentStep === 1 ? "invisible" : ""}`}
 						disabled={isLoading}

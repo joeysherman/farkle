@@ -39,7 +39,7 @@ const PlayerListItem: React.FC<PlayerListItemProps> = ({
 					<img
 						alt={`${userData.username}'s avatar`}
 						className="w-7 h-7 md:w-8 md:h-8 rounded-full"
-						src={`/avatars/${userData.avatar_name || "default"}.svg`}
+						src={`${userData?.avatar_name || "default"}`}
 					/>
 					<div
 						className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 md:w-3 md:h-3 rounded-full border-2 border-white ${
