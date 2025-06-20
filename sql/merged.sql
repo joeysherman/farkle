@@ -2259,14 +2259,10 @@ DECLARE
   v_bot_player_id UUID;
   v_current_turn game_turns;
   v_latest_action turn_actions;
-
-  c_should_bank BOOLEAN;
-  c_farkle_probability NUMERIC;
-  c_risk_limit INTEGER;
-  c_score_options JSONB;
-  
+  v_bot_decision JSONB;
   v_roll_score INTEGER;
-  
+  v_selected_dice INTEGER[];
+  c_selected_dice INTEGER[];
 BEGIN
   -- get the current_player from the game_states table
   SELECT current_player_id, current_turn INTO v_current_player_id, v_current_turn_id
@@ -2277,9 +2273,6 @@ BEGIN
   SELECT player_id INTO v_bot_player_id
   FROM bot_players
   WHERE game_id = p_game_id AND player_id = v_current_player_id;
-
-  -- Debug information
-  --RAISE NOTICE 'Bot player ID: %', v_bot_player_id;
 
   -- Only proceed if we found a bot player
   IF v_bot_player_id IS NOT NULL THEN
@@ -2295,27 +2288,25 @@ BEGIN
     ORDER BY action_number DESC
     LIMIT 1;
 
-    -- Debug information
-    -- RAISE NOTICE 'Latest action: %', v_latest_action;
-
     -- Check if we found a turn action
     IF v_latest_action.id IS NOT NULL THEN
-     -- if v_latest_action.score is > 0
-     IF v_latest_action.score > 0 THEN
-       -- Get bot difficulty and current player's total score
-       SELECT gp.score INTO v_roll_score
-       FROM bot_players bp
-       JOIN game_players gp ON bp.player_id = gp.id
-       WHERE bp.player_id = v_current_player_id;
-
-               -- Calculate total turn score so far
+      -- if v_latest_action.score is > 0, we need to make a decision
+      IF v_latest_action.score > 0 THEN
+        -- Calculate total turn score so far
         SELECT COALESCE(SUM(score), 0) INTO v_roll_score
         FROM turn_actions
         WHERE turn_id = v_current_turn_id
         AND outcome IS NOT NULL;
+      
+        
+        IF v_latest_action.selected_dice IS NOT NULL THEN
+          v_selected_dice := v_latest_action.selected_dice;
+        ELSE
+          v_selected_dice := ARRAY[]::INTEGER[];
+        END IF;
 
-        -- Use the new decision-making function
-        c_score_options := make_bot_decision(
+        -- Get the bot's decision
+        v_bot_decision := make_bot_decision(
           v_latest_action.dice_values,
           v_roll_score, -- total turn score so far
           v_latest_action.available_dice,
@@ -2324,55 +2315,117 @@ BEGIN
           p_game_id,
           v_latest_action.id
         );
-      -- If c_score_options.action is 
-       -- return the c_score_options
-       RETURN c_score_options;
-       -- Execute the decision
-       IF (c_score_options->>'action') = 'bank' THEN
-         -- Select the dice first, then bank
-         PERFORM select_dice(v_latest_action.id, 
-                           ARRAY(SELECT jsonb_array_elements_text(c_score_options->'selected_dice'))::INTEGER[]);
-         PERFORM process_turn_action(p_game_id, 'bank');
-       ELSIF (c_score_options->>'action') = 'continue' THEN
-         -- Select the dice first, then continue
-         PERFORM select_dice(v_latest_action.id, 
-                           ARRAY(SELECT jsonb_array_elements_text(c_score_options->'selected_dice'))::INTEGER[]);
-         PERFORM process_turn_action(p_game_id, 'continue');
-       ELSE
-         -- Bust case
-         PERFORM process_turn_action(p_game_id, 'bust');
-       END IF;
 
-     ELSE
-      -- process the turn with "bust"
-      PERFORM process_turn_action(p_game_id, 'bust');
-     END IF;
-    
-      RETURN jsonb_build_object(
-        'status', 'success',
-        'message', 'should process action',
-        'turn', v_current_turn,
-        'turn_id', v_current_turn_id,
-        'turn_action', v_latest_action,
-        'should_bank', c_should_bank,
-        'farkle_probability', c_farkle_probability,
-        'risk_limit', c_risk_limit,
-        'score_options', c_score_options
-      );
+        c_selected_dice := ARRAY(SELECT jsonb_array_elements_text(v_bot_decision->'selected_dice'))::INTEGER[];
+
+        -- Debug check for dice selection values
+        -- RETURN jsonb_build_object(
+        --   'debug_check', true,
+        --   'v_selected_dice', v_selected_dice,
+        --   'v_selected_dice_length', array_length(v_selected_dice, 1),
+        --   'v_latest_action_selected_dice', v_latest_action.selected_dice,
+        --   'v_latest_action_selected_dice_length', array_length(v_latest_action.selected_dice, 1),
+        --   'v_latest_action_selected_dice_type', pg_typeof(v_latest_action.selected_dice),
+        --   'bot_decision_selected_dice', v_bot_decision->'selected_dice',
+        --   'bot_decision_selected_dice_type', pg_typeof(v_bot_decision->'selected_dice'),
+        --   'bot_decision_full', v_bot_decision,
+        --   'turn_action_id', v_latest_action.id,
+        --   'v_latest_action', v_latest_action,
+        --   'c_selected_dice', c_selected_dice,
+        --   'c_selected_dice_length', array_length(c_selected_dice, 1),
+        --   'c_selected_dice_type', pg_typeof(c_selected_dice)
+        -- );
+        
+        
+        -- if v_selected_dice is an empty array and v_bot_decision->'selected_dice' is not empty array
+        IF array_length(v_selected_dice, 1) IS NULL THEN
+          IF array_length(c_selected_dice, 1) IS NOT NULL AND array_length(c_selected_dice, 1) > 0 THEN
+            -- Select the dice first, then return the decision
+         
+            PERFORM select_dice(v_latest_action.id, c_selected_dice);
+            RETURN jsonb_build_object(
+              'status', 'success',
+              'message', 'Bot selected dice #1',
+              'action', 'select',
+              'selected_dice', v_selected_dice,
+              'turn_id', v_current_turn_id,
+              'c_selected_dice', c_selected_dice,
+              'v_latest_action', v_latest_action,
+              'decision', v_bot_decision
+            );
+            
+          END IF;
+ 
+        END IF;
+
+  
+
+        -- Execute the decision using CASE statement (switch-like behavior)
+        CASE (v_bot_decision->>'action')
+          WHEN 'bank' THEN
+            -- Select the dice first, then bank
+            PERFORM process_turn_action(p_game_id, 'bank');
+            
+          WHEN 'continue' THEN
+            -- Select the dice first, then continue
+            -- IF array_length(v_selected_dice, 1) > 0 THEN
+            --   PERFORM select_dice(v_latest_action.id, v_selected_dice);
+            --   RETURN jsonb_build_object(
+            --     'status', 'success',
+            --     'message', 'Bot selected dice #2',
+            --     'action', 'select',
+            --     'selected_dice', v_selected_dice,
+            --     'turn_id', v_current_turn_id,
+            --     'decision', v_bot_decision
+            --   );
+            -- END IF;
+            PERFORM process_turn_action(p_game_id, 'continue');
+            
+          ELSE
+            -- Bust case (default)
+            PERFORM process_turn_action(p_game_id, 'bust');
+        END CASE;
+
+        RETURN jsonb_build_object(
+          'status', 'success',
+          'message', 'Bot decision executed after case statement',
+          'action', v_bot_decision->>'action',
+          'v_selected_dice', array_length(v_selected_dice, 1),
+          'c_selected_dice', array_length(c_selected_dice, 1),
+          'selected_dice', v_selected_dice,
+          'reasoning', v_bot_decision->>'reasoning',
+          'turn_id', v_current_turn_id,
+          'decision', v_bot_decision,
+          'v_latest_action', v_latest_action
+        );
+
+      ELSE
+        -- No scoring dice, must bust
+        PERFORM process_turn_action(p_game_id, 'bust');
+        RETURN jsonb_build_object(
+          'status', 'success',
+          'message', 'Bot busted - no scoring dice',
+          'action', 'bust',
+          'turn_id', v_current_turn_id
+        );
+      END IF;
     ELSE
-      -- perform a roll
+      -- No turn action yet, perform initial roll
       PERFORM perform_roll(p_game_id, 6);
       RETURN jsonb_build_object(
         'status', 'success',
-        'message', 'should perform roll',
-        'turn', v_current_turn,
-        'turn_id', v_current_turn_id,
-        'turn_action', v_latest_action
+        'message', 'Bot performed initial roll',
+        'action', 'roll',
+        'turn_id', v_current_turn_id
       );
     END IF;
   END IF;
 
-  RETURN NULL;
+  RETURN jsonb_build_object(
+    'status', 'no_action',
+    'message', 'Current player is not a bot',
+    'current_player_id', v_current_player_id
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -2443,11 +2496,11 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Schedule the bot turns function to run every 10 seconds
-SELECT cron.schedule(
-  'play-bot-turns',  -- job name
-  '*/10 * * * * *', -- schedule (every 10 seconds)
-  'SELECT cron_play_bot_turns();'  -- command
-);
+-- SELECT cron.schedule(
+--   'play-bot-turns',  -- job name
+--   '*/10 * * * * *', -- schedule (every 10 seconds)
+--   'SELECT cron_play_bot_turns();'  -- command
+-- );
 
 -- Function to make bot decisions: which dice to keep and whether to bank
 CREATE OR REPLACE FUNCTION make_bot_decision(
@@ -2518,12 +2571,14 @@ BEGIN
     END LOOP;
     
     v_temp_result := calculate_turn_score(p_dice_values);
-    -- process the turn
-    PERFORM process_turn_action(p_game_id, 'continue');
 
     RETURN jsonb_build_object(
       'action', 'continue',
       'selected_dice', v_selected_indices,
+      'v_temp_result', v_temp_result,
+      'v_dice_counts', v_dice_counts,
+      'v_has_straight', v_has_straight,
+      'v_has_three_pairs', v_has_three_pairs,
       'expected_score', v_temp_result.score,
       'reasoning', CASE WHEN v_has_straight THEN 'Taking straight (1000 pts)' ELSE 'Taking three pairs (750 pts)' END
     );
@@ -2643,10 +2698,8 @@ BEGIN
     v_should_bank := TRUE;
   END IF;
 
-  -- Return decision
+  -- Return decision without executing any actions
   IF v_should_bank THEN
-    -- process the turn
-    PERFORM process_turn_action(p_game_id, 'bank');
     RETURN jsonb_build_object(
       'action', 'bank',
       'selected_dice', v_best_indices,
@@ -2658,12 +2711,6 @@ BEGIN
                          round(v_farkle_prob * 100, 1))
     );
   ELSE
-  -- if we have v_best_indices length, then we should select the dice with the selected_dice value
-  IF array_length(v_best_indices, 1) > 0 THEN
-    PERFORM select_dice(p_turn_action_id, v_best_indices);
-  END IF;
-  PERFORM process_turn_action(p_game_id, 'continue');
-  
     RETURN jsonb_build_object(
       'action', 'continue',
       'selected_dice', v_best_indices,
