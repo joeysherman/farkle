@@ -62,7 +62,8 @@ DROP FUNCTION IF EXISTS handle_bot_turns();
 DROP FUNCTION IF EXISTS cron_play_bot_turns();
 DROP FUNCTION IF EXISTS handle_new_user();
 
-DROP FUNCTION IF EXISTS make_bot_decision(INTEGER[], INTEGER, INTEGER, INTEGER, INTEGER, UUID, UUID);
+DROP FUNCTION IF EXISTS make_bot_decision(INTEGER[], INTEGER, INTEGER, INTEGER);
+
 DROP FUNCTION IF EXISTS test_bot_decisions();
 DROP FUNCTION IF EXISTS test_bot_strategy_scenarios();
 DROP FUNCTION IF EXISTS run_bot_tests();

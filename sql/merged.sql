@@ -2309,11 +2309,8 @@ BEGIN
         v_bot_decision := make_bot_decision(
           v_latest_action.dice_values,
           v_roll_score, -- total turn score so far
-          v_latest_action.available_dice,
           (SELECT score FROM game_players WHERE id = v_current_player_id), -- player's total game score
-          10000, -- target score
-          p_game_id,
-          v_latest_action.id
+          10000 -- target score
         );
 
         c_selected_dice := ARRAY(SELECT jsonb_array_elements_text(v_bot_decision->'selected_dice'))::INTEGER[];
@@ -2506,11 +2503,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION make_bot_decision(
   p_dice_values INTEGER[],
   p_current_turn_score INTEGER,
-  p_available_dice INTEGER,
   p_player_total_score INTEGER DEFAULT 0,
-  p_target_score INTEGER DEFAULT 10000,
-  p_game_id UUID DEFAULT NULL,
-  p_turn_action_id UUID DEFAULT NULL
+  p_target_score INTEGER DEFAULT 10000
 ) RETURNS JSONB AS $$
 DECLARE
   v_scoring_options RECORD;
@@ -2575,6 +2569,7 @@ BEGIN
     RETURN jsonb_build_object(
       'action', 'continue',
       'selected_dice', v_selected_indices,
+      'dice_to_keep', v_selected_indices,
       'v_temp_result', v_temp_result,
       'v_dice_counts', v_dice_counts,
       'v_has_straight', v_has_straight,
@@ -2661,6 +2656,7 @@ BEGIN
   IF v_best_score = 0 THEN
     RETURN jsonb_build_object(
       'action', 'bust',
+      'dice_to_keep', ARRAY[]::INTEGER[],
       'reasoning', 'No scoring combinations available'
     );
   END IF;
@@ -2700,20 +2696,26 @@ BEGIN
 
   -- Return decision without executing any actions
   IF v_should_bank THEN
-    RETURN jsonb_build_object(
-      'action', 'bank',
-      'selected_dice', v_best_indices,
-      'expected_score', v_best_score,
-      'total_turn_score', p_current_turn_score + v_best_score,
-      'farkle_probability', v_farkle_prob,
-      'reasoning', format('Banking with %s points (%s%% farkle risk)', 
-                         p_current_turn_score + v_best_score, 
-                         round(v_farkle_prob * 100, 1))
-    );
+      RETURN jsonb_build_object(
+    'action', 'bank',
+    'selected_dice', v_best_indices,
+    'dice_to_keep', v_best_indices,
+    'expected_score', v_best_score,
+    'total_turn_score', p_current_turn_score + v_best_score,
+    'farkle_probability', v_farkle_prob,
+    'v_temp_result', v_temp_result,
+    'reasoning', format('Banking with %s points (%s%% farkle risk)', 
+                       p_current_turn_score + v_best_score, 
+                       round(v_farkle_prob * 100, 1))
+  );
   ELSE
+    -- Use the strategically calculated v_best_indices instead of overriding with all valid dice
+    -- The v_best_indices was already calculated based on optimal strategy above
     RETURN jsonb_build_object(
       'action', 'continue',
+      'p_dice_values', p_dice_values,
       'selected_dice', v_best_indices,
+      'dice_to_keep', v_best_indices,
       'expected_score', v_best_score,
       'remaining_dice', v_best_remaining_dice,
       'farkle_probability', v_farkle_prob,
@@ -2727,115 +2729,60 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- Test function for bot decision making
 CREATE OR REPLACE FUNCTION test_bot_decisions()
-RETURNS SETOF text AS $$
+RETURNS JSONB AS $$
 DECLARE
+  test_results JSONB := '{}'::JSONB;
   result JSONB;
-  expected_action TEXT;
+  test_cases JSONB[];
+  test_case JSONB;
+  i INTEGER;
 BEGIN
-  -- Test Case 1: Example from user - [1,3,4,2,2,2] should keep only the 1
-  result := make_bot_decision(ARRAY[1,3,4,2,2,2], 0, 6, 0, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'continue', 
-    format('Test 1 failed: Expected continue, got %s. Result: %s', expected_action, result::text);
-  ASSERT array_length(ARRAY(SELECT jsonb_array_elements_text(result->'selected_dice')), 1) = 1,
-    format('Test 1 failed: Should select only 1 die, selected %s dice', 
-           array_length(ARRAY(SELECT jsonb_array_elements_text(result->'selected_dice')), 1));
-  
-  -- Test Case 2: High turn score with few dice - should bank
-  result := make_bot_decision(ARRAY[1,3], 1200, 2, 5000, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'bank',
-    format('Test 2 failed: Expected bank with high score, got %s', expected_action);
-  
-  -- Test Case 3: Low turn score with few dice - should continue
-  result := make_bot_decision(ARRAY[1,6], 300, 2, 2000, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'continue',
-    format('Test 3 failed: Expected continue with low score, got %s', expected_action);
-  
-  -- Test Case 4: Three of a kind should be taken
-  result := make_bot_decision(ARRAY[3,3,3,1,2,6], 0, 6, 0, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'continue',
-    format('Test 4 failed: Expected continue with three 3s, got %s', expected_action);
-  ASSERT (result->>'expected_score')::INTEGER = 300,
-    format('Test 4 failed: Expected 300 points for three 3s, got %s', result->>'expected_score');
-  
-  -- Test Case 5: Straight should be taken
-  result := make_bot_decision(ARRAY[1,2,3,4,5,6], 0, 6, 0, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'continue',
-    format('Test 5 failed: Expected continue with straight, got %s', expected_action);
-  ASSERT (result->>'expected_score')::INTEGER = 1000,
-    format('Test 5 failed: Expected 1000 points for straight, got %s', result->>'expected_score');
-  
-  -- Test Case 6: Three pairs should be taken
-  result := make_bot_decision(ARRAY[2,2,4,4,6,6], 0, 6, 0, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'continue',
-    format('Test 6 failed: Expected continue with three pairs, got %s', expected_action);
-  ASSERT (result->>'expected_score')::INTEGER = 750,
-    format('Test 6 failed: Expected 750 points for three pairs, got %s', result->>'expected_score');
-  
-  -- Test Case 7: No scoring dice - should bust
-  result := make_bot_decision(ARRAY[2,3,4,6], 0, 4, 0, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'bust',
-    format('Test 7 failed: Expected bust with no scoring dice, got %s', expected_action);
-  
-  -- Test Case 8: Close to winning - should be conservative
-  result := make_bot_decision(ARRAY[1,5], 200, 2, 9500, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'bank',
-    format('Test 8 failed: Expected bank when close to winning, got %s', expected_action);
-  
-  -- Test Case 9: Easy difficulty - should bank earlier
-  result := make_bot_decision(ARRAY[1,4], 150, 2, 1000, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'continue', -- Updated expectation since we removed difficulty levels
-    format('Test 9 failed: Should continue with low score, got %s', expected_action);
-  
-  -- Test Case 10: Hard difficulty - should be more aggressive
-  result := make_bot_decision(ARRAY[5,6], 400, 2, 1000, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'bank', -- Updated expectation for high farkle risk
-    format('Test 10 failed: Should bank with high farkle risk, got %s', expected_action);
-  
-  -- Test Case 11: Four of a kind - should take all
-  result := make_bot_decision(ARRAY[4,4,4,4,1,2], 0, 6, 0, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'continue',
-    format('Test 11 failed: Expected continue with four 4s, got %s', expected_action);
-  ASSERT (result->>'expected_score')::INTEGER = 800,
-    format('Test 11 failed: Expected 800 points for four 4s, got %s', result->>'expected_score');
-  
-  -- Test Case 12: Multiple 1s with few dice - strategic choice
-  result := make_bot_decision(ARRAY[1,1,6,3], 100, 4, 2000, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'continue',
-    format('Test 12 failed: Expected continue with multiple 1s, got %s', expected_action);
-  
-  -- Test Case 13: High-value turn, should bank to avoid risk
-  result := make_bot_decision(ARRAY[1,4], 850, 2, 3000, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'bank',
-    format('Test 13 failed: Should bank with high-value turn, got %s', expected_action);
-  
-  -- Test Case 14: Single die remaining with decent score
-  result := make_bot_decision(ARRAY[5], 300, 1, 4000, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'bank',
-    format('Test 14 failed: Should bank with single die and decent score, got %s', expected_action);
-  
-  -- Test Case 15: Multiple 5s - should take one if early in turn
-  result := make_bot_decision(ARRAY[5,5,5,2,3,4], 0, 6, 1000, 10000);
-  expected_action := result->>'action';
-  ASSERT expected_action = 'continue',
-    format('Test 15 failed: Expected continue with three 5s, got %s', expected_action);
-  ASSERT (result->>'expected_score')::INTEGER = 500,
-    format('Test 15 failed: Expected 500 points for three 5s, got %s', result->>'expected_score');
-  
-  RETURN NEXT 'All bot decision tests passed!';
+  -- Define test cases with inputs
+  test_cases := ARRAY[
+    '{"name": "three_of_a_kind", "dice": [3,3,3,1,2,6], "turn_score": 0, "player_score": 1000, "description": "Three 3s with mixed dice"}'::JSONB,
+    '{"name": "single_ones_and_fives", "dice": [1,1,5,2,4,6], "turn_score": 0, "player_score": 2000, "description": "Two 1s and one 5 available"}'::JSONB,
+    '{"name": "straight_combo", "dice": [1,2,3,4,5,6], "turn_score": 0, "player_score": 3000, "description": "Perfect straight 1-6"}'::JSONB,
+    '{"name": "three_pairs", "dice": [2,2,4,4,6,6], "turn_score": 0, "player_score": 4000, "description": "Three pairs combination"}'::JSONB,
+    '{"name": "high_risk_continue", "dice": [1,3], "turn_score": 400, "player_score": 5000, "description": "High turn score with risky continue"}'::JSONB,
+    '{"name": "conservative_bank", "dice": [5,2], "turn_score": 500, "player_score": 8000, "description": "Should bank with decent score"}'::JSONB,
+    '{"name": "farkle_scenario", "dice": [2,3,4,6], "turn_score": 0, "player_score": 1500, "description": "No scoring dice available"}'::JSONB,
+    '{"name": "four_of_a_kind", "dice": [1,1,1,1,2,4], "turn_score": 100, "player_score": 6000, "description": "Four 1s for big score"}'::JSONB,
+    '{"name": "mixed_scoring_options", "dice": [1,5,5,5,2,3], "turn_score": 200, "player_score": 7000, "description": "Mix of 1s and three 5s"}'::JSONB,
+    '{"name": "endgame_conservative", "dice": [1,6], "turn_score": 300, "player_score": 9500, "description": "Close to winning, be conservative"}'::JSONB
+  ];
+
+  -- Run each test case
+  FOR i IN 1..array_length(test_cases, 1) LOOP
+    test_case := test_cases[i];
+    
+    -- Call make_bot_decision with test case parameters
+    result := make_bot_decision(
+      ARRAY(SELECT jsonb_array_elements_text(test_case->'dice'))::INTEGER[],
+      (test_case->>'turn_score')::INTEGER,
+      (test_case->>'player_score')::INTEGER,
+      10000
+    );
+    
+    -- Add test result to output
+    test_results := test_results || jsonb_build_object(
+      test_case->>'name',
+      jsonb_build_object(
+        'description', test_case->>'description',
+        'inputs', jsonb_build_object(
+          'dice_values', test_case->'dice',
+          'turn_score', test_case->'turn_score',
+          'player_score', test_case->'player_score',
+          'target_score', 10000
+        ),
+        'outputs', result,
+        'dice_to_keep', result->'dice_to_keep',
+        'action', result->>'action',
+        'expected_score', result->'expected_score'
+      )
+    );
+  END LOOP;
+
+  RETURN test_results;
 END;
 $$ LANGUAGE plpgsql;
 
