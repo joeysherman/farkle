@@ -5,7 +5,7 @@ import ReactDOM from "react-dom/client";
 import { routeTree } from "./routeTree.gen.ts";
 import "./styles/tailwind.css";
 import "./common/i18n";
-import "./registerSW";
+//import "./registerSW";
 import { AuthProvider, useAuth } from "./contexts/AuthContext.tsx";
 import type { FunctionComponent } from "./common/types";
 import { Toaster } from "react-hot-toast";
@@ -58,7 +58,7 @@ export function App(): FunctionComponent {
 			</div>
 		);
 	}
-	return <RouterProvider router={router} context={{ auth }} />;
+	return <RouterProvider context={{ auth }} router={router} />;
 }
 
 export function Wrapper(): FunctionComponent {

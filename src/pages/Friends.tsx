@@ -530,56 +530,46 @@ export const Friends = (): FunctionComponent => {
 
 	if (loading) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
+			<div className="min-h-screen bg-base-200 flex items-center justify-center">
 				<div className="text-center">
-					<div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin mx-auto"></div>
-					<p className="mt-4 text-gray-600">Loading friends...</p>
+					<span className="loading loading-spinner loading-lg"></span>
+					<p className="mt-4 text-base-content/70">Loading friends...</p>
 				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div className="min-h-screen bg-gray-50">
-			<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-				<h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 pl-4">
-					Friends
-				</h1>
+		<div className="container mx-auto p-4 space-y-6">
+			<h1 className="text-3xl font-bold text-base-content mb-6">Friends</h1>
 
-				{/* Combined Friends Section */}
-				<div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
-					<h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
+			{/* Combined Friends Section */}
+			<div className="card bg-base-100 shadow-xl">
+				<div className="card-body">
+					<h2 className="card-title text-xl mb-6">
 						Your Friends{" "}
-						<span className="text-sm font-normal text-gray-500">
-							({friends.length})
-						</span>
+						<div className="badge badge-neutral">{friends.length}</div>
 					</h2>
 
 					{/* Search Bar */}
 					<form onSubmit={handleSearch} className="mb-6">
-						<div className="flex gap-2">
+						<div className="join w-full">
 							<input
-								className="flex-1 min-w-0 px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+								className="input input-bordered input-primary join-item flex-1"
 								placeholder="Search by username"
 								type="text"
 								value={searchQuery}
 								onChange={handleSearchInput}
 							/>
 							<button
-								className="w-32 px-4 sm:px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors flex items-center justify-center"
+								className="btn btn-primary join-item"
 								type="submit"
 								disabled={isSearching}
 							>
 								{isSearching ? (
-									<div className="flex items-center gap-2">
-										<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-										<span className="hidden sm:inline">Searching...</span>
-									</div>
+									<span className="loading loading-spinner loading-sm"></span>
 								) : (
-									<>
-										<span className="hidden sm:inline">Search</span>
-										<span className="sm:hidden">Find</span>
-									</>
+									"Search"
 								)}
 							</button>
 						</div>
@@ -587,169 +577,165 @@ export const Friends = (): FunctionComponent => {
 
 					{/* Search Results */}
 					{searchResults.length > 0 && (
-						<div className="space-y-2 mb-6">
-							<h3 className="text-sm font-medium text-gray-700 mb-3">
+						<div className="space-y-3 mb-6">
+							<h3 className="text-sm font-medium text-base-content/70 mb-3">
 								Search Results
 							</h3>
 							{searchResults.map((result) => (
-								<div
-									key={result.id}
-									className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200"
-								>
-									<div className="flex items-center gap-3">
-										<img
-											alt={`${result.username}'s avatar`}
-											className="h-8 w-8 sm:h-10 sm:w-10 rounded-full"
-											src={`/avatars/${result.avatar_name}.svg`}
-										/>
-										<span className="font-medium text-gray-900">
-											{result.username}
-										</span>
+								<div key={result.id} className="card bg-base-200 shadow-sm">
+									<div className="card-body p-4">
+										<div className="flex items-center justify-between">
+											<div className="flex items-center gap-3">
+												<div className="avatar">
+													<div className="w-10 rounded-full">
+														<img
+															alt={`${result.username}'s avatar`}
+															src={`${result?.avatar_name || "default"}`}
+														/>
+													</div>
+												</div>
+												<span className="font-medium text-base-content">
+													{result.username}
+												</span>
+											</div>
+											{result.is_friend ? (
+												<div className="badge badge-success">Friends</div>
+											) : result.has_pending_invite ? (
+												<div className="badge badge-warning">Pending</div>
+											) : (
+												<button
+													className="btn btn-primary btn-sm"
+													onClick={() => void sendFriendInvite(result.id)}
+												>
+													Add Friend
+												</button>
+											)}
+										</div>
 									</div>
-									{result.is_friend ? (
-										<span className="text-sm sm:text-base text-green-600 font-medium">
-											Friends
-										</span>
-									) : result.has_pending_invite ? (
-										<span className="text-sm sm:text-base text-yellow-600 font-medium">
-											Pending
-										</span>
-									) : (
-										<button
-											className="px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 text-white text-sm sm:text-base font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-											onClick={() => void sendFriendInvite(result.id)}
-										>
-											Add
-										</button>
-									)}
 								</div>
 							))}
 						</div>
 					)}
 
 					{searchQuery && searchResults.length === 0 && !isSearching && (
-						<div className="text-center py-4 mb-6">
-							<p className="text-gray-500">
-								No users found matching "{searchQuery}"
-							</p>
+						<div className="alert alert-info">
+							<span>No users found matching "{searchQuery}"</span>
 						</div>
 					)}
 
 					{/* Friends List */}
-					<div className="space-y-2">
-						<h3 className="text-sm font-medium text-gray-700 mb-3">
+					<div className="space-y-3">
+						<h3 className="text-sm font-medium text-base-content/70 mb-3">
 							Current Friends
 						</h3>
 						{friends.length === 0 ? (
-							<div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg border border-gray-200">
-								<svg
-									className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-									xmlns="http://www.w3.org/2000/svg"
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-									/>
-								</svg>
-								<h3 className="mt-2 text-sm font-medium text-gray-900">
-									No friends yet
-								</h3>
-								<p className="mt-1 text-sm text-gray-500">
-									Search for users to add them as friends.
-								</p>
+							<div className="card bg-base-200">
+								<div className="card-body text-center py-12">
+									<div className="text-6xl mb-4">👥</div>
+									<h3 className="text-lg font-medium text-base-content mb-2">
+										No friends yet
+									</h3>
+									<p className="text-base-content/70">
+										Search for users to add them as friends.
+									</p>
+								</div>
 							</div>
 						) : (
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 								{friends.map((friend) => (
-									<div
-										key={friend.id}
-										className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200"
-									>
-										<div className="flex items-center gap-3">
-											<img
-												alt={`${friend.friend_profile.username}'s avatar`}
-												className="h-8 w-8 sm:h-10 sm:w-10 rounded-full"
-												src={`/avatars/${friend.friend_profile.avatar_name}.svg`}
-											/>
-											<span className="font-medium text-gray-900">
-												{friend.friend_profile.username}
-											</span>
+									<div key={friend.id} className="card bg-base-200 shadow-sm">
+										<div className="card-body p-4">
+											<div className="flex items-center justify-between">
+												<div className="flex items-center gap-3">
+													<div className="avatar">
+														<div className="w-10 rounded-full">
+															<img
+																alt={`${friend.friend_profile.username}'s avatar`}
+																src={`${friend.friend_profile?.avatar_name || "default"}`}
+															/>
+														</div>
+													</div>
+													<span className="font-medium text-base-content">
+														{friend.friend_profile.username}
+													</span>
+												</div>
+												<button
+													className="btn btn-error btn-sm btn-outline"
+													onClick={() => void removeFriend(friend.friend_id)}
+												>
+													Remove
+												</button>
+											</div>
 										</div>
-										<button
-											className="text-red-600 hover:text-red-700 text-sm sm:text-base font-medium focus:outline-none"
-											onClick={() => void removeFriend(friend.friend_id)}
-										>
-											Remove
-										</button>
 									</div>
 								))}
 							</div>
 						)}
 					</div>
 				</div>
+			</div>
 
-				{/* Friend Requests Section */}
-				{(invites.filter((invite) => invite.receiver_id === user?.id).length >
-					0 ||
-					invites.filter((invite) => invite.sender_id === user?.id).length >
-						0) && (
-					<div className="bg-white rounded-lg shadow p-4 sm:p-6">
-						<h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
-							Friend Requests
-						</h2>
+			{/* Friend Requests Section */}
+			{(invites.filter((invite) => invite.receiver_id === user?.id).length >
+				0 ||
+				invites.filter((invite) => invite.sender_id === user?.id).length >
+					0) && (
+				<div className="card bg-base-100 shadow-xl">
+					<div className="card-body">
+						<h2 className="card-title text-xl mb-4">Friend Requests</h2>
 
 						{/* Received Requests */}
 						{invites.filter((invite) => invite.receiver_id === user?.id)
 							.length > 0 && (
 							<div className="mb-6">
-								<h3 className="text-sm font-medium text-gray-700 mb-3">
+								<h3 className="text-sm font-medium text-base-content/70 mb-3">
 									Received Requests{" "}
-									<span className="text-gray-500">
-										(
+									<div className="badge badge-primary badge-sm">
 										{
 											invites.filter(
 												(invite) => invite.receiver_id === user?.id
 											).length
 										}
-										)
-									</span>
+									</div>
 								</h3>
-								<div className="space-y-2">
+								<div className="space-y-3">
 									{invites
 										.filter((invite) => invite.receiver_id === user?.id)
 										.map((invite) => (
 											<div
 												key={invite.id}
-												className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200"
+												className="card bg-base-200 shadow-sm"
 											>
-												<div className="flex items-center gap-3">
-													<img
-														alt={`${invite.sender.username}'s avatar`}
-														className="h-8 w-8 sm:h-10 sm:w-10 rounded-full"
-														src={`/avatars/${invite.sender.avatar_name}.svg`}
-													/>
-													<span className="font-medium text-gray-900">
-														{invite.sender.username}
-													</span>
-												</div>
-												<div className="flex gap-2">
-													<button
-														className="px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white text-sm sm:text-base font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
-														onClick={() => void acceptInvite(invite.id)}
-													>
-														Accept
-													</button>
-													<button
-														className="px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 text-white text-sm sm:text-base font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-														onClick={() => void rejectInvite(invite.id)}
-													>
-														Reject
-													</button>
+												<div className="card-body p-4">
+													<div className="flex items-center justify-between">
+														<div className="flex items-center gap-3">
+															<div className="avatar">
+																<div className="w-10 rounded-full">
+																	<img
+																		alt={`${invite.sender.username}'s avatar`}
+																		src={`/avatars/${invite.sender.avatar_name}.svg`}
+																	/>
+																</div>
+															</div>
+															<span className="font-medium text-base-content">
+																{invite.sender.username}
+															</span>
+														</div>
+														<div className="flex gap-2">
+															<button
+																className="btn btn-success btn-sm"
+																onClick={() => void acceptInvite(invite.id)}
+															>
+																Accept
+															</button>
+															<button
+																className="btn btn-error btn-sm btn-outline"
+																onClick={() => void rejectInvite(invite.id)}
+															>
+																Reject
+															</button>
+														</div>
+													</div>
 												</div>
 											</div>
 										))}
@@ -761,46 +747,49 @@ export const Friends = (): FunctionComponent => {
 						{invites.filter((invite) => invite.sender_id === user?.id).length >
 							0 && (
 							<div>
-								<h3 className="text-sm font-medium text-gray-700 mb-3">
+								<h3 className="text-sm font-medium text-base-content/70 mb-3">
 									Sent Requests{" "}
-									<span className="text-gray-500">
-										(
+									<div className="badge badge-warning badge-sm">
 										{
 											invites.filter((invite) => invite.sender_id === user?.id)
 												.length
 										}
-										)
-									</span>
+									</div>
 								</h3>
-								<div className="space-y-2">
+								<div className="space-y-3">
 									{invites
 										.filter((invite) => invite.sender_id === user?.id)
 										.map((invite) => (
 											<div
 												key={invite.id}
-												className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200"
+												className="card bg-base-200 shadow-sm"
 											>
-												<div className="flex items-center gap-3">
-													<img
-														alt={`${invite.receiver.username}'s avatar`}
-														className="h-8 w-8 sm:h-10 sm:w-10 rounded-full"
-														src={`/avatars/${invite.receiver.avatar_name}.svg`}
-													/>
-													<span className="font-medium text-gray-900">
-														{invite.receiver.username}
-													</span>
+												<div className="card-body p-4">
+													<div className="flex items-center justify-between">
+														<div className="flex items-center gap-3">
+															<div className="avatar">
+																<div className="w-10 rounded-full">
+																	<img
+																		alt={`${invite.receiver.username}'s avatar`}
+																		src={`/avatars/${invite.receiver.avatar_name}.svg`}
+																	/>
+																</div>
+															</div>
+															<span className="font-medium text-base-content">
+																{invite.receiver.username}
+															</span>
+														</div>
+														<div className="badge badge-warning">Pending</div>
+													</div>
 												</div>
-												<span className="text-sm sm:text-base text-yellow-600 font-medium px-3 sm:px-4 py-1.5 sm:py-2 bg-yellow-50 rounded-lg">
-													Pending
-												</span>
 											</div>
 										))}
 								</div>
 							</div>
 						)}
 					</div>
-				)}
-			</div>
+				</div>
+			)}
 		</div>
 	);
 };

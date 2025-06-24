@@ -26,88 +26,88 @@ export default defineConfig({
 				}
 			]
 		}),
-		VitePWA({
-			registerType: 'autoUpdate',
-			devOptions: {
-				enabled: !isProduction,
-				type: 'module',
-			},
-			manifest: {
-				name: 'Farkle Online',
-				display: 'standalone',
-				short_name: 'Farkle',
-				description: 'Farkle is a dice game where your decisions and luck determine your outcome.',
-				theme_color: '#4f46e5',
-				background_color: '#ffffff',
-				icons: [
-					{
-						src: 'icon-192.png',
-						sizes: '192x192',
-						type: 'image/png'
-					},
-					{
-						src: 'icon-512.png',
-						sizes: '512x512',
-						type: 'image/png'
-					},
-					{
-						src: 'icon-512.png',
-						sizes: '512x512',
-						type: 'image/png',
-						purpose: 'maskable'
-					}
-				]
-			},
-			// manifest: {
-			// 	name: 'Vite React Boilerplate',
-			// 	short_name: 'Vite React',
-			// 	description: 'A production ready, batteries included starter template for Vite + React projects',
-			// 	theme_color: '#ffffff',
-			// 	icons: [
-			// 		{
-			// 			src: '/icons/icon-192x192.svg',
-			// 			sizes: '192x192',
-			// 			type: 'image/svg+xml',
-			// 		},
-			// 		{
-			// 			src: '/icons/icon-512x512.svg',
-			// 			sizes: '512x512',
-			// 			type: 'image/svg+xml',
-			// 		},
-			// 		{
-			// 			src: '/icons/icon-512x512.svg',
-			// 			sizes: '512x512',
-			// 			type: 'image/svg+xml',
-			// 			purpose: 'any maskable',
-			// 		},
-			// 	],
-			// },
-			workbox: {
-				globPatterns: ['**/*.{js,css,html,ico,svg,png,json}'],
-				cleanupOutdatedCaches: true,
-				skipWaiting: true,
-				clientsClaim: true,
-				navigateFallback: '/index.html',
-				navigateFallbackAllowlist: [/^(?!\/__).*/],
-				runtimeCaching: [
-					{
-						urlPattern: /^https:\/\/www\.gstatic\.com\/.*/i,
-						handler: 'CacheFirst',
-						options: {
-							cacheName: 'gstatic-cache',
-							expiration: {
-								maxEntries: 10,
-								maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-							},
-							cacheableResponse: {
-								statuses: [0, 200]
-							}
-						}
-					}
-				]
-			},
-			//includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
-		})
+		// VitePWA({
+		// 	registerType: 'autoUpdate',
+		// 	devOptions: {
+		// 		enabled: !isProduction,
+		// 		type: 'module',
+		// 	},
+		// 	manifest: {
+		// 		name: 'Farkle Online',
+		// 		display: 'standalone',
+		// 		short_name: 'Farkle',
+		// 		description: 'Farkle is a dice game where your decisions and luck determine your outcome.',
+		// 		theme_color: '#4f46e5',
+		// 		background_color: '#ffffff',
+		// 		icons: [
+		// 			{
+		// 				src: 'icon-192.png',
+		// 				sizes: '192x192',
+		// 				type: 'image/png'
+		// 			},
+		// 			{
+		// 				src: 'icon-512.png',
+		// 				sizes: '512x512',
+		// 				type: 'image/png'
+		// 			},
+		// 			{
+		// 				src: 'icon-512.png',
+		// 				sizes: '512x512',
+		// 				type: 'image/png',
+		// 				purpose: 'maskable'
+		// 			}
+		// 		]
+		// 	},
+		// 	// manifest: {
+		// 	// 	name: 'Vite React Boilerplate',
+		// 	// 	short_name: 'Vite React',
+		// 	// 	description: 'A production ready, batteries included starter template for Vite + React projects',
+		// 	// 	theme_color: '#ffffff',
+		// 	// 	icons: [
+		// 	// 		{
+		// 	// 			src: '/icons/icon-192x192.svg',
+		// 	// 			sizes: '192x192',
+		// 	// 			type: 'image/svg+xml',
+		// 	// 		},
+		// 	// 		{
+		// 	// 			src: '/icons/icon-512x512.svg',
+		// 	// 			sizes: '512x512',
+		// 	// 			type: 'image/svg+xml',
+		// 	// 		},
+		// 	// 		{
+		// 	// 			src: '/icons/icon-512x512.svg',
+		// 	// 			sizes: '512x512',
+		// 	// 			type: 'image/svg+xml',
+		// 	// 			purpose: 'any maskable',
+		// 	// 		},
+		// 	// 	],
+		// 	// },
+		// 	workbox: {
+		// 		globPatterns: ['**/*.{js,css,html,ico,svg,png,json}'],
+		// 		cleanupOutdatedCaches: true,
+		// 		skipWaiting: true,
+		// 		clientsClaim: true,
+		// 		navigateFallback: '/index.html',
+		// 		navigateFallbackAllowlist: [/^(?!\/__).*/],
+		// 		runtimeCaching: [
+		// 			{
+		// 				urlPattern: /^https:\/\/www\.gstatic\.com\/.*/i,
+		// 				handler: 'CacheFirst',
+		// 				options: {
+		// 					cacheName: 'gstatic-cache',
+		// 					expiration: {
+		// 						maxEntries: 10,
+		// 						maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+		// 					},
+		// 					cacheableResponse: {
+		// 						statuses: [0, 200]
+		// 					}
+		// 				}
+		// 			}
+		// 		]
+		// 	},
+		// 	//includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+		// })
 	],
 	server: {
 		host: true,

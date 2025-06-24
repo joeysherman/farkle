@@ -1369,7 +1369,7 @@ function TurnSummary({
 						<img
 							alt="User avatar"
 							className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white shadow-sm"
-							src={`/avatars/${userData?.avatar_name || "default"}.svg`}
+							src={`${userData?.avatar_name || "default"}`}
 						/>
 						{isCurrentPlayerTurn && (
 							<div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white" />
@@ -1459,7 +1459,7 @@ function MobileTurnSummary({
 					<img
 						alt="User avatar"
 						className="w-7 h-7 rounded-full border-2 border-white shadow-sm"
-						src={`/avatars/${userData?.avatar_name || "default"}.svg`}
+						src={`${userData?.avatar_name || "default"}`}
 					/>
 					{isCurrentPlayerTurn && (
 						<div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
@@ -1544,7 +1544,7 @@ function ShowWinner({
 					<img
 						alt={`${userData?.username}'s avatar`}
 						className="w-10 h-10 rounded-full border-2 border-amber-500 shadow relative z-10"
-						src={`/avatars/${userData?.avatar_name || "default"}.svg`}
+						src={`${userData?.avatar_name || "default"}`}
 					/>
 				</div>
 				<div className="flex-1 min-w-0">
@@ -1591,7 +1591,7 @@ function MobileShowWinner({
 					<img
 						alt={`${userData?.username}'s avatar`}
 						className="w-7 h-7 rounded-full border-2 border-amber-500 shadow"
-						src={`/avatars/${userData?.avatar_name || "default"}.svg`}
+						src={`${userData?.avatar_name || "default"}`}
 					/>
 					<svg
 						className="w-3 h-3 text-amber-500 absolute -top-1 -right-1"

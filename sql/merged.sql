@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   total_games int default 0,
   games_won int default 0,
   highest_score int default 0,
-  onboarding_step text default 'personalInfo',
+  onboarding_step int default 1,
   onboarding_completed boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -2218,9 +2218,6 @@ DECLARE
   v_farkle_probability NUMERIC;
 BEGIN
   -- Bot will bank if it has reached its target score for the turn
-  IF p_turn_score >= p_risk_limit THEN
-    RETURN TRUE;
-  END IF;
   
   -- Calculate farkle probability
   v_farkle_probability := farkle_probability(p_remaining_dice);
@@ -2262,6 +2259,10 @@ DECLARE
   v_bot_player_id UUID;
   v_current_turn game_turns;
   v_latest_action turn_actions;
+  v_bot_decision JSONB;
+  v_roll_score INTEGER;
+  v_selected_dice INTEGER[];
+  c_selected_dice INTEGER[];
 BEGIN
   -- get the current_player from the game_states table
   SELECT current_player_id, current_turn INTO v_current_player_id, v_current_turn_id
@@ -2272,9 +2273,6 @@ BEGIN
   SELECT player_id INTO v_bot_player_id
   FROM bot_players
   WHERE game_id = p_game_id AND player_id = v_current_player_id;
-
-  -- Debug information
-  RAISE NOTICE 'Bot player ID: %', v_bot_player_id;
 
   -- Only proceed if we found a bot player
   IF v_bot_player_id IS NOT NULL THEN
@@ -2290,48 +2288,141 @@ BEGIN
     ORDER BY action_number DESC
     LIMIT 1;
 
-    -- Debug information
-    -- RAISE NOTICE 'Latest action: %', v_latest_action;
-
     -- Check if we found a turn action
     IF v_latest_action.id IS NOT NULL THEN
-     -- if v_latest_action.score is > 0
-     IF v_latest_action.score > 0 THEN
-      -- if v_latest_action.action_number is >= 3
-      -- maybe bank instead of continue
-      IF v_latest_action.action_number >= 3 THEN
-        -- perform process_turn_action game_id with "bank"
-        PERFORM process_turn_action(p_game_id, 'bank');
+      -- if v_latest_action.score is > 0, we need to make a decision
+      IF v_latest_action.score > 0 THEN
+        -- Calculate total turn score so far
+        SELECT COALESCE(SUM(score), 0) INTO v_roll_score
+        FROM turn_actions
+        WHERE turn_id = v_current_turn_id
+        AND outcome IS NOT NULL;
+      
+        
+        IF v_latest_action.selected_dice IS NOT NULL THEN
+          v_selected_dice := v_latest_action.selected_dice;
+        ELSE
+          v_selected_dice := ARRAY[]::INTEGER[];
+        END IF;
+
+        -- Get the bot's decision
+        v_bot_decision := make_bot_decision(
+          v_latest_action.dice_values,
+          v_roll_score, -- total turn score so far
+          (SELECT score FROM game_players WHERE id = v_current_player_id), -- player's total game score
+          10000 -- target score
+        );
+
+        c_selected_dice := ARRAY(SELECT jsonb_array_elements_text(v_bot_decision->'selected_dice'))::INTEGER[];
+
+        -- Debug check for dice selection values
+        -- RETURN jsonb_build_object(
+        --   'debug_check', true,
+        --   'v_selected_dice', v_selected_dice,
+        --   'v_selected_dice_length', array_length(v_selected_dice, 1),
+        --   'v_latest_action_selected_dice', v_latest_action.selected_dice,
+        --   'v_latest_action_selected_dice_length', array_length(v_latest_action.selected_dice, 1),
+        --   'v_latest_action_selected_dice_type', pg_typeof(v_latest_action.selected_dice),
+        --   'bot_decision_selected_dice', v_bot_decision->'selected_dice',
+        --   'bot_decision_selected_dice_type', pg_typeof(v_bot_decision->'selected_dice'),
+        --   'bot_decision_full', v_bot_decision,
+        --   'turn_action_id', v_latest_action.id,
+        --   'v_latest_action', v_latest_action,
+        --   'c_selected_dice', c_selected_dice,
+        --   'c_selected_dice_length', array_length(c_selected_dice, 1),
+        --   'c_selected_dice_type', pg_typeof(c_selected_dice)
+        -- );
+        
+        
+        -- if v_selected_dice is an empty array and v_bot_decision->'selected_dice' is not empty array
+        IF array_length(v_selected_dice, 1) IS NULL THEN
+          IF array_length(c_selected_dice, 1) IS NOT NULL AND array_length(c_selected_dice, 1) > 0 THEN
+            -- Select the dice first, then return the decision
+         
+            PERFORM select_dice(v_latest_action.id, c_selected_dice);
+            RETURN jsonb_build_object(
+              'status', 'success',
+              'message', 'Bot selected dice #1',
+              'action', 'select',
+              'selected_dice', v_selected_dice,
+              'turn_id', v_current_turn_id,
+              'c_selected_dice', c_selected_dice,
+              'v_latest_action', v_latest_action,
+              'decision', v_bot_decision
+            );
+            
+          END IF;
+ 
+        END IF;
+
+  
+
+        -- Execute the decision using CASE statement (switch-like behavior)
+        CASE (v_bot_decision->>'action')
+          WHEN 'bank' THEN
+            -- Select the dice first, then bank
+            PERFORM process_turn_action(p_game_id, 'bank');
+            
+          WHEN 'continue' THEN
+            -- Select the dice first, then continue
+            -- IF array_length(v_selected_dice, 1) > 0 THEN
+            --   PERFORM select_dice(v_latest_action.id, v_selected_dice);
+            --   RETURN jsonb_build_object(
+            --     'status', 'success',
+            --     'message', 'Bot selected dice #2',
+            --     'action', 'select',
+            --     'selected_dice', v_selected_dice,
+            --     'turn_id', v_current_turn_id,
+            --     'decision', v_bot_decision
+            --   );
+            -- END IF;
+            PERFORM process_turn_action(p_game_id, 'continue');
+            
+          ELSE
+            -- Bust case (default)
+            PERFORM process_turn_action(p_game_id, 'bust');
+        END CASE;
+
+        RETURN jsonb_build_object(
+          'status', 'success',
+          'message', 'Bot decision executed after case statement',
+          'action', v_bot_decision->>'action',
+          'v_selected_dice', array_length(v_selected_dice, 1),
+          'c_selected_dice', array_length(c_selected_dice, 1),
+          'selected_dice', v_selected_dice,
+          'reasoning', v_bot_decision->>'reasoning',
+          'turn_id', v_current_turn_id,
+          'decision', v_bot_decision,
+          'v_latest_action', v_latest_action
+        );
+
       ELSE
-        -- perform process_turn_action game_id with "continue"
-        PERFORM process_turn_action(p_game_id, 'continue');
+        -- No scoring dice, must bust
+        PERFORM process_turn_action(p_game_id, 'bust');
+        RETURN jsonb_build_object(
+          'status', 'success',
+          'message', 'Bot busted - no scoring dice',
+          'action', 'bust',
+          'turn_id', v_current_turn_id
+        );
       END IF;
-     ELSE
-      -- process the turn with "bust"
-      PERFORM process_turn_action(p_game_id, 'bust');
-     END IF;
-    
-      RETURN jsonb_build_object(
-        'status', 'success',
-        'message', 'should process action',
-        'turn', v_current_turn,
-        'turn_id', v_current_turn_id,
-        'turn_action', v_latest_action
-      );
     ELSE
-      -- perform a roll
+      -- No turn action yet, perform initial roll
       PERFORM perform_roll(p_game_id, 6);
       RETURN jsonb_build_object(
         'status', 'success',
-        'message', 'should perform roll',
-        'turn', v_current_turn,
-        'turn_id', v_current_turn_id,
-        'turn_action', v_latest_action
+        'message', 'Bot performed initial roll',
+        'action', 'roll',
+        'turn_id', v_current_turn_id
       );
     END IF;
   END IF;
 
-  RETURN NULL;
+  RETURN jsonb_build_object(
+    'status', 'no_action',
+    'message', 'Current player is not a bot',
+    'current_player_id', v_current_player_id
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -2402,8 +2493,377 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Schedule the bot turns function to run every 10 seconds
-SELECT cron.schedule(
-  'play-bot-turns',  -- job name
-  '*/10 * * * * *', -- schedule (every 10 seconds)
-  'SELECT cron_play_bot_turns();'  -- command
+-- SELECT cron.schedule(
+--   'play-bot-turns',  -- job name
+--   '*/10 * * * * *', -- schedule (every 10 seconds)
+--   'SELECT cron_play_bot_turns();'  -- command
+-- );
+
+-- Function to make bot decisions: which dice to keep and whether to bank
+CREATE OR REPLACE FUNCTION make_bot_decision(
+  p_dice_values INTEGER[],
+  p_current_turn_score INTEGER,
+  p_player_total_score INTEGER DEFAULT 0,
+  p_target_score INTEGER DEFAULT 10000
+) RETURNS JSONB AS $$
+DECLARE
+  v_scoring_options RECORD;
+  v_best_score INTEGER := 0;
+  v_best_remaining_dice INTEGER := 0;
+  v_best_indices INTEGER[] := ARRAY[]::INTEGER[];
+  v_best_expected_value NUMERIC := 0;
+  v_risk_limit INTEGER;
+  v_farkle_prob NUMERIC;
+  v_expected_value NUMERIC;
+  v_should_bank BOOLEAN := FALSE;
+  v_selected_indices INTEGER[] := ARRAY[]::INTEGER[];
+  v_temp_dice INTEGER[];
+  v_temp_result turn_score_result;
+  v_dice_counts INTEGER[6];
+  v_has_straight BOOLEAN := FALSE;
+  v_has_three_pairs BOOLEAN := FALSE;
+  i INTEGER;
+  j INTEGER;
+BEGIN
+  -- Get risk limit based on difficulty
+  -- v_risk_limit := get_bot_risk_limit(p_difficulty);
+  v_risk_limit := 350;
+  
+  -- Initialize dice counts for analysis
+  v_dice_counts := array_fill(0, array[6]);
+  FOR i IN 1..array_length(p_dice_values, 1) LOOP
+    v_dice_counts[p_dice_values[i]] := v_dice_counts[p_dice_values[i]] + 1;
+  END LOOP;
+
+  -- Check for special combinations (straight, three pairs)
+  -- Straight check (1-6)
+  IF array_length(p_dice_values, 1) = 6 THEN
+    v_has_straight := TRUE;
+    FOR i IN 1..6 LOOP
+      IF v_dice_counts[i] != 1 THEN
+        v_has_straight := FALSE;
+        EXIT;
+      END IF;
+    END LOOP;
+    
+    -- Three pairs check
+    IF NOT v_has_straight THEN
+      j := 0;
+      FOR i IN 1..6 LOOP
+        IF v_dice_counts[i] = 2 THEN
+          j := j + 1;
+        END IF;
+      END LOOP;
+      v_has_three_pairs := (j = 3);
+    END IF;
+  END IF;
+
+  -- If we have special combinations, take them
+  IF v_has_straight OR v_has_three_pairs THEN
+    FOR i IN 1..array_length(p_dice_values, 1) LOOP
+      v_selected_indices := array_append(v_selected_indices, i - 1);
+    END LOOP;
+    
+    v_temp_result := calculate_turn_score(p_dice_values);
+
+    RETURN jsonb_build_object(
+      'action', 'continue',
+      'selected_dice', v_selected_indices,
+      'dice_to_keep', v_selected_indices,
+      'v_temp_result', v_temp_result,
+      'v_dice_counts', v_dice_counts,
+      'v_has_straight', v_has_straight,
+      'v_has_three_pairs', v_has_three_pairs,
+      'expected_score', v_temp_result.score,
+      'reasoning', CASE WHEN v_has_straight THEN 'Taking straight (1000 pts)' ELSE 'Taking three pairs (750 pts)' END
+    );
+  END IF;
+
+  -- Strategy 1: Identify all possible scoring combinations and their values
+  -- Best option tracking is now using individual variables
+
+  -- Strategy: Prefer keeping minimal scoring dice to maximize future rolls
+  -- Priority order: Groups of 3+ > Individual 1s > Individual 5s
+
+  -- Check for groups of 3 or more (highest priority)
+  FOR i IN 1..6 LOOP
+    IF v_dice_counts[i] >= 3 THEN
+      -- Keep the group of 3 (or more)
+      v_selected_indices := ARRAY[]::INTEGER[];
+      FOR j IN 1..array_length(p_dice_values, 1) LOOP
+        IF p_dice_values[j] = i AND array_length(v_selected_indices, 1) < v_dice_counts[i] THEN
+          v_selected_indices := array_append(v_selected_indices, j - 1);
+        END IF;
+      END LOOP;
+      
+      -- Calculate score for this group
+      v_temp_dice := ARRAY[]::INTEGER[];
+      FOR j IN 1..v_dice_counts[i] LOOP
+        v_temp_dice := array_append(v_temp_dice, i);
+      END LOOP;
+      v_temp_result := calculate_turn_score(v_temp_dice);
+      
+      -- Calculate expected value (score / dice used ratio)
+      v_expected_value := v_temp_result.score::NUMERIC / v_dice_counts[i];
+      
+      IF v_temp_result.score > v_best_score OR 
+         (v_temp_result.score = v_best_score AND v_expected_value > v_best_expected_value) THEN
+        v_best_score := v_temp_result.score;
+        v_best_remaining_dice := array_length(p_dice_values, 1) - v_dice_counts[i];
+        v_best_indices := v_selected_indices;
+        v_best_expected_value := v_expected_value;
+      END IF;
+    END IF;
+  END LOOP;
+
+  -- If no groups of 3+, consider individual 1s and 5s
+  IF v_best_score = 0 THEN
+    -- Strategy: Take minimum scoring dice
+    -- Prefer single 1s over 5s (better point ratio)
+    IF v_dice_counts[1] > 0 THEN
+      -- Take only one 1 if possible, unless we have many
+      FOR j IN 1..array_length(p_dice_values, 1) LOOP
+        IF p_dice_values[j] = 1 THEN
+          v_selected_indices := array_append(v_selected_indices, j - 1);
+          -- Take additional 1s if we have 3+ dice remaining and low turn score
+          IF array_length(p_dice_values, 1) > 3 AND p_current_turn_score < 300 AND v_dice_counts[1] > 1 THEN
+            CONTINUE;
+          ELSE
+            EXIT;
+          END IF;
+        END IF;
+      END LOOP;
+      
+      v_best_score := array_length(v_selected_indices, 1) * 100;
+      v_best_remaining_dice := array_length(p_dice_values, 1) - array_length(v_selected_indices, 1);
+      v_best_indices := v_selected_indices;
+    ELSIF v_dice_counts[5] > 0 THEN
+      -- Take one 5 if no 1s available
+      FOR j IN 1..array_length(p_dice_values, 1) LOOP
+        IF p_dice_values[j] = 5 THEN
+          v_selected_indices := array_append(v_selected_indices, j - 1);
+          EXIT; -- Only take one 5
+        END IF;
+      END LOOP;
+      
+      v_best_score := 50;
+      v_best_remaining_dice := array_length(p_dice_values, 1) - 1;
+      v_best_indices := v_selected_indices;
+    END IF;
+  END IF;
+
+  -- If no scoring dice found, must bust
+  IF v_best_score = 0 THEN
+    RETURN jsonb_build_object(
+      'action', 'bust',
+      'dice_to_keep', ARRAY[]::INTEGER[],
+      'reasoning', 'No scoring combinations available'
+    );
+  END IF;
+
+  -- Banking decision logic
+  v_farkle_prob := farkle_probability(v_best_remaining_dice);
+  
+  -- Banking conditions based on difficulty and game state:
+  -- 1. High turn score with high farkle risk
+  -- 2. Close to winning
+  -- 3. Conservative play based on difficulty
+  
+  -- Condition 1: Risk vs Reward analysis
+  IF (p_current_turn_score + v_best_score) >= v_risk_limit AND v_farkle_prob > 0.3 THEN
+    v_should_bank := TRUE;
+  END IF;
+  
+  -- Condition 2: Close to winning (within 500 points)
+  IF (p_player_total_score + p_current_turn_score + v_best_score) >= (p_target_score - 500) THEN
+    v_should_bank := TRUE;
+  END IF;
+  
+  -- Condition 3: Very high farkle risk
+  IF v_farkle_prob > 0.6 THEN
+    v_should_bank := TRUE;
+  END IF;
+  
+  -- Condition 4: Excellent turn, don't get greedy
+  IF (p_current_turn_score + v_best_score) > 800 AND v_farkle_prob > 0.25 THEN
+    v_should_bank := TRUE;
+  END IF;
+
+  -- Condition 5: Only 1 die remaining with decent score
+  IF v_best_remaining_dice = 1 AND (p_current_turn_score + v_best_score) >= 250 THEN
+    v_should_bank := TRUE;
+  END IF;
+
+  -- Return decision without executing any actions
+  IF v_should_bank THEN
+      RETURN jsonb_build_object(
+    'action', 'bank',
+    'selected_dice', v_best_indices,
+    'dice_to_keep', v_best_indices,
+    'expected_score', v_best_score,
+    'total_turn_score', p_current_turn_score + v_best_score,
+    'farkle_probability', v_farkle_prob,
+    'v_temp_result', v_temp_result,
+    'reasoning', format('Banking with %s points (%s%% farkle risk)', 
+                       p_current_turn_score + v_best_score, 
+                       round(v_farkle_prob * 100, 1))
+  );
+  ELSE
+    -- Use the strategically calculated v_best_indices instead of overriding with all valid dice
+    -- The v_best_indices was already calculated based on optimal strategy above
+    RETURN jsonb_build_object(
+      'action', 'continue',
+      'p_dice_values', p_dice_values,
+      'selected_dice', v_best_indices,
+      'dice_to_keep', v_best_indices,
+      'expected_score', v_best_score,
+      'remaining_dice', v_best_remaining_dice,
+      'farkle_probability', v_farkle_prob,
+      'reasoning', format('Continuing with %s dice (%s%% farkle risk)', 
+                         v_best_remaining_dice, 
+                         round(v_farkle_prob * 100, 1))
+    );
+  END IF;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Test function for bot decision making
+CREATE OR REPLACE FUNCTION test_bot_decisions()
+RETURNS JSONB AS $$
+DECLARE
+  test_results JSONB := '{}'::JSONB;
+  result JSONB;
+  test_cases JSONB[];
+  test_case JSONB;
+  i INTEGER;
+BEGIN
+  -- Define test cases with inputs
+  test_cases := ARRAY[
+    '{"name": "three_of_a_kind", "dice": [3,3,3,1,2,6], "turn_score": 0, "player_score": 1000, "description": "Three 3s with mixed dice"}'::JSONB,
+    '{"name": "single_ones_and_fives", "dice": [1,1,5,2,4,6], "turn_score": 0, "player_score": 2000, "description": "Two 1s and one 5 available"}'::JSONB,
+    '{"name": "straight_combo", "dice": [1,2,3,4,5,6], "turn_score": 0, "player_score": 3000, "description": "Perfect straight 1-6"}'::JSONB,
+    '{"name": "three_pairs", "dice": [2,2,4,4,6,6], "turn_score": 0, "player_score": 4000, "description": "Three pairs combination"}'::JSONB,
+    '{"name": "high_risk_continue", "dice": [1,3], "turn_score": 400, "player_score": 5000, "description": "High turn score with risky continue"}'::JSONB,
+    '{"name": "conservative_bank", "dice": [5,2], "turn_score": 500, "player_score": 8000, "description": "Should bank with decent score"}'::JSONB,
+    '{"name": "farkle_scenario", "dice": [2,3,4,6], "turn_score": 0, "player_score": 1500, "description": "No scoring dice available"}'::JSONB,
+    '{"name": "four_of_a_kind", "dice": [1,1,1,1,2,4], "turn_score": 100, "player_score": 6000, "description": "Four 1s for big score"}'::JSONB,
+    '{"name": "mixed_scoring_options", "dice": [1,5,5,5,2,3], "turn_score": 200, "player_score": 7000, "description": "Mix of 1s and three 5s"}'::JSONB,
+    '{"name": "endgame_conservative", "dice": [1,6], "turn_score": 300, "player_score": 9500, "description": "Close to winning, be conservative"}'::JSONB
+  ];
+
+  -- Run each test case
+  FOR i IN 1..array_length(test_cases, 1) LOOP
+    test_case := test_cases[i];
+    
+    -- Call make_bot_decision with test case parameters
+    result := make_bot_decision(
+      ARRAY(SELECT jsonb_array_elements_text(test_case->'dice'))::INTEGER[],
+      (test_case->>'turn_score')::INTEGER,
+      (test_case->>'player_score')::INTEGER,
+      10000
+    );
+    
+    -- Add test result to output
+    test_results := test_results || jsonb_build_object(
+      test_case->>'name',
+      jsonb_build_object(
+        'description', test_case->>'description',
+        'inputs', jsonb_build_object(
+          'dice_values', test_case->'dice',
+          'turn_score', test_case->'turn_score',
+          'player_score', test_case->'player_score',
+          'target_score', 10000
+        ),
+        'outputs', result,
+        'dice_to_keep', result->'dice_to_keep',
+        'action', result->>'action',
+        'expected_score', result->'expected_score'
+      )
+    );
+  END LOOP;
+
+  RETURN test_results;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Test function for strategic scenarios
+CREATE OR REPLACE FUNCTION test_bot_strategy_scenarios()
+RETURNS SETOF text AS $$
+DECLARE
+  result JSONB;
+  dice_selected INTEGER[];
+BEGIN
+  -- Strategic Test 1: Mixed scoring options - prefer efficiency
+  -- Roll: [1,1,5,2,3,4] - should take both 1s for efficiency
+  result := make_bot_decision(ARRAY[1,1,5,2,3,4], 0, 6, 1000, 10000);
+  dice_selected := ARRAY(SELECT jsonb_array_elements_text(result->'selected_dice'))::INTEGER[];
+  
+  -- Should take optimal scoring dice
+  ASSERT (result->>'action') = 'continue',
+    format('Strategy Test 1 failed: Expected continue, got %s', result->>'action');
+  
+  -- Strategic Test 2: Risk assessment with medium score
+  -- Turn score: 500, Roll: [1,6] with 2 dice remaining
+  result := make_bot_decision(ARRAY[1,6], 500, 2, 3000, 10000);
+  ASSERT (result->>'action') = 'bank',
+    format('Strategy Test 2 failed: Should bank with moderate risk, got %s', result->>'action');
+  
+  -- Strategic Test 3: Aggressive play when behind
+  -- Player far behind, should take more risks
+  result := make_bot_decision(ARRAY[5,3], 250, 2, 2000, 10000);
+  -- Should continue with low farkle risk despite moderate score
+  ASSERT (result->>'action') = 'continue',
+    format('Strategy Test 3 failed: Should be aggressive when behind, got %s', result->>'action');
+  
+  -- Strategic Test 4: Conservative play when ahead
+  -- Player ahead, should be more conservative
+  result := make_bot_decision(ARRAY[1,2], 400, 2, 8000, 10000);
+  ASSERT (result->>'action') = 'bank',
+    format('Strategy Test 4 failed: Should be conservative when ahead, got %s', result->>'action');
+  
+  RETURN NEXT 'All strategic scenario tests passed!';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to run all bot tests
+CREATE OR REPLACE FUNCTION run_bot_tests()
+RETURNS SETOF text AS $$
+BEGIN
+  RETURN QUERY SELECT * FROM test_bot_decisions();
+  RETURN QUERY SELECT * FROM test_bot_strategy_scenarios();
+  RETURN NEXT 'All bot tests completed successfully!';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create avatars storage bucket (only if it doesn't exist)
+INSERT INTO storage.buckets (id, name, public) 
+SELECT 'avatars', 'avatars', true
+WHERE NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'avatars');
+
+-- Set up RLS policies for avatars bucket
+-- Note: The avatars bucket should be created manually in the Supabase dashboard if it doesn't exist
+
+DROP POLICY IF EXISTS "Avatar images are publicly accessible" ON storage.objects;
+CREATE POLICY "Avatar images are publicly accessible" ON storage.objects
+FOR SELECT USING (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Users can upload their own avatar" ON storage.objects;
+CREATE POLICY "Users can upload their own avatar" ON storage.objects
+FOR INSERT WITH CHECK (
+  bucket_id = 'avatars' 
+  AND auth.uid() IS NOT NULL
 );
+
+DROP POLICY IF EXISTS "Users can update their own avatar" ON storage.objects;
+CREATE POLICY "Users can update their own avatar" ON storage.objects
+FOR UPDATE USING (
+  bucket_id = 'avatars' 
+  AND auth.uid() IS NOT NULL
+);
+
+DROP POLICY IF EXISTS "Users can delete their own avatar" ON storage.objects;
+CREATE POLICY "Users can delete their own avatar" ON storage.objects
+FOR DELETE USING (
+  bucket_id = 'avatars' 
+  AND auth.uid() IS NOT NULL
+); 

@@ -188,7 +188,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 										<img
 											alt="User avatar"
 											className="w-6 h-6 sm:w-8 sm:h-8 rounded-full"
-											src={`/avatars/${profileData?.avatar_name || "default"}.svg`}
+											src={`${profileData?.avatar_name || "default"}`}
 										/>
 										{pendingInvitesCount > 0 && (
 											<span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-500 border-2 border-white"></span>

@@ -136,57 +136,52 @@ export default function History(): JSX.Element {
 		: "0";
 
 	return (
-		<div className="container mx-auto px-4 py-4">
-			<h1 className="text-2xl md:text-3xl font-bold mb-4 pl-4 text-gray-900">
+		<div className="container mx-auto p-4 space-y-6">
+			<h1 className="text-3xl font-bold text-base-content mb-6">
 				Game History
 			</h1>
 
 			{/* User Stats Summary */}
 			{userStats && (
-				<div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-8">
-					<h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6">
-						Your Statistics
-					</h2>
-					<div className="grid grid-cols-2 gap-3 sm:gap-4">
-						{/* Primary Stats */}
-						<div className="col-span-2 bg-indigo-50 rounded-lg p-4 sm:p-6">
-							<div className="text-indigo-600 text-base sm:text-lg mb-1 sm:mb-2">
-								Total Games
+				<div className="card bg-base-100 shadow-xl">
+					<div className="card-body">
+						<h2 className="card-title text-xl mb-6">Your Statistics</h2>
+						<div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+							{/* Primary Stats */}
+							<div className="col-span-2 lg:col-span-1 stat bg-primary/10 rounded-lg">
+								<div className="stat-title text-primary">Total Games</div>
+								<div className="stat-value text-primary text-3xl">
+									{userStats.totalGames}
+								</div>
 							</div>
-							<div className="text-3xl sm:text-4xl font-bold">
-								{userStats.totalGames}
-							</div>
-						</div>
-						<div className="bg-green-50 rounded-lg p-4 sm:p-6">
-							<div className="text-green-600 text-base sm:text-lg mb-1 sm:mb-2">
-								Games Won
-							</div>
-							<div className="text-3xl sm:text-4xl font-bold">
-								{userStats.gamesWon}
-							</div>
-						</div>
-						<div className="bg-purple-50 rounded-lg p-4 sm:p-6">
-							<div className="text-purple-600 text-base sm:text-lg mb-1 sm:mb-2">
-								Win Rate
-							</div>
-							<div className="text-3xl sm:text-4xl font-bold">{winRate}%</div>
-						</div>
 
-						{/* Additional Stats */}
-						<div className="bg-blue-50 rounded-lg p-4 sm:p-6">
-							<div className="text-blue-600 text-base sm:text-lg mb-1 sm:mb-2">
-								Avg Duration
+							<div className="stat bg-success/10 rounded-lg">
+								<div className="stat-title text-success">Games Won</div>
+								<div className="stat-value text-success text-3xl">
+									{userStats.gamesWon}
+								</div>
 							</div>
-							<div className="text-xl sm:text-2xl font-bold">
-								{userStats.averageDuration}
+
+							<div className="stat bg-secondary/10 rounded-lg">
+								<div className="stat-title text-secondary">Win Rate</div>
+								<div className="stat-value text-secondary text-3xl">
+									{winRate}%
+								</div>
 							</div>
-						</div>
-						<div className="bg-rose-50 rounded-lg p-4 sm:p-6">
-							<div className="text-rose-600 text-base sm:text-lg mb-1 sm:mb-2">
-								Last Played
+
+							{/* Additional Stats */}
+							<div className="stat bg-info/10 rounded-lg">
+								<div className="stat-title text-info">Avg Duration</div>
+								<div className="stat-value text-info text-2xl">
+									{userStats.averageDuration}
+								</div>
 							</div>
-							<div className="text-xl sm:text-2xl font-bold">
-								{userStats.lastPlayed}
+
+							<div className="stat bg-accent/10 rounded-lg">
+								<div className="stat-title text-accent">Last Played</div>
+								<div className="stat-value text-accent text-2xl">
+									{userStats.lastPlayed}
+								</div>
 							</div>
 						</div>
 					</div>
@@ -194,63 +189,74 @@ export default function History(): JSX.Element {
 			)}
 
 			{/* Game History Cards */}
-			<div className="bg-white rounded-lg shadow-md overflow-hidden">
-				<h2 className="text-xl font-semibold p-6 border-b">Recent Games</h2>
-				{isHistoryLoading ? (
-					<div className="p-6 text-center">Loading game history...</div>
-				) : historyData && historyData.length > 0 ? (
-					<div className="divide-y divide-gray-100">
-						{historyData.map((game) => (
-							<div
-								key={game.id}
-								className="collapse collapse-arrow bg-white hover:bg-gray-50"
-							>
-								<input className="peer" type="checkbox" />
-								<div className="collapse-title py-4 px-6">
-									<div className="grid grid-cols-12 items-center gap-2">
-										<div className="col-span-4">
-											<span className="font-medium">
-												{game.game_room?.name || "Unnamed Game"}
-											</span>
-										</div>
-										<div className="col-span-4 text-center">
-											<span
-												className={
-													game.winner_id === user?.id
-														? "text-indigo-600 font-medium"
-														: "text-gray-500"
-												}
-											>
-												{game.winner?.username || "Unknown"}
-												{game.winner_id === user?.id && " (You)"}
-											</span>
-										</div>
-										<div className="col-span-3 text-gray-400">
-											{format(new Date(game.created_at), "MMM d, yyyy")}
-										</div>
-									</div>
-								</div>
-								<div className="collapse-content bg-gray-50 px-6">
-									<div className="py-4">
-										<div className="grid grid-cols-2 gap-4">
-											<div>
-												<div className="text-sm text-gray-500">Duration</div>
-												<div className="font-medium">
-													{formatDuration(game.duration)}
+			<div className="card bg-base-100 shadow-xl">
+				<div className="card-body">
+					<h2 className="card-title text-xl mb-4">Recent Games</h2>
+					{isHistoryLoading ? (
+						<div className="flex justify-center items-center py-12">
+							<span className="loading loading-spinner loading-lg"></span>
+							<span className="ml-3 text-base-content/70">
+								Loading game history...
+							</span>
+						</div>
+					) : historyData && historyData.length > 0 ? (
+						<div className="space-y-2">
+							{historyData.map((game) => (
+								<div
+									key={game.id}
+									className="collapse collapse-arrow bg-base-200"
+								>
+									<input className="peer" type="checkbox" />
+									<div className="collapse-title">
+										<div className="grid grid-cols-12 items-center gap-2">
+											<div className="col-span-4">
+												<span className="font-medium text-base-content">
+													{game.game_room?.name || "Unnamed Game"}
+												</span>
+											</div>
+											<div className="col-span-4 text-center">
+												<div
+													className={`badge ${game.winner_id === user?.id ? "badge-primary" : "badge-neutral"}`}
+												>
+													{game.winner?.username || "Unknown"}
+													{game.winner_id === user?.id && " (You)"}
 												</div>
 											</div>
-											{/* Additional details can be added here later */}
+											<div className="col-span-4 text-base-content/70 text-right">
+												{format(new Date(game.created_at), "MMM d, yyyy")}
+											</div>
+										</div>
+									</div>
+									<div className="collapse-content bg-base-300/50">
+										<div className="py-4">
+											<div className="grid grid-cols-2 gap-4">
+												<div>
+													<div className="text-sm text-base-content/70">
+														Duration
+													</div>
+													<div className="font-medium text-base-content">
+														{formatDuration(game.duration)}
+													</div>
+												</div>
+												{/* Additional details can be added here later */}
+											</div>
 										</div>
 									</div>
 								</div>
-							</div>
-						))}
-					</div>
-				) : (
-					<div className="p-6 text-center text-gray-500">
-						No game history found. Play some games to see your history here!
-					</div>
-				)}
+							))}
+						</div>
+					) : (
+						<div className="text-center py-12">
+							<div className="text-6xl mb-4">🎲</div>
+							<h3 className="text-lg font-medium text-base-content mb-2">
+								No game history found
+							</h3>
+							<p className="text-base-content/70">
+								Play some games to see your history here!
+							</p>
+						</div>
+					)}
+				</div>
 			</div>
 		</div>
 	);
