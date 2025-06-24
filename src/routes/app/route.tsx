@@ -7,11 +7,11 @@ export const Route = createFileRoute("/app")({
 
 function AppLayout() {
 	return (
-		<div className="flex flex-col h-screen pt-16">
+		<div className="min-h-screen pt-16">
 			<Navbar />
-			<div className="flex-1 overflow-auto">
+			<main className="relative">
 				<Outlet />
-			</div>
+			</main>
 		</div>
 	);
 }

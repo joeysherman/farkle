@@ -7,6 +7,7 @@ import {
 	type AvatarOptions,
 	type AvatarBuilderRef,
 } from "../components/AvatarBuilder";
+import { useAvatarUpload } from "../hooks/useAvatarUpload";
 
 interface OnboardingData {
 	username: string;
@@ -35,13 +36,13 @@ export const Onboarding = (): FunctionComponent => {
 	const context = useRouteContext({ from: "/app/onboarding" });
 	const router = useRouter();
 	const avatarBuilderRef = useRef<AvatarBuilderRef>(null);
+	const { uploadAvatar, uploadStatus, isUploading } = useAvatarUpload();
 
 	// Current step (1, 2, or 3)
 	const [currentStep, setCurrentStep] = useState(
 		context.auth.profile?.onboarding_step || 1
 	);
 	const [isLoading, setIsLoading] = useState(false);
-	const [uploadStatus, setUploadStatus] = useState<string>("");
 	const [errors, setErrors] = useState<Record<string, string>>({});
 
 	// Form data
@@ -53,56 +54,6 @@ export const Onboarding = (): FunctionComponent => {
 			newsletter: false,
 		},
 	});
-
-	// Upload avatar to Supabase storage
-	const uploadAvatar = async (): Promise<string | null> => {
-		if (!avatarBuilderRef.current || !context.auth.user?.id) {
-			return null;
-		}
-
-		try {
-			setUploadStatus("Generating your avatar...");
-
-			// Generate the avatar blob
-			const blob = await avatarBuilderRef.current.generateAvatarBlob();
-			if (!blob) {
-				throw new Error("Failed to generate avatar image");
-			}
-
-			setUploadStatus("Uploading avatar to cloud storage...");
-
-			// Create a unique filename
-			const fileName = `avatar-${context.auth.user.id}-${Date.now()}.png`;
-			const filePath = `avatars/${fileName}`;
-
-			// Upload to Supabase storage
-			const { error: uploadError } = await supabase.storage
-				.from("avatars")
-				.upload(filePath, blob, {
-					contentType: "image/png",
-					upsert: true,
-				});
-
-			if (uploadError) {
-				throw uploadError;
-			}
-
-			setUploadStatus("Finalizing avatar setup...");
-
-			// Get the public URL
-			const { data: urlData } = supabase.storage
-				.from("avatars")
-				.getPublicUrl(filePath);
-
-			setUploadStatus("");
-			console.log("urlData", urlData);
-			return urlData.publicUrl;
-		} catch (error) {
-			setUploadStatus("");
-			console.error("Error uploading avatar:", error);
-			throw error;
-		}
-	};
 
 	// Validation functions
 	const validateStep1 = (): boolean => {
@@ -128,7 +79,6 @@ export const Onboarding = (): FunctionComponent => {
 	// Navigation functions
 	const handleNext = async (): Promise<void> => {
 		setErrors({});
-		setUploadStatus("");
 		setIsLoading(true);
 
 		try {
@@ -156,7 +106,10 @@ export const Onboarding = (): FunctionComponent => {
 
 				console.log("🎨 Uploading avatar and updating profile for step 2");
 				// Upload avatar to Supabase
-				const avatarUrl = await uploadAvatar();
+				const avatarUrl = await uploadAvatar(
+					avatarBuilderRef,
+					context.auth.user!.id
+				);
 
 				await updateUserProfile(context.auth.user!.id, {
 					username: data.username,
@@ -213,7 +166,6 @@ export const Onboarding = (): FunctionComponent => {
 			setErrors({ general: "Something went wrong. Please try again." });
 		} finally {
 			setIsLoading(false);
-			setUploadStatus("");
 		}
 	};
 
@@ -419,19 +371,19 @@ export const Onboarding = (): FunctionComponent => {
 				<div className="flex justify-between items-center">
 					<button
 						className={`btn btn-outline ${currentStep === 1 ? "invisible" : ""}`}
-						disabled={isLoading}
+						disabled={isLoading || isUploading}
 						onClick={handleBack}
 					>
 						Back
 					</button>
 
 					<button
-						className={`btn btn-primary ${isLoading ? "loading" : ""}`}
-						disabled={isLoading}
+						className={`btn btn-primary ${isLoading || isUploading ? "loading" : ""}`}
+						disabled={isLoading || isUploading}
 						onClick={() => void handleNext()}
 					>
 						{currentStep === 3 ? "Finish" : "Next"}
-						{isLoading && currentStep === 2 && (
+						{(isLoading || isUploading) && currentStep === 2 && (
 							<span className="ml-2">
 								{uploadStatus ? "" : "Processing..."}
 							</span>
