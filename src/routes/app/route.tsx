@@ -1,17 +1,17 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { Navbar } from "../../components/layout/navbar/Navbar";
 
-export const Route = createFileRoute("/app")({
-	component: AppLayout,
-});
-
-function AppLayout() {
+function AppLayout(): JSX.Element {
 	return (
-		<div className="min-h-screen pt-16">
+		<div className="min-h-screen">
 			<Navbar />
-			<main className="relative">
+			<main className="pt-12 sm:pt-16">
 				<Outlet />
 			</main>
 		</div>
 	);
 }
+
+export const Route = createFileRoute("/app")({
+	component: AppLayout,
+});

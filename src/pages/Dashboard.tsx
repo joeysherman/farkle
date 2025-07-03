@@ -230,7 +230,7 @@ export const Dashboard = (): FunctionComponent => {
 	};
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative">
+		<div className="min-h-[calc(100vh-3rem)] sm:min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative">
 			{/* Background Pattern */}
 			<div className="absolute inset-0 opacity-20">
 				<div

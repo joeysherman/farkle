@@ -3,7 +3,6 @@ import {
 	Outlet,
 	redirect,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 
 import type { AuthContextType } from "../contexts/AuthContext.types";
 
@@ -13,10 +12,8 @@ interface MyRouterContext {
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: () => (
-		<div>
-			{/* <Navbar /> */}
+		<div className="">
 			<Outlet />
-			<TanStackRouterDevtools initialIsOpen={false} position="bottom-right" />
 		</div>
 	),
 	beforeLoad: ({ context, location }) => {
@@ -42,7 +39,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			console.log(
 				"🛡️ Root guard: User not authenticated - redirecting to signin"
 			);
-			throw redirect({
+			return redirect({
 				to: "/signin",
 			});
 		}
@@ -56,7 +53,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			console.log(
 				"🛡️ Root guard: Onboarding completed - redirecting to dashboard"
 			);
-			throw redirect({
+			return redirect({
 				to: "/app/dashboard",
 			});
 		}
@@ -73,7 +70,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				"🛡️ Root guard: Onboarding not completed - redirecting to onboarding"
 			);
 			console.log("🛡️ Root guard: Profile state:", context.auth.profile);
-			throw redirect({
+			return redirect({
 				to: "/app/onboarding",
 			});
 		}

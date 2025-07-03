@@ -257,6 +257,26 @@ export function Room(): JSX.Element {
 		}
 	};
 
+	const handlePlayBotTurns = async () => {
+		try {
+			const { data, error } = await supabase.rpc("cron_play_bot_turns");
+
+			if (error) {
+				console.error("Play bot turns error:", error);
+				setError("Failed to play bot turns. Please try again.");
+			} else {
+				console.log("Bot turns result:", data);
+			}
+		} catch (error_) {
+			console.error("Play bot turns error:", error_);
+			setError(
+				error_ instanceof Error
+					? error_.message
+					: "Failed to play bot turns. Please try again."
+			);
+		}
+	};
+
 	const handleJoinWithCode = async (code: string, username: string) => {
 		try {
 			if (!username.trim() && !user) {
@@ -993,6 +1013,7 @@ export function Room(): JSX.Element {
 										onStartGame={handleStartGame}
 										onEndGame={handleEndGame}
 										onShowInvite={() => setShowInviteModal(true)}
+										onPlayBotTurns={handlePlayBotTurns}
 									/>
 								</div>
 							</RoomHeader>
@@ -1044,13 +1065,15 @@ export function Room(): JSX.Element {
 										{room && user && (
 											<div className="flex flex-col gap-3">
 												{/* Mobile Room Controls */}
-												{room?.status === "waiting" && (
+												{(room?.status === "waiting" ||
+													room?.status === "in_progress") && (
 													<RoomControls
 														room={room}
 														user={user}
 														onStartGame={handleStartGame}
 														onEndGame={handleEndGame}
 														onShowInvite={() => setShowInviteModal(true)}
+														onPlayBotTurns={handlePlayBotTurns}
 													/>
 												)}
 												{/* Mobile Players List */}

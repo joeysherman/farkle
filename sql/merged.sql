@@ -2053,6 +2053,164 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Create predefined bot users
+DO $$
+DECLARE
+  v_easy_bot_id UUID := '00000000-0000-0000-0000-000000000001';
+  v_medium_bot_id UUID := '00000000-0000-0000-0000-000000000002';
+  v_hard_bot_id UUID := '00000000-0000-0000-0000-000000000003';
+BEGIN
+  -- Create Easy Bot (Wang_Bot)
+  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = v_easy_bot_id) THEN
+    INSERT INTO auth.users (
+      id,
+      email,
+      encrypted_password,
+      email_confirmed_at,
+      created_at,
+      updated_at,
+      raw_app_meta_data,
+      raw_user_meta_data,
+      is_super_admin,
+      role
+    ) VALUES (
+      v_easy_bot_id,
+      'wang_bot@bot.farkle.com',
+      crypt('bot_password_easy', gen_salt('bf')),
+      now(),
+      now(),
+      now(),
+      '{"provider":"email","providers":["email"]}',
+      '{"is_bot": true, "difficulty": "easy"}',
+      false,
+      'authenticated'
+    );
+
+    -- Create profile for Easy Bot (if it doesn't exist)
+    IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = v_easy_bot_id) THEN
+      INSERT INTO public.profiles (
+        id,
+        username,
+        avatar_name,
+        onboarding_completed
+      ) VALUES (
+        v_easy_bot_id,
+        'Wang_Bot',
+        'default',
+        true
+      );
+    ELSE
+      -- Update existing profile to ensure correct username
+      UPDATE public.profiles 
+      SET 
+        username = 'Wang_Bot',
+        avatar_name = 'default',
+        onboarding_completed = true
+      WHERE id = v_easy_bot_id;
+    END IF;
+  END IF;
+
+  -- Create Medium Bot (Peter_Bot)
+  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = v_medium_bot_id) THEN
+    INSERT INTO auth.users (
+      id,
+      email,
+      encrypted_password,
+      email_confirmed_at,
+      created_at,
+      updated_at,
+      raw_app_meta_data,
+      raw_user_meta_data,
+      is_super_admin,
+      role
+    ) VALUES (
+      v_medium_bot_id,
+      'peter_bot@bot.farkle.com',
+      crypt('bot_password_medium', gen_salt('bf')),
+      now(),
+      now(),
+      now(),
+      '{"provider":"email","providers":["email"]}',
+      '{"is_bot": true, "difficulty": "medium"}',
+      false,
+      'authenticated'
+    );
+
+    -- Create profile for Medium Bot (if it doesn't exist)
+    IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = v_medium_bot_id) THEN
+      INSERT INTO public.profiles (
+        id,
+        username,
+        avatar_name,
+        onboarding_completed
+      ) VALUES (
+        v_medium_bot_id,
+        'Peter_Bot',
+        'default',
+        true
+      );
+    ELSE
+      -- Update existing profile to ensure correct username
+      UPDATE public.profiles 
+      SET 
+        username = 'Peter_Bot',
+        avatar_name = 'default',
+        onboarding_completed = true
+      WHERE id = v_medium_bot_id;
+    END IF;
+  END IF;
+
+  -- Create Hard Bot (Johnson_Bot)
+  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = v_hard_bot_id) THEN
+    INSERT INTO auth.users (
+      id,
+      email,
+      encrypted_password,
+      email_confirmed_at,
+      created_at,
+      updated_at,
+      raw_app_meta_data,
+      raw_user_meta_data,
+      is_super_admin,
+      role
+    ) VALUES (
+      v_hard_bot_id,
+      'johnson_bot@bot.farkle.com',
+      crypt('bot_password_hard', gen_salt('bf')),
+      now(),
+      now(),
+      now(),
+      '{"provider":"email","providers":["email"]}',
+      '{"is_bot": true, "difficulty": "hard"}',
+      false,
+      'authenticated'
+    );
+
+    -- Create profile for Hard Bot (if it doesn't exist)
+    IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = v_hard_bot_id) THEN
+      INSERT INTO public.profiles (
+        id,
+        username,
+        avatar_name,
+        onboarding_completed
+      ) VALUES (
+        v_hard_bot_id,
+        'Johnson_Bot',
+        'default',
+        true
+      );
+    ELSE
+      -- Update existing profile to ensure correct username
+      UPDATE public.profiles 
+      SET 
+        username = 'Johnson_Bot',
+        avatar_name = 'default',
+        onboarding_completed = true
+      WHERE id = v_hard_bot_id;
+    END IF;
+  END IF;
+END $$;
+
 -- Function to add a bot player to a game
 CREATE OR REPLACE FUNCTION add_bot_player(p_game_id UUID, p_difficulty bot_difficulty DEFAULT 'medium')
 RETURNS UUID AS $$
@@ -2089,41 +2247,24 @@ BEGIN
     RAISE EXCEPTION 'Room is full';
   END IF;
 
-  -- Generate a UUID for the bot user
-  v_bot_user_id := gen_random_uuid();
+  -- Get the predefined bot user ID based on difficulty
+  SELECT 
+    CASE p_difficulty
+      WHEN 'easy' THEN '00000000-0000-0000-0000-000000000001'::UUID
+      WHEN 'medium' THEN '00000000-0000-0000-0000-000000000002'::UUID
+      WHEN 'hard' THEN '00000000-0000-0000-0000-000000000003'::UUID
+      ELSE '00000000-0000-0000-0000-000000000002'::UUID -- Default to medium
+    END
+  INTO v_bot_user_id;
 
-  -- Create a bot user
-  INSERT INTO auth.users (
-    id,
-    email,
-    encrypted_password,
-    email_confirmed_at,
-    created_at,
-    updated_at,
-    raw_app_meta_data,
-    raw_user_meta_data,
-    is_super_admin,
-    role
-  ) VALUES (
-    v_bot_user_id,
-    'bot_' || v_bot_user_id || '@bot.farkle.com',
-    crypt(gen_random_uuid()::text, gen_salt('bf')),
-    now(),
-    now(),
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"is_bot": true}',
-    false,
-    'authenticated'
-  );
-
-  -- Note: Profile is automatically created by the handle_new_user() trigger
-  -- Update the auto-created profile with bot-specific settings
-  UPDATE profiles 
-  SET 
-    username = 'Bot_' || substr(v_bot_user_id::text, 1, 4),
-    avatar_name = 'default'
-  WHERE id = v_bot_user_id;
+  -- Check if this bot is already in the game
+  IF EXISTS (
+    SELECT 1 FROM game_players
+    WHERE game_id = p_game_id
+    AND user_id = v_bot_user_id
+  ) THEN
+    RAISE EXCEPTION 'This bot is already in the game';
+  END IF;
 
   -- Get next player order
   SELECT COALESCE(MAX(player_order), 0) + 1
@@ -2470,7 +2611,21 @@ RETURNS void AS $$
 DECLARE
   v_bot_player bot_players;
   v_game_state game_states;
+  v_bot_count INTEGER := 0;
+  v_active_games_count INTEGER := 0;
+  v_turns_played INTEGER := 0;
+  v_bot_turn_result JSONB;
+  v_bot_username TEXT;
+  v_game_room_name TEXT;
 BEGIN
+  -- Count total bot players
+  SELECT COUNT(*) INTO v_bot_count FROM bot_players;
+  
+  -- Count active games with bot players
+  SELECT COUNT(DISTINCT gs.game_id) INTO v_active_games_count
+  FROM game_states gs
+  JOIN bot_players bp ON gs.current_player_id = bp.player_id;
+
   -- Iterate through each bot player directly from the table
   FOR v_bot_player IN 
     SELECT * FROM bot_players
@@ -2483,21 +2638,59 @@ BEGIN
     -- if the v_game_state.game_id is not NULL
     -- play the turn
     IF v_game_state.game_id IS NOT NULL THEN
-      PERFORM bot_play_turn(v_game_state.game_id);
+      -- Get bot username and game room name for logging
+      SELECT p.username INTO v_bot_username
+      FROM profiles p
+      JOIN game_players gp ON p.id = gp.user_id
+      WHERE gp.id = v_bot_player.player_id;
+      
+      SELECT name INTO v_game_room_name
+      FROM game_rooms
+      WHERE id = v_game_state.game_id;
+      
+      -- Play the bot turn and capture result
+      SELECT bot_play_turn(v_game_state.game_id) INTO v_bot_turn_result;
+      
+      v_turns_played := v_turns_played + 1;
       RETURN;
+      -- RETURN jsonb_build_object(
+      --   'status', 'success',
+      --   'action', 'bot_turn_played',
+      --   'total_bot_players', v_bot_count,
+      --   'active_games_with_bots', v_active_games_count,
+      --   'turns_played', v_turns_played,
+      --   'bot_details', jsonb_build_object(
+      --     'bot_id', v_bot_player.id,
+      --     'player_id', v_bot_player.player_id,
+      --     'difficulty', v_bot_player.difficulty,
+      --     'username', v_bot_username,
+      --     'game_id', v_game_state.game_id,
+      --     'game_name', v_game_room_name,
+      --     'turn_number', v_game_state.current_turn_number
+      --   ),
+      --   'bot_turn_result', v_bot_turn_result,
+      --   'timestamp', now()
+      -- );
     END IF;
   END LOOP;
 
   RETURN;
+  -- If no bot turns were played
+  -- RETURN jsonb_build_object(
+  --   'status', 'no_action',
+  --   'action', 'no_bot_turns_needed',
+  --   'total_bot_players', v_bot_count,
+  --   'active_games_with_bots', v_active_games_count,
+  --   'turns_played', v_turns_played,
+  --   'message', CASE 
+  --     WHEN v_bot_count = 0 THEN 'No bot players exist in the system'
+  --     WHEN v_active_games_count = 0 THEN 'No active games have bots waiting for their turn'
+  --     ELSE 'All bot players checked, none need to play currently'
+  --   END,
+  --   'timestamp', now()
+  -- );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Schedule the bot turns function to run every 10 seconds
--- SELECT cron.schedule(
---   'play-bot-turns',  -- job name
---   '*/10 * * * * *', -- schedule (every 10 seconds)
---   'SELECT cron_play_bot_turns();'  -- command
--- );
 
 -- Function to make bot decisions: which dice to keep and whether to bank
 CREATE OR REPLACE FUNCTION make_bot_decision(
@@ -2867,3 +3060,10 @@ FOR DELETE USING (
   bucket_id = 'avatars' 
   AND auth.uid() IS NOT NULL
 ); 
+
+-- Schedule the bot turns function to run every 10 seconds
+SELECT cron.schedule(
+  'play-bot-turns',  -- job name
+  '*/10 * * * * *', -- schedule (every 10 seconds)
+  'SELECT cron_play_bot_turns();'  -- command
+);

@@ -83,7 +83,7 @@ DROP PUBLICATION IF EXISTS supabase_realtime;
 DELETE FROM auth.users;
 
 -- Remove all cron jobs
---SELECT cron.unschedule('play-bot-turns');
+SELECT cron.unschedule('play-bot-turns');
 
 -- Run the merged SQL to recreate everything
 
