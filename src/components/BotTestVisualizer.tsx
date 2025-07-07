@@ -247,9 +247,9 @@ const BotTestVisualizer: React.FC<BotTestVisualizerProps> = ({
 	);
 
 	const renderTableView = () => (
-		<div className="overflow-x-auto">
-			<table className="min-w-full bg-white border border-gray-200 text-sm">
-				<thead className="bg-gray-50">
+		<div className="overflow-x-auto max-h-[70vh] overflow-y-auto border border-gray-200 rounded-lg">
+			<table className="min-w-full bg-white text-sm">
+				<thead className="bg-gray-50 sticky top-0 z-10">
 					<tr>
 						<th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
 							Test

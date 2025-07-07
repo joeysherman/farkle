@@ -3022,7 +3022,85 @@ BEGIN
     '{"name": "bug_test_indices", "dice": [4,4,4,1,2,3], "turn_score": 0, "player_score": 2000, "description": "Ensure indices [0,1,2] are returned for three 4s"}'::JSONB,
     '{"name": "bug_test_mixed_positions", "dice": [2,4,1,4,5,4], "turn_score": 0, "player_score": 2000, "description": "Three 4s at positions [1,3,5] with mixed dice"}'::JSONB,
     '{"name": "bug_test_end_positions", "dice": [1,2,3,6,6,6], "turn_score": 0, "player_score": 2000, "description": "Three 6s at end positions [3,4,5]"}'::JSONB,
-    '{"name": "bug_test_choose_3", "dice": [3,4,4,5,4,1], "turn_score": 400, "player_score": 1000, "description": "Choose 3 dice and roll other 3"}'::JSONB
+    '{"name": "bug_test_choose_3", "dice": [3,4,4,5,4,1], "turn_score": 400, "player_score": 1000, "description": "Choose 3 dice and roll other 3"}'::JSONB,
+    
+    -- Advanced scoring optimization scenarios
+    '{"name": "optimal_vs_safe", "dice": [1,1,1,1,5,5], "turn_score": 0, "player_score": 4000, "description": "Four 1s vs safe play - should take all for 2000 points"}'::JSONB,
+    '{"name": "efficiency_comparison", "dice": [1,1,1,5,5,5], "turn_score": 150, "player_score": 3000, "description": "Equal value groups - should prefer one that uses fewer dice"}'::JSONB,
+    '{"name": "maximum_scoring", "dice": [1,1,5,5,5,5], "turn_score": 0, "player_score": 2000, "description": "Four 5s vs two 1s + four 5s optimization"}'::JSONB,
+    '{"name": "partial_vs_full_group", "dice": [2,2,2,2,5,6], "turn_score": 0, "player_score": 3000, "description": "Should take all four 2s vs just three"}'::JSONB,
+    
+    -- Complex risk-reward calculations
+    '{"name": "moderate_score_high_risk", "dice": [1,2], "turn_score": 350, "player_score": 6000, "description": "Moderate score with very high farkle risk"}'::JSONB,
+    '{"name": "low_score_low_risk", "dice": [1,5,5,2,3,4], "turn_score": 100, "player_score": 2000, "description": "Low score but good dice remaining"}'::JSONB,
+    '{"name": "perfect_bank_score", "dice": [5,6], "turn_score": 350, "player_score": 5000, "description": "Target risk limit reached"}'::JSONB,
+    '{"name": "gambling_scenario", "dice": [1,3,4], "turn_score": 600, "player_score": 4000, "description": "High score but could push for more"}'::JSONB,
+    
+    -- Player position scenarios
+    '{"name": "trailing_aggressive", "dice": [5,2], "turn_score": 200, "player_score": 3000, "description": "Far behind, should take more risks"}'::JSONB,
+    '{"name": "leading_conservative", "dice": [1,6], "turn_score": 200, "player_score": 8500, "description": "Leading, should be conservative"}'::JSONB,
+    '{"name": "tied_game_pressure", "dice": [1,3], "turn_score": 450, "player_score": 7000, "description": "Tied game, moderate pressure"}'::JSONB,
+    '{"name": "catchup_desperation", "dice": [5,4,6], "turn_score": 300, "player_score": 4000, "description": "Need to catch up, higher risk tolerance"}'::JSONB,
+    
+    -- Multiple six scenarios
+    '{"name": "six_ones_ultimate", "dice": [1,1,1,1,1,1], "turn_score": 0, "player_score": 5000, "description": "Six 1s - maximum possible points"}'::JSONB,
+    '{"name": "six_twos", "dice": [2,2,2,2,2,2], "turn_score": 0, "player_score": 3000, "description": "Six 2s for 800 points"}'::JSONB,
+    '{"name": "six_threes", "dice": [3,3,3,3,3,3], "turn_score": 0, "player_score": 3000, "description": "Six 3s for 1200 points"}'::JSONB,
+    '{"name": "six_fours", "dice": [4,4,4,4,4,4], "turn_score": 0, "player_score": 3000, "description": "Six 4s for 1600 points"}'::JSONB,
+    '{"name": "six_fives", "dice": [5,5,5,5,5,5], "turn_score": 0, "player_score": 3000, "description": "Six 5s for 2000 points"}'::JSONB,
+    
+    -- Hot dice progression scenarios
+    '{"name": "hot_dice_ones_fives", "dice": [1,1,5,5,5,5], "turn_score": 300, "player_score": 4000, "description": "All dice score after previous roll"}'::JSONB,
+    '{"name": "hot_dice_mixed", "dice": [1,1,1,2,2,2], "turn_score": 200, "player_score": 3000, "description": "Two sets of three - all dice scoring"}'::JSONB,
+    '{"name": "hot_dice_continue", "dice": [5,5,5,1,1,1], "turn_score": 500, "player_score": 2000, "description": "Perfect hot dice scenario"}'::JSONB,
+    
+    -- Boundary and edge scoring
+    '{"name": "exactly_350_risk_limit", "dice": [1,2], "turn_score": 350, "player_score": 5000, "description": "Exactly at risk limit"}'::JSONB,
+    '{"name": "one_under_limit", "dice": [5,3], "turn_score": 349, "player_score": 5000, "description": "One point under risk limit"}'::JSONB,
+    '{"name": "one_over_limit", "dice": [1,4], "turn_score": 351, "player_score": 5000, "description": "One point over risk limit"}'::JSONB,
+    '{"name": "exactly_winning", "dice": [1,2], "turn_score": 150, "player_score": 9850, "description": "Exactly enough to win"}'::JSONB,
+    
+    -- Complex mixed scenarios
+    '{"name": "four_kinds_available", "dice": [3,3,3,3,1,5], "turn_score": 0, "player_score": 3000, "description": "Four 3s plus singles"}'::JSONB,
+    '{"name": "five_kinds_decision", "dice": [4,4,4,4,4,1], "turn_score": 0, "player_score": 3000, "description": "Five 4s plus a 1"}'::JSONB,
+    '{"name": "competing_triples", "dice": [1,1,1,3,3,3], "turn_score": 0, "player_score": 3000, "description": "Three 1s vs three 3s decision"}'::JSONB,
+    '{"name": "triple_vs_singles", "dice": [2,2,2,1,1,5], "turn_score": 0, "player_score": 3000, "description": "Three 2s vs multiple singles"}'::JSONB,
+    
+    -- Advanced pair scenarios
+    '{"name": "almost_three_pairs", "dice": [2,2,4,4,6,3], "turn_score": 0, "player_score": 3000, "description": "Two pairs, missing third pair"}'::JSONB,
+    '{"name": "pairs_vs_triple", "dice": [2,2,4,4,4,6], "turn_score": 0, "player_score": 3000, "description": "Two pairs vs three of a kind"}'::JSONB,
+    '{"name": "pairs_with_scoring", "dice": [1,1,5,5,6,6], "turn_score": 0, "player_score": 3000, "description": "Three pairs including scoring dice"}'::JSONB,
+    
+    -- Turn progression scenarios
+    '{"name": "second_roll_decision", "dice": [1,5,2], "turn_score": 250, "player_score": 4000, "description": "Second roll in turn, accumulated score"}'::JSONB,
+    '{"name": "third_roll_risk", "dice": [5,6], "turn_score": 400, "player_score": 3000, "description": "Third roll, high accumulated score"}'::JSONB,
+    '{"name": "late_turn_caution", "dice": [1,2,3,4], "turn_score": 600, "player_score": 2000, "description": "Late in turn with high score"}'::JSONB,
+    
+    -- Minimum scoring scenarios
+    '{"name": "minimum_bank_threshold", "dice": [5,6], "turn_score": 200, "player_score": 1000, "description": "Minimum points to consider banking"}'::JSONB,
+    '{"name": "forced_minimum", "dice": [1,2,3,4,6,6], "turn_score": 0, "player_score": 2000, "description": "Only minimum scoring option available"}'::JSONB,
+    '{"name": "below_minimum", "dice": [5,2,3,4,6,6], "turn_score": 0, "player_score": 2000, "description": "Below preferred minimum score"}'::JSONB,
+    
+    -- Endgame pressure scenarios
+    '{"name": "need_exactly_100", "dice": [1,2,3,4,6,6], "turn_score": 0, "player_score": 9900, "description": "Need exactly 100 to win"}'::JSONB,
+    '{"name": "need_exactly_50", "dice": [5,2,3,4,6,6], "turn_score": 0, "player_score": 9950, "description": "Need exactly 50 to win"}'::JSONB,
+    '{"name": "opponent_close", "dice": [1,5,2], "turn_score": 300, "player_score": 9000, "description": "Opponent close to winning"}'::JSONB,
+    '{"name": "last_chance", "dice": [5,3], "turn_score": 250, "player_score": 8000, "description": "Possibly last good chance to score"}'::JSONB,
+    
+    -- Psychological pressure scenarios
+    '{"name": "comeback_opportunity", "dice": [1,1,1,5,5,2], "turn_score": 0, "player_score": 2000, "description": "Big scoring opportunity while behind"}'::JSONB,
+    '{"name": "maintain_lead", "dice": [5,6], "turn_score": 300, "player_score": 8000, "description": "Ahead, just need to maintain"}'::JSONB,
+    '{"name": "clutch_moment", "dice": [1,1,5], "turn_score": 200, "player_score": 9200, "description": "Clutch moment near end"}'::JSONB,
+    
+    -- Statistical edge cases
+    '{"name": "maximum_farkle_risk", "dice": [1], "turn_score": 800, "player_score": 7000, "description": "Maximum possible farkle risk"}'::JSONB,
+    '{"name": "minimum_farkle_risk", "dice": [1,1,1,5,5,5], "turn_score": 100, "player_score": 3000, "description": "Minimum farkle risk with 6 dice"}'::JSONB,
+    '{"name": "zero_risk_scenario", "dice": [1,1,1,1,1,1], "turn_score": 500, "player_score": 4000, "description": "Impossible to farkle"}'::JSONB,
+    
+    -- Decision tree complexity
+    '{"name": "four_way_choice", "dice": [1,1,2,2,2,5], "turn_score": 0, "player_score": 3000, "description": "Multiple valid scoring combinations"}'::JSONB,
+    '{"name": "optimization_puzzle", "dice": [1,1,1,5,5,2], "turn_score": 100, "player_score": 4000, "description": "Complex optimization between options"}'::JSONB,
+    '{"name": "efficiency_test_advanced", "dice": [1,1,5,5,5,5], "turn_score": 0, "player_score": 3000, "description": "Advanced efficiency calculation"}'::JSONB
   ];
 
   -- Run each test case

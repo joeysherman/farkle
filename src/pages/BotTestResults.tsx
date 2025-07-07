@@ -47,13 +47,12 @@ const BotTestResults: React.FC = () => {
 
 			// Call the test_bot_decisions RPC function
 			const response = await supabase.rpc("test_bot_decisions");
-			const { data, error: dbError } = response;
 
-			if (dbError) {
-				throw new Error(`Database error: ${dbError.message}`);
+			if (response.error) {
+				throw new Error(`Database error: ${response.error.message}`);
 			}
 
-			setTestData(data as BotTestData);
+			setTestData(response.data as BotTestData);
 		} catch (error_) {
 			console.error("Error loading bot test data:", error_);
 			setError(
@@ -132,8 +131,8 @@ const BotTestResults: React.FC = () => {
 		<div className="min-h-screen bg-gray-50">
 			<BotTestVisualizer
 				isRunningTests={loading}
-				onRerunTests={loadTestData}
 				testData={testData}
+				onRerunTests={loadTestData}
 			/>
 		</div>
 	);
