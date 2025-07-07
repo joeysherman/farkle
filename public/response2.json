@@ -1,0 +1,1790 @@
+{
+    "two_ones": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                1,
+                1,
+                2,
+                3,
+                4,
+                6
+            ],
+            "player_score": 1500,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 4 dice (16.7% farkle risk)",
+            "dice_to_keep": [
+                0,
+                1
+            ],
+            "selected_dice": [
+                0,
+                1
+            ],
+            "expected_score": 200,
+            "remaining_dice": 4,
+            "farkle_probability": 0.167
+        },
+        "reasoning": "Continuing with 4 dice (16.7% farkle risk)",
+        "description": "Two 1s available for 200 points",
+        "selected_dice": [
+            0,
+            1
+        ],
+        "expected_score": 200
+    },
+    "two_fives": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                5,
+                5,
+                2,
+                3,
+                4,
+                6
+            ],
+            "player_score": 1500,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 5 dice (8.9% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 50,
+            "remaining_dice": 5,
+            "farkle_probability": 0.089
+        },
+        "reasoning": "Continuing with 5 dice (8.9% farkle risk)",
+        "description": "Two 5s available for 100 points",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 50
+    },
+    "almost_won": {
+        "action": "bank",
+        "inputs": {
+            "turn_score": 150,
+            "dice_values": [
+                5,
+                6
+            ],
+            "player_score": 9900,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bank",
+            "reasoning": "Banking with 200 points (66.7% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 50,
+            "remaining_dice": 1,
+            "total_turn_score": 200,
+            "farkle_probability": 0.667
+        },
+        "reasoning": "Banking with 200 points (66.7% farkle risk)",
+        "description": "Almost at target score",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 50
+    },
+    "three_pairs": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                2,
+                2,
+                4,
+                4,
+                6,
+                6
+            ],
+            "player_score": 4000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Taking three pairs (750 pts) - hot dice!",
+            "dice_to_keep": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "expected_score": 750,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Taking three pairs (750 pts) - hot dice!",
+        "description": "Three pairs combination",
+        "selected_dice": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "expected_score": 750
+    },
+    "endgame_push": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 100,
+            "dice_values": [
+                1,
+                1,
+                5
+            ],
+            "player_score": 9800,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Hot dice! All dice score 250 points, rolling 6 fresh dice",
+            "dice_to_keep": [
+                0,
+                1,
+                2
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2
+            ],
+            "expected_score": 250,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Hot dice! All dice score 250 points, rolling 6 fresh dice",
+        "description": "Need points to win",
+        "selected_dice": [
+            0,
+            1,
+            2
+        ],
+        "expected_score": 250
+    },
+    "moderate_risk": {
+        "action": "bank",
+        "inputs": {
+            "turn_score": 300,
+            "dice_values": [
+                1,
+                2,
+                3
+            ],
+            "player_score": 4000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bank",
+            "reasoning": "Banking with 400 points (44.4% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 100,
+            "remaining_dice": 2,
+            "total_turn_score": 400,
+            "farkle_probability": 0.444
+        },
+        "reasoning": "Banking with 400 points (44.4% farkle risk)",
+        "description": "Moderate risk with 3 dice remaining",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 100
+    },
+    "complex_choice": {
+        "action": "bank",
+        "inputs": {
+            "turn_score": 100,
+            "dice_values": [
+                1,
+                1,
+                1,
+                5,
+                5,
+                2
+            ],
+            "player_score": 3000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bank",
+            "reasoning": "Banking with 1100 points (27.8% farkle risk)",
+            "dice_to_keep": [
+                0,
+                1,
+                2
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2
+            ],
+            "expected_score": 1000,
+            "remaining_dice": 3,
+            "total_turn_score": 1100,
+            "farkle_probability": 0.278
+        },
+        "reasoning": "Banking with 1100 points (27.8% farkle risk)",
+        "description": "Three 1s vs two 5s - should prefer three 1s",
+        "selected_dice": [
+            0,
+            1,
+            2
+        ],
+        "expected_score": 1000
+    },
+    "multiple_fives": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                5,
+                5,
+                5,
+                2,
+                3,
+                4
+            ],
+            "player_score": 3000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+            "dice_to_keep": [
+                0,
+                1,
+                2
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2
+            ],
+            "expected_score": 500,
+            "remaining_dice": 3,
+            "farkle_probability": 0.278
+        },
+        "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+        "description": "Three 5s should score 500 points",
+        "selected_dice": [
+            0,
+            1,
+            2
+        ],
+        "expected_score": 500
+    },
+    "straight_combo": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+            ],
+            "player_score": 3000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Taking straight (1000 pts) - hot dice!",
+            "dice_to_keep": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "expected_score": 1000,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Taking straight (1000 pts) - hot dice!",
+        "description": "Perfect straight 1-6",
+        "selected_dice": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "expected_score": 1000
+    },
+    "all_non_scoring": {
+        "action": "bust",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                2,
+                2,
+                3,
+                3,
+                4,
+                6
+            ],
+            "player_score": 2000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bust",
+            "reasoning": "No scoring combinations available",
+            "dice_to_keep": [],
+            "selected_dice": []
+        },
+        "reasoning": "No scoring combinations available",
+        "description": "Pairs but no scoring combinations",
+        "selected_dice": [],
+        "expected_score": null
+    },
+    "efficiency_test": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                1,
+                1,
+                5,
+                5,
+                5,
+                2
+            ],
+            "player_score": 4000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+            "dice_to_keep": [
+                2,
+                3,
+                4
+            ],
+            "selected_dice": [
+                2,
+                3,
+                4
+            ],
+            "expected_score": 500,
+            "remaining_dice": 3,
+            "farkle_probability": 0.278
+        },
+        "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+        "description": "Test efficiency: two 1s vs three 5s",
+        "selected_dice": [
+            2,
+            3,
+            4
+        ],
+        "expected_score": 500
+    },
+    "farkle_scenario": {
+        "action": "bust",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                2,
+                3,
+                4,
+                6
+            ],
+            "player_score": 1500,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bust",
+            "reasoning": "No scoring combinations available",
+            "dice_to_keep": [],
+            "selected_dice": []
+        },
+        "reasoning": "No scoring combinations available",
+        "description": "No scoring dice available",
+        "selected_dice": [],
+        "expected_score": null
+    },
+    "huge_turn_score": {
+        "action": "bank",
+        "inputs": {
+            "turn_score": 1000,
+            "dice_values": [
+                1,
+                2
+            ],
+            "player_score": 3000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bank",
+            "reasoning": "Banking with 1100 points (66.7% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 100,
+            "remaining_dice": 1,
+            "total_turn_score": 1100,
+            "farkle_probability": 0.667
+        },
+        "reasoning": "Banking with 1100 points (66.7% farkle risk)",
+        "description": "Already high turn score, be conservative",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 100
+    },
+    "mixed_multiples": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                3,
+                3,
+                3,
+                4,
+                4,
+                4
+            ],
+            "player_score": 3500,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Hot dice! All dice score 400 points, rolling 6 fresh dice",
+            "dice_to_keep": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "expected_score": 400,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Hot dice! All dice score 400 points, rolling 6 fresh dice",
+        "description": "Three 3s vs three 4s",
+        "selected_dice": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "expected_score": 400
+    },
+    "single_one_only": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                1,
+                2,
+                3,
+                4,
+                6,
+                6
+            ],
+            "player_score": 1500,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 5 dice (8.9% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 100,
+            "remaining_dice": 5,
+            "farkle_probability": 0.089
+        },
+        "reasoning": "Continuing with 5 dice (8.9% farkle risk)",
+        "description": "Only one 1 available for 100 points",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 100
+    },
+    "all_scoring_dice": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                1,
+                1,
+                1,
+                5,
+                5,
+                5
+            ],
+            "player_score": 4000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Hot dice! All dice score 500 points, rolling 6 fresh dice",
+            "dice_to_keep": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "expected_score": 500,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Hot dice! All dice score 500 points, rolling 6 fresh dice",
+        "description": "All dice score - should take all and continue",
+        "selected_dice": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "expected_score": 500
+    },
+    "bug_test_indices": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                4,
+                4,
+                4,
+                1,
+                2,
+                3
+            ],
+            "player_score": 2000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+            "dice_to_keep": [
+                0,
+                1,
+                2
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2
+            ],
+            "expected_score": 400,
+            "remaining_dice": 3,
+            "farkle_probability": 0.278
+        },
+        "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+        "description": "Ensure indices [0,1,2] are returned for three 4s",
+        "selected_dice": [
+            0,
+            1,
+            2
+        ],
+        "expected_score": 400
+    },
+    "single_five_only": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                5,
+                2,
+                3,
+                4,
+                6,
+                6
+            ],
+            "player_score": 1500,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 5 dice (8.9% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 50,
+            "remaining_dice": 5,
+            "farkle_probability": 0.089
+        },
+        "reasoning": "Continuing with 5 dice (8.9% farkle risk)",
+        "description": "Only one 5 available for 50 points",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 50
+    },
+    "bug_test_choose_3": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 400,
+            "dice_values": [
+                3,
+                4,
+                4,
+                5,
+                4,
+                1
+            ],
+            "player_score": 1000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+            "dice_to_keep": [
+                1,
+                2,
+                4
+            ],
+            "selected_dice": [
+                1,
+                2,
+                4
+            ],
+            "expected_score": 400,
+            "remaining_dice": 3,
+            "farkle_probability": 0.278
+        },
+        "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+        "description": "Choose 3 dice and roll other 3",
+        "selected_dice": [
+            1,
+            2,
+            4
+        ],
+        "expected_score": 400
+    },
+    "conservative_bank": {
+        "action": "bank",
+        "inputs": {
+            "turn_score": 500,
+            "dice_values": [
+                5,
+                2
+            ],
+            "player_score": 8000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bank",
+            "reasoning": "Banking with 550 points (66.7% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 50,
+            "remaining_dice": 1,
+            "total_turn_score": 550,
+            "farkle_probability": 0.667
+        },
+        "reasoning": "Banking with 550 points (66.7% farkle risk)",
+        "description": "Should bank with decent score",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 50
+    },
+    "four_of_a_kind_2s": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                2,
+                2,
+                2,
+                2,
+                1,
+                5
+            ],
+            "player_score": 2000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Hot dice! All dice score 550 points, rolling 6 fresh dice",
+            "dice_to_keep": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "expected_score": 550,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Hot dice! All dice score 550 points, rolling 6 fresh dice",
+        "description": "Four 2s should score 400 points",
+        "selected_dice": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "expected_score": 550
+    },
+    "hot_dice_scenario": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 200,
+            "dice_values": [
+                1,
+                1,
+                1,
+                5,
+                5,
+                5
+            ],
+            "player_score": 3000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Hot dice! All dice score 500 points, rolling 6 fresh dice",
+            "dice_to_keep": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "expected_score": 500,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Hot dice! All dice score 500 points, rolling 6 fresh dice",
+        "description": "All dice score - hot dice decision",
+        "selected_dice": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "expected_score": 500
+    },
+    "mid_game_balanced": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 250,
+            "dice_values": [
+                5,
+                3,
+                4
+            ],
+            "player_score": 5000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 2 dice (44.4% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 50,
+            "remaining_dice": 2,
+            "farkle_probability": 0.444
+        },
+        "reasoning": "Continuing with 2 dice (44.4% farkle risk)",
+        "description": "Mid game balanced approach",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 50
+    },
+    "high_risk_continue": {
+        "action": "bank",
+        "inputs": {
+            "turn_score": 400,
+            "dice_values": [
+                1,
+                3
+            ],
+            "player_score": 5000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bank",
+            "reasoning": "Banking with 500 points (66.7% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 100,
+            "remaining_dice": 1,
+            "total_turn_score": 500,
+            "farkle_probability": 0.667
+        },
+        "reasoning": "Banking with 500 points (66.7% farkle risk)",
+        "description": "High turn score with risky continue",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 100
+    },
+    "pairs_with_scoring": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                1,
+                1,
+                5,
+                5,
+                2,
+                2
+            ],
+            "player_score": 2500,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Taking three pairs (750 pts) - hot dice!",
+            "dice_to_keep": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "expected_score": 750,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Taking three pairs (750 pts) - hot dice!",
+        "description": "Three pairs with 1s and 5s",
+        "selected_dice": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "expected_score": 750
+    },
+    "three_of_a_kind_1s": {
+        "action": "bank",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                1,
+                1,
+                1,
+                2,
+                3,
+                4
+            ],
+            "player_score": 2000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bank",
+            "reasoning": "Banking with 1000 points (27.8% farkle risk)",
+            "dice_to_keep": [
+                0,
+                1,
+                2
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2
+            ],
+            "expected_score": 1000,
+            "remaining_dice": 3,
+            "total_turn_score": 1000,
+            "farkle_probability": 0.278
+        },
+        "reasoning": "Banking with 1000 points (27.8% farkle risk)",
+        "description": "Three 1s should score 1000 points",
+        "selected_dice": [
+            0,
+            1,
+            2
+        ],
+        "expected_score": 1000
+    },
+    "three_of_a_kind_3s": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                3,
+                3,
+                3,
+                1,
+                2,
+                6
+            ],
+            "player_score": 1000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+            "dice_to_keep": [
+                0,
+                1,
+                2
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2
+            ],
+            "expected_score": 300,
+            "remaining_dice": 3,
+            "farkle_probability": 0.278
+        },
+        "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+        "description": "Three 3s with mixed dice",
+        "selected_dice": [
+            0,
+            1,
+            2
+        ],
+        "expected_score": 300
+    },
+    "three_of_a_kind_4s": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                3,
+                4,
+                4,
+                1,
+                4,
+                6
+            ],
+            "player_score": 1000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+            "dice_to_keep": [
+                1,
+                2,
+                4
+            ],
+            "selected_dice": [
+                1,
+                2,
+                4
+            ],
+            "expected_score": 400,
+            "remaining_dice": 3,
+            "farkle_probability": 0.278
+        },
+        "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+        "description": "Three 4s should select indices [1,2,4] for 400 points",
+        "selected_dice": [
+            1,
+            2,
+            4
+        ],
+        "expected_score": 400
+    },
+    "desperate_situation": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 100,
+            "dice_values": [
+                1,
+                5
+            ],
+            "player_score": 500,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Hot dice! All dice score 150 points, rolling 6 fresh dice",
+            "dice_to_keep": [
+                0,
+                1
+            ],
+            "selected_dice": [
+                0,
+                1
+            ],
+            "expected_score": 150,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Hot dice! All dice score 150 points, rolling 6 fresh dice",
+        "description": "Low player score, need to take risks",
+        "selected_dice": [
+            0,
+            1
+        ],
+        "expected_score": 150
+    },
+    "five_of_a_kind_ones": {
+        "action": "bank",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                3
+            ],
+            "player_score": 5000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bank",
+            "reasoning": "Banking with 3000 points (66.7% farkle risk)",
+            "dice_to_keep": [
+                0,
+                1,
+                2,
+                3,
+                4
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2,
+                3,
+                4
+            ],
+            "expected_score": 3000,
+            "remaining_dice": 1,
+            "total_turn_score": 3000,
+            "farkle_probability": 0.667
+        },
+        "reasoning": "Banking with 3000 points (66.7% farkle risk)",
+        "description": "Five 1s should score 3000 points",
+        "selected_dice": [
+            0,
+            1,
+            2,
+            3,
+            4
+        ],
+        "expected_score": 3000
+    },
+    "risk_reward_balance": {
+        "action": "bank",
+        "inputs": {
+            "turn_score": 350,
+            "dice_values": [
+                1,
+                5,
+                6
+            ],
+            "player_score": 6000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bank",
+            "reasoning": "Banking with 450 points (44.4% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 100,
+            "remaining_dice": 2,
+            "total_turn_score": 450,
+            "farkle_probability": 0.444
+        },
+        "reasoning": "Banking with 450 points (44.4% farkle risk)",
+        "description": "Balance between banking and continuing",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 100
+    },
+    "six_of_a_kind_sixes": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                6,
+                6,
+                6,
+                6,
+                6,
+                6
+            ],
+            "player_score": 6000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Hot dice! All dice score 2400 points, rolling 6 fresh dice",
+            "dice_to_keep": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "expected_score": 2400,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Hot dice! All dice score 2400 points, rolling 6 fresh dice",
+        "description": "Six 6s should score 2400 points",
+        "selected_dice": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "expected_score": 2400
+    },
+    "endgame_conservative": {
+        "action": "bank",
+        "inputs": {
+            "turn_score": 300,
+            "dice_values": [
+                1,
+                6
+            ],
+            "player_score": 9500,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bank",
+            "reasoning": "Banking with 400 points (66.7% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 100,
+            "remaining_dice": 1,
+            "total_turn_score": 400,
+            "farkle_probability": 0.667
+        },
+        "reasoning": "Banking with 400 points (66.7% farkle risk)",
+        "description": "Close to winning, be conservative",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 100
+    },
+    "low_risk_high_reward": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 100,
+            "dice_values": [
+                1,
+                1,
+                5,
+                5,
+                6,
+                6
+            ],
+            "player_score": 2000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Taking three pairs (750 pts) - hot dice!",
+            "dice_to_keep": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "expected_score": 750,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Taking three pairs (750 pts) - hot dice!",
+        "description": "Multiple scoring options with good remaining dice",
+        "selected_dice": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "expected_score": 750
+    },
+    "single_die_remaining": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 500,
+            "dice_values": [
+                1
+            ],
+            "player_score": 6000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Hot dice! All dice score 100 points, rolling 6 fresh dice",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 100,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Hot dice! All dice score 100 points, rolling 6 fresh dice",
+        "description": "Only one die left to roll",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 100
+    },
+    "straight_mixed_order": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                6,
+                1,
+                4,
+                2,
+                5,
+                3
+            ],
+            "player_score": 3000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Taking straight (1000 pts) - hot dice!",
+            "dice_to_keep": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "expected_score": 1000,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Taking straight (1000 pts) - hot dice!",
+        "description": "Straight in mixed order",
+        "selected_dice": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "expected_score": 1000
+    },
+    "two_dice_one_scoring": {
+        "action": "bank",
+        "inputs": {
+            "turn_score": 400,
+            "dice_values": [
+                5,
+                3
+            ],
+            "player_score": 5000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bank",
+            "reasoning": "Banking with 450 points (66.7% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 50,
+            "remaining_dice": 1,
+            "total_turn_score": 450,
+            "farkle_probability": 0.667
+        },
+        "reasoning": "Banking with 450 points (66.7% farkle risk)",
+        "description": "Two dice, one scoring",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 50
+    },
+    "choice_between_groups": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                2,
+                2,
+                2,
+                6,
+                6,
+                6
+            ],
+            "player_score": 3000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Hot dice! All dice score 600 points, rolling 6 fresh dice",
+            "dice_to_keep": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "expected_score": 600,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Hot dice! All dice score 600 points, rolling 6 fresh dice",
+        "description": "Choice between three 2s and three 6s",
+        "selected_dice": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "expected_score": 600
+    },
+    "early_game_aggressive": {
+        "action": "bank",
+        "inputs": {
+            "turn_score": 150,
+            "dice_values": [
+                1,
+                2
+            ],
+            "player_score": 500,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bank",
+            "reasoning": "Banking with 250 points (66.7% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 100,
+            "remaining_dice": 1,
+            "total_turn_score": 250,
+            "farkle_probability": 0.667
+        },
+        "reasoning": "Banking with 250 points (66.7% farkle risk)",
+        "description": "Early game should be more aggressive",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 100
+    },
+    "mixed_pairs_with_ones": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                1,
+                1,
+                3,
+                3,
+                5,
+                5
+            ],
+            "player_score": 2500,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Taking three pairs (750 pts) - hot dice!",
+            "dice_to_keep": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "selected_dice": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "expected_score": 750,
+            "remaining_dice": 6,
+            "farkle_probability": 0.021
+        },
+        "reasoning": "Taking three pairs (750 pts) - hot dice!",
+        "description": "Three pairs including 1s and 5s",
+        "selected_dice": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "expected_score": 750
+    },
+    "mixed_scoring_options": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 200,
+            "dice_values": [
+                1,
+                5,
+                5,
+                5,
+                2,
+                3
+            ],
+            "player_score": 7000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+            "dice_to_keep": [
+                1,
+                2,
+                3
+            ],
+            "selected_dice": [
+                1,
+                2,
+                3
+            ],
+            "expected_score": 500,
+            "remaining_dice": 3,
+            "farkle_probability": 0.278
+        },
+        "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+        "description": "Mix of 1s and three 5s - should prefer three 5s",
+        "selected_dice": [
+            1,
+            2,
+            3
+        ],
+        "expected_score": 500
+    },
+    "single_ones_and_fives": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                1,
+                1,
+                5,
+                2,
+                4,
+                6
+            ],
+            "player_score": 2000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 4 dice (16.7% farkle risk)",
+            "dice_to_keep": [
+                0,
+                1
+            ],
+            "selected_dice": [
+                0,
+                1
+            ],
+            "expected_score": 200,
+            "remaining_dice": 4,
+            "farkle_probability": 0.167
+        },
+        "reasoning": "Continuing with 4 dice (16.7% farkle risk)",
+        "description": "Two 1s and one 5 available",
+        "selected_dice": [
+            0,
+            1
+        ],
+        "expected_score": 200
+    },
+    "bug_test_end_positions": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                1,
+                2,
+                3,
+                6,
+                6,
+                6
+            ],
+            "player_score": 2000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+            "dice_to_keep": [
+                3,
+                4,
+                5
+            ],
+            "selected_dice": [
+                3,
+                4,
+                5
+            ],
+            "expected_score": 600,
+            "remaining_dice": 3,
+            "farkle_probability": 0.278
+        },
+        "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+        "description": "Three 6s at end positions [3,4,5]",
+        "selected_dice": [
+            3,
+            4,
+            5
+        ],
+        "expected_score": 600
+    },
+    "late_game_conservative": {
+        "action": "bank",
+        "inputs": {
+            "turn_score": 250,
+            "dice_values": [
+                5,
+                3
+            ],
+            "player_score": 9200,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "bank",
+            "reasoning": "Banking with 300 points (66.7% farkle risk)",
+            "dice_to_keep": [
+                0
+            ],
+            "selected_dice": [
+                0
+            ],
+            "expected_score": 50,
+            "remaining_dice": 1,
+            "total_turn_score": 300,
+            "farkle_probability": 0.667
+        },
+        "reasoning": "Banking with 300 points (66.7% farkle risk)",
+        "description": "Late game should be conservative",
+        "selected_dice": [
+            0
+        ],
+        "expected_score": 50
+    },
+    "bug_test_mixed_positions": {
+        "action": "continue",
+        "inputs": {
+            "turn_score": 0,
+            "dice_values": [
+                2,
+                4,
+                1,
+                4,
+                5,
+                4
+            ],
+            "player_score": 2000,
+            "target_score": 10000
+        },
+        "outputs": {
+            "action": "continue",
+            "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+            "dice_to_keep": [
+                1,
+                3,
+                5
+            ],
+            "selected_dice": [
+                1,
+                3,
+                5
+            ],
+            "expected_score": 400,
+            "remaining_dice": 3,
+            "farkle_probability": 0.278
+        },
+        "reasoning": "Continuing with 3 dice (27.8% farkle risk)",
+        "description": "Three 4s at positions [1,3,5] with mixed dice",
+        "selected_dice": [
+            1,
+            3,
+            5
+        ],
+        "expected_score": 400
+    }
+}

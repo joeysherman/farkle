@@ -33,14 +33,6 @@ function LoadingSpinner(): JSX.Element {
 	);
 }
 
-const test_bot_decisions = async (): Promise<void> => {
-	const { data, error } = await supabase.rpc("test_bot_decisions");
-	if (error) {
-		console.error("Error testing bot decisions:", error);
-	}
-	console.log(data);
-};
-
 export const Dashboard = (): FunctionComponent => {
 	const navigate = useNavigate();
 	const [loading, setLoading] = useState(false);
@@ -309,17 +301,6 @@ export const Dashboard = (): FunctionComponent => {
 								<h2 className="card-title text-2xl mb-4">Quick Actions</h2>
 
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<div className="flex space-x-2">
-										<button
-											className="btn btn-primary w-full"
-											onClick={() => {
-												void test_bot_decisions();
-											}}
-										>
-											Test Bot Decisions
-										</button>
-									</div>
-
 									<button
 										disabled={loading}
 										className="btn btn-primary w-full"
@@ -328,7 +309,7 @@ export const Dashboard = (): FunctionComponent => {
 										{loading ? <LoadingSpinner /> : "🎲 Create New Game"}
 									</button>
 
-									<div className="flex space-x-2 md:col-span-2">
+									<div className="flex space-x-2">
 										<input
 											type="text"
 											placeholder="Enter game code"

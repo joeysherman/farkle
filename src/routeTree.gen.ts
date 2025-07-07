@@ -20,6 +20,7 @@ import { Route as AppOnboardingRouteImport } from './routes/app/onboarding'
 import { Route as AppHistoryRouteImport } from './routes/app/history'
 import { Route as AppFriendsRouteImport } from './routes/app/friends'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
+import { Route as AppBotTestsRouteImport } from './routes/app/bot-tests'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -76,12 +77,18 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppBotTestsRoute = AppBotTestsRouteImport.update({
+  id: '/bot-tests',
+  path: '/bot-tests',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
+  '/app/bot-tests': typeof AppBotTestsRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/friends': typeof AppFriendsRoute
   '/app/history': typeof AppHistoryRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppRouteRouteWithChildren
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
+  '/app/bot-tests': typeof AppBotTestsRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/friends': typeof AppFriendsRoute
   '/app/history': typeof AppHistoryRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/app': typeof AppRouteRouteWithChildren
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
+  '/app/bot-tests': typeof AppBotTestsRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/friends': typeof AppFriendsRoute
   '/app/history': typeof AppHistoryRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/signin'
     | '/signup'
+    | '/app/bot-tests'
     | '/app/dashboard'
     | '/app/friends'
     | '/app/history'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/signin'
     | '/signup'
+    | '/app/bot-tests'
     | '/app/dashboard'
     | '/app/friends'
     | '/app/history'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/signin'
     | '/signup'
+    | '/app/bot-tests'
     | '/app/dashboard'
     | '/app/friends'
     | '/app/history'
@@ -246,10 +258,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/app/bot-tests': {
+      id: '/app/bot-tests'
+      path: '/bot-tests'
+      fullPath: '/app/bot-tests'
+      preLoaderRoute: typeof AppBotTestsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
   }
 }
 
 interface AppRouteRouteChildren {
+  AppBotTestsRoute: typeof AppBotTestsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppFriendsRoute: typeof AppFriendsRoute
   AppHistoryRoute: typeof AppHistoryRoute
@@ -259,6 +279,7 @@ interface AppRouteRouteChildren {
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppBotTestsRoute: AppBotTestsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppFriendsRoute: AppFriendsRoute,
   AppHistoryRoute: AppHistoryRoute,

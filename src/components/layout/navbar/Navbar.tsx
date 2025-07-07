@@ -85,6 +85,10 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	const isProfileActive = useMatch({ from: "/profile", shouldThrow: false });
 	const isFriendsActive = useMatch({ from: "/friends", shouldThrow: false });
 	const isHistoryActive = useMatch({ from: "/history", shouldThrow: false });
+	const isBotTestsActive = useMatch({
+		from: "/app/bot-tests",
+		shouldThrow: false,
+	});
 
 	const { data: profileData, isLoading: isProfileLoading } = useProfileData(
 		user?.id ?? ""
@@ -249,6 +253,20 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 															to="/app/history"
 														>
 															History
+														</Link>
+													)}
+												</MenuItem>
+												<MenuItem>
+													{({ active: isActive }): JSX.Element => (
+														<Link
+															className={`${
+																isActive || isBotTestsActive
+																	? "bg-indigo-500 text-white"
+																	: "text-gray-900"
+															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+															to="/app/bot-tests"
+														>
+															Bot Tests
 														</Link>
 													)}
 												</MenuItem>

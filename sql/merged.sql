@@ -2700,7 +2700,6 @@ CREATE OR REPLACE FUNCTION make_bot_decision(
   p_target_score INTEGER DEFAULT 10000
 ) RETURNS JSONB AS $$
 DECLARE
-  v_scoring_options RECORD;
   v_best_score INTEGER := 0;
   v_best_remaining_dice INTEGER := 0;
   v_best_indices INTEGER[] := ARRAY[]::INTEGER[];
@@ -2709,17 +2708,19 @@ DECLARE
   v_farkle_prob NUMERIC;
   v_expected_value NUMERIC;
   v_should_bank BOOLEAN := FALSE;
-  v_selected_indices INTEGER[] := ARRAY[]::INTEGER[];
+  v_temp_indices INTEGER[] := ARRAY[]::INTEGER[];
   v_temp_dice INTEGER[];
   v_temp_result turn_score_result;
   v_dice_counts INTEGER[6];
   v_has_straight BOOLEAN := FALSE;
   v_has_three_pairs BOOLEAN := FALSE;
+  v_all_dice_score BOOLEAN := FALSE;
+  v_total_score INTEGER := 0;
   i INTEGER;
   j INTEGER;
+  dice_used INTEGER;
 BEGIN
   -- Get risk limit based on difficulty
-  -- v_risk_limit := get_bot_risk_limit(p_difficulty);
   v_risk_limit := 350;
   
   -- Initialize dice counts for analysis
@@ -2751,29 +2752,53 @@ BEGIN
     END IF;
   END IF;
 
+  -- Check if all dice are scoring (hot dice scenario)
+  IF NOT v_has_straight AND NOT v_has_three_pairs THEN
+    -- Calculate total score if we took all valid scoring dice
+    v_temp_result := calculate_turn_score(p_dice_values);
+    
+    -- If all dice contribute to scoring, it's a hot dice scenario
+    IF array_length(v_temp_result.valid_dice, 1) = array_length(p_dice_values, 1) THEN
+      v_all_dice_score := TRUE;
+      v_total_score := v_temp_result.score;
+      
+      -- Select all dice indices
+      v_temp_indices := ARRAY[]::INTEGER[];
+      FOR i IN 1..array_length(p_dice_values, 1) LOOP
+        v_temp_indices := array_append(v_temp_indices, i - 1);
+      END LOOP;
+      
+      RETURN jsonb_build_object(
+        'action', 'continue',
+        'selected_dice', v_temp_indices,
+        'dice_to_keep', v_temp_indices,
+        'expected_score', v_total_score,
+        'remaining_dice', 6, -- Hot dice - roll all 6 again
+        'farkle_probability', farkle_probability(6),
+        'reasoning', format('Hot dice! All dice score %s points, rolling 6 fresh dice', v_total_score)
+      );
+    END IF;
+  END IF;
+
   -- If we have special combinations, take them
   IF v_has_straight OR v_has_three_pairs THEN
+    v_temp_indices := ARRAY[]::INTEGER[];
     FOR i IN 1..array_length(p_dice_values, 1) LOOP
-      v_selected_indices := array_append(v_selected_indices, i - 1);
+      v_temp_indices := array_append(v_temp_indices, i - 1);
     END LOOP;
     
     v_temp_result := calculate_turn_score(p_dice_values);
 
     RETURN jsonb_build_object(
       'action', 'continue',
-      'selected_dice', v_selected_indices,
-      'dice_to_keep', v_selected_indices,
-      'v_temp_result', v_temp_result,
-      'v_dice_counts', v_dice_counts,
-      'v_has_straight', v_has_straight,
-      'v_has_three_pairs', v_has_three_pairs,
+      'selected_dice', v_temp_indices,
+      'dice_to_keep', v_temp_indices,
       'expected_score', v_temp_result.score,
-      'reasoning', CASE WHEN v_has_straight THEN 'Taking straight (1000 pts)' ELSE 'Taking three pairs (750 pts)' END
+      'remaining_dice', 6, -- Special combinations also give hot dice
+      'farkle_probability', farkle_probability(6),
+      'reasoning', CASE WHEN v_has_straight THEN 'Taking straight (1000 pts) - hot dice!' ELSE 'Taking three pairs (750 pts) - hot dice!' END
     );
   END IF;
-
-  -- Strategy 1: Identify all possible scoring combinations and their values
-  -- Best option tracking is now using individual variables
 
   -- Strategy: Prefer keeping minimal scoring dice to maximize future rolls
   -- Priority order: Groups of 3+ > Individual 1s > Individual 5s
@@ -2781,15 +2806,15 @@ BEGIN
   -- Check for groups of 3 or more (highest priority)
   FOR i IN 1..6 LOOP
     IF v_dice_counts[i] >= 3 THEN
-      -- Keep the group of 3 (or more)
-      v_selected_indices := ARRAY[]::INTEGER[];
+      -- Find indices of this die value
+      v_temp_indices := ARRAY[]::INTEGER[];
       FOR j IN 1..array_length(p_dice_values, 1) LOOP
-        IF p_dice_values[j] = i AND array_length(v_selected_indices, 1) < v_dice_counts[i] THEN
-          v_selected_indices := array_append(v_selected_indices, j - 1);
+        IF p_dice_values[j] = i THEN
+          v_temp_indices := array_append(v_temp_indices, j - 1);
         END IF;
       END LOOP;
       
-      -- Calculate score for this group
+      -- Calculate score for this group (take all instances of this die)
       v_temp_dice := ARRAY[]::INTEGER[];
       FOR j IN 1..v_dice_counts[i] LOOP
         v_temp_dice := array_append(v_temp_dice, i);
@@ -2797,13 +2822,15 @@ BEGIN
       v_temp_result := calculate_turn_score(v_temp_dice);
       
       -- Calculate expected value (score / dice used ratio)
-      v_expected_value := v_temp_result.score::NUMERIC / v_dice_counts[i];
+      dice_used := v_dice_counts[i];
+      v_expected_value := v_temp_result.score::NUMERIC / dice_used;
       
+      -- Update best option if this is better
       IF v_temp_result.score > v_best_score OR 
          (v_temp_result.score = v_best_score AND v_expected_value > v_best_expected_value) THEN
         v_best_score := v_temp_result.score;
-        v_best_remaining_dice := array_length(p_dice_values, 1) - v_dice_counts[i];
-        v_best_indices := v_selected_indices;
+        v_best_remaining_dice := array_length(p_dice_values, 1) - dice_used;
+        v_best_indices := v_temp_indices;
         v_best_expected_value := v_expected_value;
       END IF;
     END IF;
@@ -2814,10 +2841,11 @@ BEGIN
     -- Strategy: Take minimum scoring dice
     -- Prefer single 1s over 5s (better point ratio)
     IF v_dice_counts[1] > 0 THEN
+      v_temp_indices := ARRAY[]::INTEGER[];
       -- Take only one 1 if possible, unless we have many
       FOR j IN 1..array_length(p_dice_values, 1) LOOP
         IF p_dice_values[j] = 1 THEN
-          v_selected_indices := array_append(v_selected_indices, j - 1);
+          v_temp_indices := array_append(v_temp_indices, j - 1);
           -- Take additional 1s if we have 3+ dice remaining and low turn score
           IF array_length(p_dice_values, 1) > 3 AND p_current_turn_score < 300 AND v_dice_counts[1] > 1 THEN
             CONTINUE;
@@ -2827,28 +2855,30 @@ BEGIN
         END IF;
       END LOOP;
       
-      v_best_score := array_length(v_selected_indices, 1) * 100;
-      v_best_remaining_dice := array_length(p_dice_values, 1) - array_length(v_selected_indices, 1);
-      v_best_indices := v_selected_indices;
+      v_best_score := array_length(v_temp_indices, 1) * 100;
+      v_best_remaining_dice := array_length(p_dice_values, 1) - array_length(v_temp_indices, 1);
+      v_best_indices := v_temp_indices;
     ELSIF v_dice_counts[5] > 0 THEN
+      v_temp_indices := ARRAY[]::INTEGER[];
       -- Take one 5 if no 1s available
       FOR j IN 1..array_length(p_dice_values, 1) LOOP
         IF p_dice_values[j] = 5 THEN
-          v_selected_indices := array_append(v_selected_indices, j - 1);
+          v_temp_indices := array_append(v_temp_indices, j - 1);
           EXIT; -- Only take one 5
         END IF;
       END LOOP;
       
       v_best_score := 50;
       v_best_remaining_dice := array_length(p_dice_values, 1) - 1;
-      v_best_indices := v_selected_indices;
+      v_best_indices := v_temp_indices;
     END IF;
   END IF;
 
   -- If no scoring dice found, must bust
-  IF v_best_score = 0 THEN
+  IF v_best_score = 0 OR array_length(v_best_indices, 1) IS NULL THEN
     RETURN jsonb_build_object(
       'action', 'bust',
+      'selected_dice', ARRAY[]::INTEGER[],
       'dice_to_keep', ARRAY[]::INTEGER[],
       'reasoning', 'No scoring combinations available'
     );
@@ -2887,26 +2917,23 @@ BEGIN
     v_should_bank := TRUE;
   END IF;
 
-  -- Return decision without executing any actions
+  -- Return decision with properly calculated indices
   IF v_should_bank THEN
-      RETURN jsonb_build_object(
-    'action', 'bank',
-    'selected_dice', v_best_indices,
-    'dice_to_keep', v_best_indices,
-    'expected_score', v_best_score,
-    'total_turn_score', p_current_turn_score + v_best_score,
-    'farkle_probability', v_farkle_prob,
-    'v_temp_result', v_temp_result,
-    'reasoning', format('Banking with %s points (%s%% farkle risk)', 
-                       p_current_turn_score + v_best_score, 
-                       round(v_farkle_prob * 100, 1))
-  );
+    RETURN jsonb_build_object(
+      'action', 'bank',
+      'selected_dice', v_best_indices,
+      'dice_to_keep', v_best_indices,
+      'expected_score', v_best_score,
+      'total_turn_score', p_current_turn_score + v_best_score,
+      'farkle_probability', v_farkle_prob,
+      'remaining_dice', v_best_remaining_dice,
+      'reasoning', format('Banking with %s points (%s%% farkle risk)', 
+                         p_current_turn_score + v_best_score, 
+                         round(v_farkle_prob * 100, 1))
+    );
   ELSE
-    -- Use the strategically calculated v_best_indices instead of overriding with all valid dice
-    -- The v_best_indices was already calculated based on optimal strategy above
     RETURN jsonb_build_object(
       'action', 'continue',
-      'p_dice_values', p_dice_values,
       'selected_dice', v_best_indices,
       'dice_to_keep', v_best_indices,
       'expected_score', v_best_score,
@@ -2930,18 +2957,72 @@ DECLARE
   test_case JSONB;
   i INTEGER;
 BEGIN
-  -- Define test cases with inputs
+  -- Define comprehensive test cases with inputs
   test_cases := ARRAY[
-    '{"name": "three_of_a_kind", "dice": [3,3,3,1,2,6], "turn_score": 0, "player_score": 1000, "description": "Three 3s with mixed dice"}'::JSONB,
+    -- Basic scoring combinations
+    '{"name": "three_of_a_kind_4s", "dice": [3,4,4,1,4,6], "turn_score": 0, "player_score": 1000, "description": "Three 4s should select indices [1,2,4] for 400 points"}'::JSONB,
+    '{"name": "three_of_a_kind_3s", "dice": [3,3,3,1,2,6], "turn_score": 0, "player_score": 1000, "description": "Three 3s with mixed dice"}'::JSONB,
+    '{"name": "three_of_a_kind_1s", "dice": [1,1,1,2,3,4], "turn_score": 0, "player_score": 2000, "description": "Three 1s should score 1000 points"}'::JSONB,
+    '{"name": "four_of_a_kind_2s", "dice": [2,2,2,2,1,5], "turn_score": 0, "player_score": 2000, "description": "Four 2s should score 400 points"}'::JSONB,
+    '{"name": "five_of_a_kind_ones", "dice": [1,1,1,1,1,3], "turn_score": 0, "player_score": 5000, "description": "Five 1s should score 3000 points"}'::JSONB,
+    '{"name": "six_of_a_kind_sixes", "dice": [6,6,6,6,6,6], "turn_score": 0, "player_score": 6000, "description": "Six 6s should score 2400 points"}'::JSONB,
+    
+    -- Individual dice scoring
+    '{"name": "single_one_only", "dice": [1,2,3,4,6,6], "turn_score": 0, "player_score": 1500, "description": "Only one 1 available for 100 points"}'::JSONB,
+    '{"name": "single_five_only", "dice": [5,2,3,4,6,6], "turn_score": 0, "player_score": 1500, "description": "Only one 5 available for 50 points"}'::JSONB,
+    '{"name": "two_ones", "dice": [1,1,2,3,4,6], "turn_score": 0, "player_score": 1500, "description": "Two 1s available for 200 points"}'::JSONB,
+    '{"name": "two_fives", "dice": [5,5,2,3,4,6], "turn_score": 0, "player_score": 1500, "description": "Two 5s available for 100 points"}'::JSONB,
+    '{"name": "multiple_fives", "dice": [5,5,5,2,3,4], "turn_score": 0, "player_score": 3000, "description": "Three 5s should score 500 points"}'::JSONB,
     '{"name": "single_ones_and_fives", "dice": [1,1,5,2,4,6], "turn_score": 0, "player_score": 2000, "description": "Two 1s and one 5 available"}'::JSONB,
+    
+    -- Special combinations
     '{"name": "straight_combo", "dice": [1,2,3,4,5,6], "turn_score": 0, "player_score": 3000, "description": "Perfect straight 1-6"}'::JSONB,
+    '{"name": "straight_mixed_order", "dice": [6,1,4,2,5,3], "turn_score": 0, "player_score": 3000, "description": "Straight in mixed order"}'::JSONB,
     '{"name": "three_pairs", "dice": [2,2,4,4,6,6], "turn_score": 0, "player_score": 4000, "description": "Three pairs combination"}'::JSONB,
+    '{"name": "mixed_pairs_with_ones", "dice": [1,1,3,3,5,5], "turn_score": 0, "player_score": 2500, "description": "Three pairs including 1s and 5s"}'::JSONB,
+    '{"name": "pairs_with_scoring", "dice": [1,1,5,5,2,2], "turn_score": 0, "player_score": 2500, "description": "Three pairs with 1s and 5s"}'::JSONB,
+    
+    -- Complex decision scenarios
+    '{"name": "mixed_scoring_options", "dice": [1,5,5,5,2,3], "turn_score": 200, "player_score": 7000, "description": "Mix of 1s and three 5s - should prefer three 5s"}'::JSONB,
+    '{"name": "complex_choice", "dice": [1,1,1,5,5,2], "turn_score": 100, "player_score": 3000, "description": "Three 1s vs two 5s - should prefer three 1s"}'::JSONB,
+    '{"name": "all_scoring_dice", "dice": [1,1,1,5,5,5], "turn_score": 0, "player_score": 4000, "description": "All dice score - should take all and continue"}'::JSONB,
+    '{"name": "choice_between_groups", "dice": [2,2,2,6,6,6], "turn_score": 0, "player_score": 3000, "description": "Choice between three 2s and three 6s"}'::JSONB,
+    '{"name": "mixed_multiples", "dice": [3,3,3,4,4,4], "turn_score": 0, "player_score": 3500, "description": "Three 3s vs three 4s"}'::JSONB,
+    
+    -- Risk assessment scenarios
     '{"name": "high_risk_continue", "dice": [1,3], "turn_score": 400, "player_score": 5000, "description": "High turn score with risky continue"}'::JSONB,
     '{"name": "conservative_bank", "dice": [5,2], "turn_score": 500, "player_score": 8000, "description": "Should bank with decent score"}'::JSONB,
+    '{"name": "moderate_risk", "dice": [1,2,3], "turn_score": 300, "player_score": 4000, "description": "Moderate risk with 3 dice remaining"}'::JSONB,
+    '{"name": "low_risk_high_reward", "dice": [1,1,5,5,6,6], "turn_score": 100, "player_score": 2000, "description": "Multiple scoring options with good remaining dice"}'::JSONB,
+    
+    -- Game state scenarios
+    '{"name": "early_game_aggressive", "dice": [1,2], "turn_score": 150, "player_score": 500, "description": "Early game should be more aggressive"}'::JSONB,
+    '{"name": "mid_game_balanced", "dice": [5,3,4], "turn_score": 250, "player_score": 5000, "description": "Mid game balanced approach"}'::JSONB,
+    '{"name": "late_game_conservative", "dice": [5,3], "turn_score": 250, "player_score": 9200, "description": "Late game should be conservative"}'::JSONB,
+    '{"name": "endgame_conservative", "dice": [1,6], "turn_score": 300, "player_score": 9500, "description": "Close to winning, be conservative"}'::JSONB,
+    '{"name": "endgame_push", "dice": [1,1,5], "turn_score": 100, "player_score": 9800, "description": "Need points to win"}'::JSONB,
+    
+    -- Edge cases
     '{"name": "farkle_scenario", "dice": [2,3,4,6], "turn_score": 0, "player_score": 1500, "description": "No scoring dice available"}'::JSONB,
-    '{"name": "four_of_a_kind", "dice": [1,1,1,1,2,4], "turn_score": 100, "player_score": 6000, "description": "Four 1s for big score"}'::JSONB,
-    '{"name": "mixed_scoring_options", "dice": [1,5,5,5,2,3], "turn_score": 200, "player_score": 7000, "description": "Mix of 1s and three 5s"}'::JSONB,
-    '{"name": "endgame_conservative", "dice": [1,6], "turn_score": 300, "player_score": 9500, "description": "Close to winning, be conservative"}'::JSONB
+    '{"name": "all_non_scoring", "dice": [2,2,3,3,4,6], "turn_score": 0, "player_score": 2000, "description": "Pairs but no scoring combinations"}'::JSONB,
+    '{"name": "single_die_remaining", "dice": [1], "turn_score": 500, "player_score": 6000, "description": "Only one die left to roll"}'::JSONB,
+    '{"name": "two_dice_one_scoring", "dice": [5,3], "turn_score": 400, "player_score": 5000, "description": "Two dice, one scoring"}'::JSONB,
+    
+    -- Extreme scenarios
+    '{"name": "huge_turn_score", "dice": [1,2], "turn_score": 1000, "player_score": 3000, "description": "Already high turn score, be conservative"}'::JSONB,
+    '{"name": "desperate_situation", "dice": [1,5], "turn_score": 100, "player_score": 500, "description": "Low player score, need to take risks"}'::JSONB,
+    '{"name": "almost_won", "dice": [5,6], "turn_score": 150, "player_score": 9900, "description": "Almost at target score"}'::JSONB,
+    
+    -- Multiple valid strategies
+    '{"name": "efficiency_test", "dice": [1,1,5,5,5,2], "turn_score": 0, "player_score": 4000, "description": "Test efficiency: two 1s vs three 5s"}'::JSONB,
+    '{"name": "risk_reward_balance", "dice": [1,5,6], "turn_score": 350, "player_score": 6000, "description": "Balance between banking and continuing"}'::JSONB,
+    '{"name": "hot_dice_scenario", "dice": [1,1,1,5,5,5], "turn_score": 200, "player_score": 3000, "description": "All dice score - hot dice decision"}'::JSONB,
+    
+    -- Specific bug test cases
+    '{"name": "bug_test_indices", "dice": [4,4,4,1,2,3], "turn_score": 0, "player_score": 2000, "description": "Ensure indices [0,1,2] are returned for three 4s"}'::JSONB,
+    '{"name": "bug_test_mixed_positions", "dice": [2,4,1,4,5,4], "turn_score": 0, "player_score": 2000, "description": "Three 4s at positions [1,3,5] with mixed dice"}'::JSONB,
+    '{"name": "bug_test_end_positions", "dice": [1,2,3,6,6,6], "turn_score": 0, "player_score": 2000, "description": "Three 6s at end positions [3,4,5]"}'::JSONB,
+    '{"name": "bug_test_choose_3", "dice": [3,4,4,5,4,1], "turn_score": 400, "player_score": 1000, "description": "Choose 3 dice and roll other 3"}'::JSONB
   ];
 
   -- Run each test case
@@ -2968,9 +3049,10 @@ BEGIN
           'target_score', 10000
         ),
         'outputs', result,
-        'dice_to_keep', result->'dice_to_keep',
+        'selected_dice', result->'selected_dice',
         'action', result->>'action',
-        'expected_score', result->'expected_score'
+        'expected_score', result->'expected_score',
+        'reasoning', result->>'reasoning'
       )
     );
   END LOOP;

@@ -923,7 +923,7 @@ export const AvatarBuilder = forwardRef<AvatarBuilderRef, AvatarBuilderProps>(
 					<div className="md:col-span-1">
 						<div className="card bg-base-100 shadow-lg border border-base-300 sticky top-4">
 							<div className="card-body p-4 text-center">
-								<h3 className="font-bold text-lg mb-4">Avatar Preview</h3>
+								<h3 className="font-bold text-lg mb-4">Preview</h3>
 								<div
 									ref={avatarRef}
 									className="w-48 h-48 mx-auto mb-4 bg-gradient-to-br from-base-200 to-base-300 rounded-full flex items-center justify-center shadow-inner"
@@ -955,10 +955,7 @@ export const AvatarBuilder = forwardRef<AvatarBuilderRef, AvatarBuilderProps>(
 					<div className="md:col-span-2">
 						<div className="card bg-base-100 shadow-lg border border-base-300">
 							<div className="card-body p-4">
-								<h3 className="font-bold text-lg mb-4">
-									Customize Your Avatar
-								</h3>
-
+								<h3 className="font-bold text-lg mb-4">Categories</h3>
 								{/* Category Tabs */}
 								<div className="tabs tabs-boxed mb-4 bg-base-200 p-1 text-xs">
 									{categories.map((category) => (
@@ -972,7 +969,7 @@ export const AvatarBuilder = forwardRef<AvatarBuilderRef, AvatarBuilderProps>(
 											}}
 										>
 											<span className="mr-1">{category.icon}</span>
-											<span className="hidden sm:inline">{category.name}</span>
+											<span className="hidden">{category.name}</span>
 										</button>
 									))}
 								</div>
