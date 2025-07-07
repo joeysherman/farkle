@@ -8,18 +8,18 @@ interface FeatureCardProps {
 
 export const Home = (): JSX.Element => {
 	return (
-		<div className="min-h-screen bg-gradient-to-b from-primary to-secondary text-primary-content">
+		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20">
 			{/* Hero Section */}
 			<div className="container mx-auto px-4 py-16">
 				<div className="text-center mb-16">
-					<h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in">
+					<h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in text-base-content">
 						🎲 Welcome to Farkle
 					</h1>
-					<p className="text-xl md:text-2xl mb-8 text-primary-content/80">
+					<p className="text-xl md:text-2xl mb-8 text-base-content/70">
 						Experience the classic dice game with a modern twist
 					</p>
 					<Link
-						className="btn btn-accent btn-lg text-accent-content font-bold shadow-lg hover:scale-105 transform transition-all"
+						className="btn btn-primary btn-lg font-bold shadow-lg hover:scale-105 transform transition-all"
 						to="/signup"
 					>
 						Play Now
@@ -51,17 +51,15 @@ export const Home = (): JSX.Element => {
 				</div>
 
 				{/* How to Play Section */}
-				<div className="card bg-base-100/10 backdrop-blur-sm shadow-xl mb-16">
+				<div className="card bg-base-100 shadow-2xl mb-16">
 					<div className="card-body">
-						<h2 className="card-title text-3xl justify-center mb-6 text-primary-content">
+						<h2 className="card-title text-3xl justify-center mb-6">
 							How to Play
 						</h2>
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 							<div>
-								<h3 className="text-xl font-semibold mb-4 text-primary-content">
-									Basic Rules
-								</h3>
-								<ul className="space-y-3 text-primary-content/90">
+								<h3 className="text-xl font-semibold mb-4">Basic Rules</h3>
+								<ul className="space-y-3 text-base-content/80">
 									<li>• Roll six dice and set aside scoring combinations</li>
 									<li>
 										• Continue rolling remaining dice to add to your score
@@ -70,10 +68,8 @@ export const Home = (): JSX.Element => {
 								</ul>
 							</div>
 							<div>
-								<h3 className="text-xl font-semibold mb-4 text-primary-content">
-									Scoring
-								</h3>
-								<ul className="space-y-3 text-primary-content/90">
+								<h3 className="text-xl font-semibold mb-4">Scoring</h3>
+								<ul className="space-y-3 text-base-content/80">
 									<li>• Three of a kind: 100 × dice value</li>
 									<li>• Four of a kind: 1000 points</li>
 									<li>• Five of a kind: 2000 points</li>
@@ -86,11 +82,11 @@ export const Home = (): JSX.Element => {
 
 				{/* Final CTA */}
 				<div className="text-center">
-					<h2 className="text-3xl font-bold mb-6 text-primary-content">
+					<h2 className="text-3xl font-bold mb-6 text-base-content">
 						Ready to Play?
 					</h2>
 					<Link
-						className="btn btn-accent btn-lg text-accent-content font-bold shadow-lg hover:scale-105 transform transition-all"
+						className="btn btn-primary btn-lg font-bold shadow-lg hover:scale-105 transform transition-all"
 						to="/signup"
 					>
 						Sign Up Now
@@ -107,13 +103,11 @@ const FeatureCard = ({
 	title,
 }: FeatureCardProps): JSX.Element => {
 	return (
-		<div className="card bg-base-100/10 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+		<div className="card bg-base-100 shadow-2xl hover:shadow-xl transition-all transform hover:scale-105">
 			<div className="card-body text-center">
 				<div className="text-4xl mb-4">{icon}</div>
-				<h3 className="card-title text-xl justify-center mb-2 text-primary-content">
-					{title}
-				</h3>
-				<p className="text-primary-content/80">{description}</p>
+				<h3 className="card-title text-xl justify-center mb-2">{title}</h3>
+				<p className="text-base-content/70">{description}</p>
 			</div>
 		</div>
 	);

@@ -24,6 +24,15 @@ interface UserStats {
 	currentStreak: number;
 }
 
+// Loading spinner component
+function LoadingSpinner(): JSX.Element {
+	return (
+		<div className="flex justify-center items-center">
+			<div className="loading loading-spinner loading-lg text-primary"></div>
+		</div>
+	);
+}
+
 const test_bot_decisions = async (): Promise<void> => {
 	const { data, error } = await supabase.rpc("test_bot_decisions");
 	if (error) {
@@ -229,30 +238,30 @@ export const Dashboard = (): FunctionComponent => {
 		}
 	};
 
-	return (
-		<div className="min-h-[calc(100vh-3rem)] sm:min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative">
-			{/* Background Pattern */}
-			<div className="absolute inset-0 opacity-20">
-				<div
-					className="h-full w-full bg-repeat"
-					style={{
-						backgroundImage:
-							"radial-gradient(circle at 1px 1px, rgba(156, 146, 172, 0.15) 1px, transparent 0)",
-						backgroundSize: "20px 20px",
-					}}
-				></div>
+	if (isAuthChecking) {
+		return (
+			<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center p-4">
+				<LoadingSpinner />
 			</div>
+		);
+	}
 
-			<div className="relative container mx-auto p-6">
+	return (
+		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 p-4 py-8">
+			<div className="container mx-auto max-w-7xl">
 				{/* Header */}
 				<div className="mb-8">
-					<h1 className="text-4xl font-bold text-white mb-2">Welcome back!</h1>
-					<p className="text-slate-300 text-lg">Ready to roll some dice?</p>
+					<h1 className="text-4xl font-bold text-base-content mb-2">
+						Welcome back!
+					</h1>
+					<p className="text-base-content/70 text-lg">
+						Ready to roll some dice?
+					</p>
 				</div>
 
 				{/* Error Alert */}
 				{error && (
-					<div className="alert bg-red-900/50 border border-red-500/50 backdrop-blur-sm rounded-2xl mb-6">
+					<div className="alert alert-error mb-6">
 						<svg
 							className="stroke-current shrink-0 h-6 w-6"
 							fill="none"
@@ -266,9 +275,9 @@ export const Dashboard = (): FunctionComponent => {
 								strokeWidth="2"
 							/>
 						</svg>
-						<span className="text-red-200">{error}</span>
+						<span>{error}</span>
 						<button
-							className="btn btn-sm bg-red-800 hover:bg-red-700 border-0 text-red-100"
+							className="btn btn-sm btn-circle btn-ghost"
 							onClick={() => {
 								setError("");
 							}}
@@ -295,21 +304,14 @@ export const Dashboard = (): FunctionComponent => {
 					{/* Left Column - Primary Actions and Active Games */}
 					<div className="lg:col-span-2 space-y-6">
 						{/* Quick Actions Card */}
-						<div className="card bg-slate-800/90 backdrop-blur-sm border border-indigo-400/30 shadow-xl">
-							<div className="card-body p-6">
-								<div className="flex items-center space-x-3 mb-4">
-									<div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
-										<span className="text-white font-bold">⚡</span>
-									</div>
-									<h2 className="text-2xl font-bold text-white">
-										Quick Actions
-									</h2>
-								</div>
+						<div className="card bg-base-100 shadow-2xl">
+							<div className="card-body">
+								<h2 className="card-title text-2xl mb-4">Quick Actions</h2>
 
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 									<div className="flex space-x-2">
 										<button
-											className="btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 border-0 text-white rounded-xl h-16"
+											className="btn btn-primary w-full"
 											onClick={() => {
 												void test_bot_decisions();
 											}}
@@ -320,33 +322,29 @@ export const Dashboard = (): FunctionComponent => {
 
 									<button
 										disabled={loading}
-										className={`btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 border-0 text-white rounded-xl h-16 ${
-											loading ? "loading" : ""
-										}`}
+										className="btn btn-primary w-full"
 										onClick={handleCreateRoom}
 									>
-										{loading ? "Creating..." : "🎲 Create New Game"}
+										{loading ? <LoadingSpinner /> : "🎲 Create New Game"}
 									</button>
 
-									<div className="flex space-x-2">
+									<div className="flex space-x-2 md:col-span-2">
 										<input
 											type="text"
 											placeholder="Enter game code"
 											value={joinCode}
 											onChange={(e) => setJoinCode(e.target.value)}
-											className="input input-bordered bg-slate-700/50 border-slate-600 text-white placeholder-slate-400 flex-1"
+											className="input input-bordered input-primary flex-1"
 											onKeyPress={(e) =>
 												e.key === "Enter" && handleJoinByCode()
 											}
 										/>
 										<button
 											disabled={joinCodeLoading || !joinCode.trim()}
-											className={`btn bg-emerald-600 hover:bg-emerald-700 border-0 text-white ${
-												joinCodeLoading ? "loading" : ""
-											}`}
+											className="btn btn-primary"
 											onClick={handleJoinByCode}
 										>
-											{joinCodeLoading ? "" : "Join"}
+											{joinCodeLoading ? <LoadingSpinner /> : "Join"}
 										</button>
 									</div>
 								</div>
@@ -354,17 +352,12 @@ export const Dashboard = (): FunctionComponent => {
 						</div>
 
 						{/* Active Games */}
-						<div className="card bg-slate-800/90 backdrop-blur-sm border border-indigo-400/30 shadow-xl">
-							<div className="card-body p-6">
-								<div className="flex items-center space-x-3 mb-6">
-									<div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
-										<span className="text-white font-bold">🎮</span>
-									</div>
-									<h2 className="text-2xl font-bold text-white">
-										Your Active Games
-									</h2>
+						<div className="card bg-base-100 shadow-2xl">
+							<div className="card-body">
+								<div className="flex items-center gap-3 mb-6">
+									<h2 className="card-title text-2xl">Your Active Games</h2>
 									{currentRooms && currentRooms.length > 0 && (
-										<div className="badge bg-indigo-500/20 text-indigo-300 border-indigo-500/30">
+										<div className="badge badge-primary">
 											{currentRooms.length}
 										</div>
 									)}
@@ -376,17 +369,15 @@ export const Dashboard = (): FunctionComponent => {
 										currentRooms.map((room) => (
 											<div
 												key={room.id}
-												className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:border-indigo-400/50 transition-colors"
+												className="p-4 bg-base-200 rounded-lg border border-base-300 hover:border-primary/50 transition-colors"
 											>
 												<div className="flex justify-between items-start mb-3">
-													<h3 className="text-lg font-bold text-white">
-														{room.name}
-													</h3>
+													<h3 className="text-lg font-bold">{room.name}</h3>
 													<div
-														className={`badge text-xs font-semibold px-3 py-2 ${
+														className={`badge ${
 															room?.status === "waiting"
-																? "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
-																: "bg-green-500/20 text-green-300 border-green-500/30"
+																? "badge-warning"
+																: "badge-success"
 														}`}
 													>
 														{room?.status === "waiting"
@@ -397,11 +388,11 @@ export const Dashboard = (): FunctionComponent => {
 
 												<div className="flex justify-between items-center mb-4">
 													<div className="flex items-center space-x-4 text-sm">
-														<span className="text-slate-300">
+														<span className="text-base-content/70">
 															👤{" "}
 															{room.created_by === user?.id ? "You" : "Friend"}
 														</span>
-														<span className="text-indigo-300 font-bold">
+														<span className="text-primary font-bold">
 															👥 {room.current_players}/{room.max_players}
 														</span>
 													</div>
@@ -409,7 +400,7 @@ export const Dashboard = (): FunctionComponent => {
 
 												<div className="flex justify-end gap-3">
 													<button
-														className="btn bg-indigo-600 hover:bg-indigo-700 border-0 text-white btn-sm rounded-lg"
+														className="btn btn-primary btn-sm"
 														onClick={() =>
 															navigate({
 																to: "/app/room",
@@ -423,7 +414,7 @@ export const Dashboard = (): FunctionComponent => {
 														room.created_by === user.id &&
 														room?.status === "in_progress" && (
 															<button
-																className="btn bg-red-600 hover:bg-red-700 border-0 text-white btn-sm rounded-lg"
+																className="btn btn-error btn-sm"
 																onClick={() => handleEndGame(room.id)}
 															>
 																End
@@ -438,7 +429,7 @@ export const Dashboard = (): FunctionComponent => {
 											{[1, 2].map((index) => (
 												<div
 													key={index}
-													className="skeleton h-24 w-full bg-slate-700/50 rounded-lg"
+													className="skeleton h-24 w-full bg-base-200 rounded-lg"
 												></div>
 											))}
 										</div>
@@ -447,10 +438,10 @@ export const Dashboard = (): FunctionComponent => {
 									{currentRooms && currentRooms.length === 0 && (
 										<div className="text-center py-8">
 											<div className="text-4xl mb-3">🎲</div>
-											<h3 className="text-lg font-medium text-white mb-2">
+											<h3 className="text-lg font-medium mb-2">
 												No active games
 											</h3>
-											<p className="text-slate-300">
+											<p className="text-base-content/70">
 												Create a new game to get started!
 											</p>
 										</div>
@@ -460,17 +451,12 @@ export const Dashboard = (): FunctionComponent => {
 						</div>
 
 						{/* Available Games */}
-						<div className="card bg-slate-800/90 backdrop-blur-sm border border-green-400/30 shadow-xl">
-							<div className="card-body p-6">
-								<div className="flex items-center space-x-3 mb-6">
-									<div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
-										<span className="text-white font-bold">🌟</span>
-									</div>
-									<h2 className="text-2xl font-bold text-white">
-										Available Games
-									</h2>
+						<div className="card bg-base-100 shadow-2xl">
+							<div className="card-body">
+								<div className="flex items-center gap-3 mb-6">
+									<h2 className="card-title text-2xl">Available Games</h2>
 									{availableRooms && availableRooms.length > 0 && (
-										<div className="badge bg-green-500/20 text-green-300 border-green-500/30">
+										<div className="badge badge-success">
 											{availableRooms.length}
 										</div>
 									)}
@@ -482,20 +468,20 @@ export const Dashboard = (): FunctionComponent => {
 										availableRooms.slice(0, 3).map((room) => (
 											<div
 												key={room.id}
-												className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:border-green-400/50 transition-colors"
+												className="p-4 bg-base-200 rounded-lg border border-base-300 hover:border-success/50 transition-colors"
 											>
 												<div className="flex justify-between items-center">
 													<div>
-														<h3 className="text-lg font-bold text-white mb-1">
+														<h3 className="text-lg font-bold mb-1">
 															{room.name}
 														</h3>
-														<span className="text-green-300 font-medium text-sm">
+														<span className="text-success font-medium text-sm">
 															👥 {room.current_players}/{room.max_players}{" "}
 															players
 														</span>
 													</div>
 													<button
-														className="btn bg-green-600 hover:bg-green-700 border-0 text-white btn-sm rounded-lg"
+														className="btn btn-success btn-sm"
 														onClick={() =>
 															navigate({
 																to: "/app/room",
@@ -514,7 +500,7 @@ export const Dashboard = (): FunctionComponent => {
 											{[1, 2].map((index) => (
 												<div
 													key={index}
-													className="skeleton h-20 w-full bg-slate-700/50 rounded-lg"
+													className="skeleton h-20 w-full bg-base-200 rounded-lg"
 												></div>
 											))}
 										</div>
@@ -523,10 +509,10 @@ export const Dashboard = (): FunctionComponent => {
 									{availableRooms && availableRooms.length === 0 && (
 										<div className="text-center py-8">
 											<div className="text-4xl mb-3">🎯</div>
-											<h3 className="text-lg font-medium text-white mb-2">
+											<h3 className="text-lg font-medium mb-2">
 												No games available
 											</h3>
-											<p className="text-slate-300">
+											<p className="text-base-content/70">
 												Be the first to create a game!
 											</p>
 										</div>
@@ -540,39 +526,34 @@ export const Dashboard = (): FunctionComponent => {
 					<div className="space-y-6">
 						{/* Player Stats */}
 						{userStats && (
-							<div className="card bg-slate-800/90 backdrop-blur-sm border border-purple-400/30 shadow-xl">
-								<div className="card-body p-6">
-									<div className="flex items-center space-x-3 mb-6">
-										<div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-											<span className="text-white font-bold">📊</span>
-										</div>
-										<h2 className="text-xl font-bold text-white">Your Stats</h2>
-									</div>
+							<div className="card bg-base-100 shadow-2xl">
+								<div className="card-body">
+									<h2 className="card-title text-xl mb-4">Your Stats</h2>
 
 									<div className="space-y-4">
-										<div className="stat bg-purple-500/10 rounded-lg p-4">
-											<div className="stat-title text-purple-300 text-sm">
+										<div className="stat bg-base-200 rounded-lg p-4">
+											<div className="stat-title text-base-content/70 text-sm">
 												Total Games
 											</div>
-											<div className="stat-value text-purple-400 text-2xl font-bold">
+											<div className="stat-value text-primary text-2xl font-bold">
 												{userStats.totalGames}
 											</div>
 										</div>
 
-										<div className="stat bg-green-500/10 rounded-lg p-4">
-											<div className="stat-title text-green-300 text-sm">
+										<div className="stat bg-base-200 rounded-lg p-4">
+											<div className="stat-title text-base-content/70 text-sm">
 												Games Won
 											</div>
-											<div className="stat-value text-green-400 text-2xl font-bold">
+											<div className="stat-value text-success text-2xl font-bold">
 												{userStats.gamesWon}
 											</div>
 										</div>
 
-										<div className="stat bg-yellow-500/10 rounded-lg p-4">
-											<div className="stat-title text-yellow-300 text-sm">
+										<div className="stat bg-base-200 rounded-lg p-4">
+											<div className="stat-title text-base-content/70 text-sm">
 												Win Rate
 											</div>
-											<div className="stat-value text-yellow-400 text-2xl font-bold">
+											<div className="stat-value text-accent text-2xl font-bold">
 												{userStats.winRate}%
 											</div>
 										</div>
@@ -582,34 +563,24 @@ export const Dashboard = (): FunctionComponent => {
 						)}
 
 						{/* Game Invites */}
-						<div className="card bg-slate-800/90 backdrop-blur-sm border border-yellow-400/30 shadow-xl">
-							<div className="card-body p-6">
-								<div className="flex items-center space-x-3 mb-6">
-									<div className="w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center">
-										<span className="text-white font-bold">✉️</span>
-									</div>
-									<h2 className="text-xl font-bold text-white">Game Invites</h2>
-								</div>
+						<div className="card bg-base-100 shadow-2xl">
+							<div className="card-body">
+								<h2 className="card-title text-xl mb-4">Game Invites</h2>
 								<GameInvites />
 							</div>
 						</div>
 
 						{/* Friends List Placeholder */}
-						<div className="card bg-slate-800/90 backdrop-blur-sm border border-blue-400/30 shadow-xl">
-							<div className="card-body p-6">
-								<div className="flex items-center space-x-3 mb-6">
-									<div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-										<span className="text-white font-bold">👥</span>
-									</div>
-									<h2 className="text-xl font-bold text-white">Friends</h2>
-								</div>
+						<div className="card bg-base-100 shadow-2xl">
+							<div className="card-body">
+								<h2 className="card-title text-xl mb-4">Friends</h2>
 
 								<div className="text-center py-8">
 									<div className="text-4xl mb-3">👋</div>
-									<h3 className="text-lg font-medium text-white mb-2">
+									<h3 className="text-lg font-medium mb-2">
 										Friends Feature Coming Soon
 									</h3>
-									<p className="text-slate-300 text-sm">
+									<p className="text-base-content/70 text-sm">
 										Connect with friends to play together!
 									</p>
 								</div>
@@ -617,31 +588,26 @@ export const Dashboard = (): FunctionComponent => {
 						</div>
 
 						{/* Quick Tips */}
-						<div className="card bg-slate-800/90 backdrop-blur-sm border border-cyan-400/30 shadow-xl">
-							<div className="card-body p-6">
-								<div className="flex items-center space-x-3 mb-6">
-									<div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
-										<span className="text-white font-bold">💡</span>
-									</div>
-									<h2 className="text-xl font-bold text-white">Quick Tips</h2>
-								</div>
+						<div className="card bg-base-100 shadow-2xl">
+							<div className="card-body">
+								<h2 className="card-title text-xl mb-4">Quick Tips</h2>
 
 								<div className="space-y-3 text-sm">
-									<div className="p-3 bg-slate-700/50 rounded-lg">
-										<span className="text-cyan-300">💎</span>
-										<span className="text-slate-300 ml-2">
+									<div className="p-3 bg-base-200 rounded-lg">
+										<span className="text-info">💎</span>
+										<span className="text-base-content/70 ml-2">
 											Three 1s = 1000 points!
 										</span>
 									</div>
-									<div className="p-3 bg-slate-700/50 rounded-lg">
-										<span className="text-cyan-300">🎯</span>
-										<span className="text-slate-300 ml-2">
+									<div className="p-3 bg-base-200 rounded-lg">
+										<span className="text-info">🎯</span>
+										<span className="text-base-content/70 ml-2">
 											Single 1s = 100 points each
 										</span>
 									</div>
-									<div className="p-3 bg-slate-700/50 rounded-lg">
-										<span className="text-cyan-300">⚡</span>
-										<span className="text-slate-300 ml-2">
+									<div className="p-3 bg-base-200 rounded-lg">
+										<span className="text-info">⚡</span>
+										<span className="text-base-content/70 ml-2">
 											Single 5s = 50 points each
 										</span>
 									</div>

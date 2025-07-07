@@ -3,6 +3,15 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { BouncingDice } from "../components/BouncingDice";
 import { useAuth } from "../contexts/AuthContext";
 
+// loading spinner using tailwind css and daisyui
+function LoadingSpinner(): JSX.Element {
+	return (
+		<div className="flex justify-center items-center">
+			<div className="loading loading-spinner loading-lg text-primary"></div>
+		</div>
+	);
+}
+
 export function Signup(): JSX.Element {
 	const [loading, setLoading] = useState(false);
 	const [email, setEmail] = useState("");
@@ -102,13 +111,13 @@ export function Signup(): JSX.Element {
 						</div>
 
 						<div className="form-control mt-6">
-							<button
-								type="submit"
-								className={`btn btn-primary ${loading ? "loading" : ""}`}
-								disabled={loading}
-							>
-								{loading ? "Creating account..." : "Create account"}
-							</button>
+							{loading ? (
+								<LoadingSpinner />
+							) : (
+								<button type="submit" className="btn btn-primary">
+									Create account
+								</button>
+							)}
 						</div>
 					</form>
 
@@ -118,8 +127,13 @@ export function Signup(): JSX.Element {
 						<p className="text-base-content/70 mb-3">
 							Already have an account?
 						</p>
-						<Link className="btn btn-outline btn-primary w-full" to="/signin">
-							Sign in
+						<Link to="/signin" disabled={loading}>
+							<button
+								className="btn btn-outline btn-primary w-full"
+								disabled={loading ? "disabled" : ""}
+							>
+								Sign in
+							</button>
 						</Link>
 					</div>
 				</div>

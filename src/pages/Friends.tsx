@@ -45,6 +45,15 @@ interface SearchResult {
 	has_pending_invite: boolean;
 }
 
+// Loading spinner component
+function LoadingSpinner(): JSX.Element {
+	return (
+		<div className="flex justify-center items-center">
+			<div className="loading loading-spinner loading-lg text-primary"></div>
+		</div>
+	);
+}
+
 export const Friends = (): FunctionComponent => {
 	const navigate = useNavigate();
 	const { user } = useAuth();
@@ -530,266 +539,266 @@ export const Friends = (): FunctionComponent => {
 
 	if (loading) {
 		return (
-			<div className="min-h-screen bg-base-200 flex items-center justify-center">
-				<div className="text-center">
-					<span className="loading loading-spinner loading-lg"></span>
-					<p className="mt-4 text-base-content/70">Loading friends...</p>
-				</div>
+			<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center p-4">
+				<LoadingSpinner />
 			</div>
 		);
 	}
 
 	return (
-		<div className="container mx-auto p-4 space-y-6">
-			<h1 className="text-3xl font-bold text-base-content mb-6">Friends</h1>
+		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 p-4 py-8">
+			<div className="container mx-auto max-w-4xl space-y-6">
+				<h1 className="text-3xl font-bold text-base-content mb-6">Friends</h1>
 
-			{/* Combined Friends Section */}
-			<div className="card bg-base-100 shadow-xl">
-				<div className="card-body">
-					<h2 className="card-title text-xl mb-6">
-						Your Friends{" "}
-						<div className="badge badge-neutral">{friends.length}</div>
-					</h2>
+				{/* Combined Friends Section */}
+				<div className="card bg-base-100 shadow-2xl">
+					<div className="card-body">
+						<h2 className="card-title text-xl mb-6">
+							Your Friends{" "}
+							<div className="badge badge-primary">{friends.length}</div>
+						</h2>
 
-					{/* Search Bar */}
-					<form onSubmit={handleSearch} className="mb-6">
-						<div className="join w-full">
-							<input
-								className="input input-bordered input-primary join-item flex-1"
-								placeholder="Search by username"
-								type="text"
-								value={searchQuery}
-								onChange={handleSearchInput}
-							/>
-							<button
-								className="btn btn-primary join-item"
-								type="submit"
-								disabled={isSearching}
-							>
-								{isSearching ? (
-									<span className="loading loading-spinner loading-sm"></span>
-								) : (
-									"Search"
-								)}
-							</button>
-						</div>
-					</form>
-
-					{/* Search Results */}
-					{searchResults.length > 0 && (
-						<div className="space-y-3 mb-6">
-							<h3 className="text-sm font-medium text-base-content/70 mb-3">
-								Search Results
-							</h3>
-							{searchResults.map((result) => (
-								<div key={result.id} className="card bg-base-200 shadow-sm">
-									<div className="card-body p-4">
-										<div className="flex items-center justify-between">
-											<div className="flex items-center gap-3">
-												<div className="avatar">
-													<div className="w-10 rounded-full">
-														<img
-															alt={`${result.username}'s avatar`}
-															src={`${result?.avatar_name || "default"}`}
-														/>
-													</div>
-												</div>
-												<span className="font-medium text-base-content">
-													{result.username}
-												</span>
-											</div>
-											{result.is_friend ? (
-												<div className="badge badge-success">Friends</div>
-											) : result.has_pending_invite ? (
-												<div className="badge badge-warning">Pending</div>
-											) : (
-												<button
-													className="btn btn-primary btn-sm"
-													onClick={() => void sendFriendInvite(result.id)}
-												>
-													Add Friend
-												</button>
-											)}
-										</div>
-									</div>
-								</div>
-							))}
-						</div>
-					)}
-
-					{searchQuery && searchResults.length === 0 && !isSearching && (
-						<div className="alert alert-info">
-							<span>No users found matching "{searchQuery}"</span>
-						</div>
-					)}
-
-					{/* Friends List */}
-					<div className="space-y-3">
-						<h3 className="text-sm font-medium text-base-content/70 mb-3">
-							Current Friends
-						</h3>
-						{friends.length === 0 ? (
-							<div className="card bg-base-200">
-								<div className="card-body text-center py-12">
-									<div className="text-6xl mb-4">👥</div>
-									<h3 className="text-lg font-medium text-base-content mb-2">
-										No friends yet
-									</h3>
-									<p className="text-base-content/70">
-										Search for users to add them as friends.
-									</p>
-								</div>
+						{/* Search Bar */}
+						<form onSubmit={handleSearch} className="mb-6">
+							<div className="join w-full">
+								<input
+									className="input input-bordered input-primary join-item flex-1"
+									placeholder="Search by username"
+									type="text"
+									value={searchQuery}
+									onChange={handleSearchInput}
+								/>
+								<button
+									className="btn btn-primary join-item"
+									type="submit"
+									disabled={isSearching}
+								>
+									{isSearching ? (
+										<span className="loading loading-spinner loading-sm"></span>
+									) : (
+										"Search"
+									)}
+								</button>
 							</div>
-						) : (
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-								{friends.map((friend) => (
-									<div key={friend.id} className="card bg-base-200 shadow-sm">
+						</form>
+
+						{/* Search Results */}
+						{searchResults.length > 0 && (
+							<div className="space-y-3 mb-6">
+								<h3 className="text-sm font-medium text-base-content/70 mb-3">
+									Search Results
+								</h3>
+								{searchResults.map((result) => (
+									<div key={result.id} className="card bg-base-200 shadow-sm">
 										<div className="card-body p-4">
 											<div className="flex items-center justify-between">
 												<div className="flex items-center gap-3">
 													<div className="avatar">
 														<div className="w-10 rounded-full">
 															<img
-																alt={`${friend.friend_profile.username}'s avatar`}
-																src={`${friend.friend_profile?.avatar_name || "default"}`}
+																alt={`${result.username}'s avatar`}
+																src={`${result?.avatar_name || "default"}`}
 															/>
 														</div>
 													</div>
 													<span className="font-medium text-base-content">
-														{friend.friend_profile.username}
+														{result.username}
 													</span>
 												</div>
-												<button
-													className="btn btn-error btn-sm btn-outline"
-													onClick={() => void removeFriend(friend.friend_id)}
-												>
-													Remove
-												</button>
+												{result.is_friend ? (
+													<div className="badge badge-success">Friends</div>
+												) : result.has_pending_invite ? (
+													<div className="badge badge-warning">Pending</div>
+												) : (
+													<button
+														className="btn btn-primary btn-sm"
+														onClick={() => void sendFriendInvite(result.id)}
+													>
+														Add Friend
+													</button>
+												)}
 											</div>
 										</div>
 									</div>
 								))}
 							</div>
 						)}
+
+						{searchQuery && searchResults.length === 0 && !isSearching && (
+							<div className="alert alert-info">
+								<span>No users found matching "{searchQuery}"</span>
+							</div>
+						)}
+
+						{/* Friends List */}
+						<div className="space-y-3">
+							<h3 className="text-sm font-medium text-base-content/70 mb-3">
+								Current Friends
+							</h3>
+							{friends.length === 0 ? (
+								<div className="card bg-base-200">
+									<div className="card-body text-center py-12">
+										<div className="text-6xl mb-4">👥</div>
+										<h3 className="text-lg font-medium text-base-content mb-2">
+											No friends yet
+										</h3>
+										<p className="text-base-content/70">
+											Search for users to add them as friends.
+										</p>
+									</div>
+								</div>
+							) : (
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+									{friends.map((friend) => (
+										<div key={friend.id} className="card bg-base-200 shadow-sm">
+											<div className="card-body p-4">
+												<div className="flex items-center justify-between">
+													<div className="flex items-center gap-3">
+														<div className="avatar">
+															<div className="w-10 rounded-full">
+																<img
+																	alt={`${friend.friend_profile.username}'s avatar`}
+																	src={`${friend.friend_profile?.avatar_name || "default"}`}
+																/>
+															</div>
+														</div>
+														<span className="font-medium text-base-content">
+															{friend.friend_profile.username}
+														</span>
+													</div>
+													<button
+														className="btn btn-error btn-sm btn-outline"
+														onClick={() => void removeFriend(friend.friend_id)}
+													>
+														Remove
+													</button>
+												</div>
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+						</div>
 					</div>
 				</div>
+
+				{/* Friend Requests Section */}
+				{(invites.filter((invite) => invite.receiver_id === user?.id).length >
+					0 ||
+					invites.filter((invite) => invite.sender_id === user?.id).length >
+						0) && (
+					<div className="card bg-base-100 shadow-2xl">
+						<div className="card-body">
+							<h2 className="card-title text-xl mb-4">Friend Requests</h2>
+
+							{/* Received Requests */}
+							{invites.filter((invite) => invite.receiver_id === user?.id)
+								.length > 0 && (
+								<div className="mb-6">
+									<h3 className="text-sm font-medium text-base-content/70 mb-3">
+										Received Requests{" "}
+										<div className="badge badge-primary badge-sm">
+											{
+												invites.filter(
+													(invite) => invite.receiver_id === user?.id
+												).length
+											}
+										</div>
+									</h3>
+									<div className="space-y-3">
+										{invites
+											.filter((invite) => invite.receiver_id === user?.id)
+											.map((invite) => (
+												<div
+													key={invite.id}
+													className="card bg-base-200 shadow-sm"
+												>
+													<div className="card-body p-4">
+														<div className="flex items-center justify-between">
+															<div className="flex items-center gap-3">
+																<div className="avatar">
+																	<div className="w-10 rounded-full">
+																		<img
+																			alt={`${invite.sender.username}'s avatar`}
+																			src={`/avatars/${invite.sender.avatar_name}.svg`}
+																		/>
+																	</div>
+																</div>
+																<span className="font-medium text-base-content">
+																	{invite.sender.username}
+																</span>
+															</div>
+															<div className="flex gap-2">
+																<button
+																	className="btn btn-success btn-sm"
+																	onClick={() => void acceptInvite(invite.id)}
+																>
+																	Accept
+																</button>
+																<button
+																	className="btn btn-error btn-sm btn-outline"
+																	onClick={() => void rejectInvite(invite.id)}
+																>
+																	Reject
+																</button>
+															</div>
+														</div>
+													</div>
+												</div>
+											))}
+									</div>
+								</div>
+							)}
+
+							{/* Sent Requests */}
+							{invites.filter((invite) => invite.sender_id === user?.id)
+								.length > 0 && (
+								<div>
+									<h3 className="text-sm font-medium text-base-content/70 mb-3">
+										Sent Requests{" "}
+										<div className="badge badge-secondary badge-sm">
+											{
+												invites.filter(
+													(invite) => invite.sender_id === user?.id
+												).length
+											}
+										</div>
+									</h3>
+									<div className="space-y-3">
+										{invites
+											.filter((invite) => invite.sender_id === user?.id)
+											.map((invite) => (
+												<div
+													key={invite.id}
+													className="card bg-base-200 shadow-sm"
+												>
+													<div className="card-body p-4">
+														<div className="flex items-center justify-between">
+															<div className="flex items-center gap-3">
+																<div className="avatar">
+																	<div className="w-10 rounded-full">
+																		<img
+																			alt={`${invite.receiver.username}'s avatar`}
+																			src={`/avatars/${invite.receiver.avatar_name}.svg`}
+																		/>
+																	</div>
+																</div>
+																<span className="font-medium text-base-content">
+																	{invite.receiver.username}
+																</span>
+															</div>
+															<div className="badge badge-warning">Pending</div>
+														</div>
+													</div>
+												</div>
+											))}
+									</div>
+								</div>
+							)}
+						</div>
+					</div>
+				)}
 			</div>
-
-			{/* Friend Requests Section */}
-			{(invites.filter((invite) => invite.receiver_id === user?.id).length >
-				0 ||
-				invites.filter((invite) => invite.sender_id === user?.id).length >
-					0) && (
-				<div className="card bg-base-100 shadow-xl">
-					<div className="card-body">
-						<h2 className="card-title text-xl mb-4">Friend Requests</h2>
-
-						{/* Received Requests */}
-						{invites.filter((invite) => invite.receiver_id === user?.id)
-							.length > 0 && (
-							<div className="mb-6">
-								<h3 className="text-sm font-medium text-base-content/70 mb-3">
-									Received Requests{" "}
-									<div className="badge badge-primary badge-sm">
-										{
-											invites.filter(
-												(invite) => invite.receiver_id === user?.id
-											).length
-										}
-									</div>
-								</h3>
-								<div className="space-y-3">
-									{invites
-										.filter((invite) => invite.receiver_id === user?.id)
-										.map((invite) => (
-											<div
-												key={invite.id}
-												className="card bg-base-200 shadow-sm"
-											>
-												<div className="card-body p-4">
-													<div className="flex items-center justify-between">
-														<div className="flex items-center gap-3">
-															<div className="avatar">
-																<div className="w-10 rounded-full">
-																	<img
-																		alt={`${invite.sender.username}'s avatar`}
-																		src={`/avatars/${invite.sender.avatar_name}.svg`}
-																	/>
-																</div>
-															</div>
-															<span className="font-medium text-base-content">
-																{invite.sender.username}
-															</span>
-														</div>
-														<div className="flex gap-2">
-															<button
-																className="btn btn-success btn-sm"
-																onClick={() => void acceptInvite(invite.id)}
-															>
-																Accept
-															</button>
-															<button
-																className="btn btn-error btn-sm btn-outline"
-																onClick={() => void rejectInvite(invite.id)}
-															>
-																Reject
-															</button>
-														</div>
-													</div>
-												</div>
-											</div>
-										))}
-								</div>
-							</div>
-						)}
-
-						{/* Sent Requests */}
-						{invites.filter((invite) => invite.sender_id === user?.id).length >
-							0 && (
-							<div>
-								<h3 className="text-sm font-medium text-base-content/70 mb-3">
-									Sent Requests{" "}
-									<div className="badge badge-warning badge-sm">
-										{
-											invites.filter((invite) => invite.sender_id === user?.id)
-												.length
-										}
-									</div>
-								</h3>
-								<div className="space-y-3">
-									{invites
-										.filter((invite) => invite.sender_id === user?.id)
-										.map((invite) => (
-											<div
-												key={invite.id}
-												className="card bg-base-200 shadow-sm"
-											>
-												<div className="card-body p-4">
-													<div className="flex items-center justify-between">
-														<div className="flex items-center gap-3">
-															<div className="avatar">
-																<div className="w-10 rounded-full">
-																	<img
-																		alt={`${invite.receiver.username}'s avatar`}
-																		src={`/avatars/${invite.receiver.avatar_name}.svg`}
-																	/>
-																</div>
-															</div>
-															<span className="font-medium text-base-content">
-																{invite.receiver.username}
-															</span>
-														</div>
-														<div className="badge badge-warning">Pending</div>
-													</div>
-												</div>
-											</div>
-										))}
-								</div>
-							</div>
-						)}
-					</div>
-				</div>
-			)}
 		</div>
 	);
 };

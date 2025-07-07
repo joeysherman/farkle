@@ -39,7 +39,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			console.log(
 				"🛡️ Root guard: User not authenticated - redirecting to signin"
 			);
-			return redirect({
+			throw redirect({
 				to: "/signin",
 			});
 		}
@@ -53,7 +53,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			console.log(
 				"🛡️ Root guard: Onboarding completed - redirecting to dashboard"
 			);
-			return redirect({
+			throw redirect({
 				to: "/app/dashboard",
 			});
 		}
@@ -70,7 +70,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				"🛡️ Root guard: Onboarding not completed - redirecting to onboarding"
 			);
 			console.log("🛡️ Root guard: Profile state:", context.auth.profile);
-			return redirect({
+			throw redirect({
 				to: "/app/onboarding",
 			});
 		}

@@ -32,6 +32,15 @@ interface DatabaseProfile {
 	fcm_token: string | null;
 }
 
+// Loading spinner component
+function LoadingSpinner(): JSX.Element {
+	return (
+		<div className="flex justify-center items-center">
+			<div className="loading loading-spinner loading-lg text-primary"></div>
+		</div>
+	);
+}
+
 export const Profile = (): FunctionComponent => {
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
@@ -218,237 +227,258 @@ export const Profile = (): FunctionComponent => {
 
 	if (loading) {
 		return (
-			<div className="min-h-screen bg-base-200 flex items-center justify-center">
-				<div className="text-center">
-					<span className="loading loading-spinner loading-lg"></span>
-					<p className="mt-4 text-base-content/70">Loading profile...</p>
-				</div>
+			<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center p-4">
+				<LoadingSpinner />
 			</div>
 		);
 	}
 
 	return (
-		<div className="container mx-auto p-6 space-y-6">
-			<div className="card bg-base-100 shadow-xl">
-				<div className="card-body">
-					<h2 className="card-title text-2xl mb-6">Profile Information</h2>
+		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 p-4 py-8">
+			<div className="container mx-auto max-w-4xl space-y-6">
+				{/* Profile Information Card */}
+				<div className="card bg-base-100 shadow-2xl">
+					<div className="card-body">
+						<h2 className="card-title text-2xl mb-6">Profile Information</h2>
 
-					{/* Avatar Section */}
-					<div className="flex items-center gap-6 mb-8">
-						<div className="avatar">
-							<div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-								<img
-									alt="Profile"
-									src={profile?.avatarName || "/avatars/default.svg"}
-									onError={(e) => {
-										const target = e.target as HTMLImageElement;
-										target.src = "/avatars/default.svg";
-									}}
-								/>
+						{/* Avatar Section */}
+						<div className="flex items-center gap-6 mb-8">
+							<div className="avatar">
+								<div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+									<img
+										alt="Profile"
+										src={profile?.avatarName || "/avatars/default.svg"}
+										onError={(e) => {
+											const target = e.target as HTMLImageElement;
+											target.src = "/avatars/default.svg";
+										}}
+									/>
+								</div>
+							</div>
+							<div className="flex-1">
+								<button
+									className="btn btn-outline btn-primary"
+									onClick={() => setIsSelectingAvatar(true)}
+									disabled={isUploading}
+								>
+									{isUploading ? "Updating..." : "Change Avatar"}
+								</button>
 							</div>
 						</div>
-						<div className="flex-1 space-y-4">
-							<button
-								className="btn btn-outline btn-sm"
-								onClick={() => setIsSelectingAvatar(true)}
-								disabled={isUploading}
-							>
-								{isUploading ? "Updating..." : "Change Avatar"}
-							</button>
+
+						{/* Profile Details */}
+						<div className="space-y-4">
+							{/* Username */}
+							<div className="form-control">
+								<label className="label" htmlFor="username">
+									<span className="label-text">Username</span>
+								</label>
+								{isEditing ? (
+									<div className="flex gap-2">
+										<input
+											id="username"
+											className="input input-bordered input-primary flex-1"
+											placeholder="Enter new username"
+											type="text"
+											value={newUsername}
+											onChange={(event) => setNewUsername(event.target.value)}
+										/>
+										<button
+											className="btn btn-primary"
+											onClick={handleUsernameUpdate}
+										>
+											Save
+										</button>
+										<button
+											className="btn btn-outline"
+											onClick={() => setIsEditing(false)}
+										>
+											Cancel
+										</button>
+									</div>
+								) : (
+									<div className="flex items-center gap-3">
+										<span className="text-base-content">
+											{profile?.username}
+										</span>
+										{!profile?.hasChangedUsername && (
+											<button
+												className="btn btn-outline btn-primary btn-sm"
+												onClick={() => {
+													setNewUsername(profile?.username || "");
+													setIsEditing(true);
+												}}
+											>
+												Change
+											</button>
+										)}
+									</div>
+								)}
+							</div>
+
+							{/* Email */}
+							<div className="form-control">
+								<label className="label" htmlFor="email">
+									<span className="label-text">Email</span>
+								</label>
+								<div
+									className="input input-bordered bg-base-200 flex items-center px-4"
+									id="email"
+								>
+									{user?.email}
+								</div>
+							</div>
+
+							{/* Account Created */}
+							<div className="form-control">
+								<label className="label" htmlFor="created">
+									<span className="label-text">Account Created</span>
+								</label>
+								<div
+									className="input input-bordered bg-base-200 flex items-center px-4"
+									id="created"
+								>
+									{new Date(profile?.createdAt || "").toLocaleDateString()}
+								</div>
+							</div>
 						</div>
 					</div>
+				</div>
 
-					{/* Profile Details */}
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-						{/* Username */}
-						<div className="form-control">
-							<label className="label">
-								<span className="label-text font-medium">Username</span>
-							</label>
-							{isEditing ? (
-								<div className="flex gap-2">
-									<input
-										className="input input-bordered flex-1"
-										placeholder="Enter new username"
-										type="text"
-										value={newUsername}
-										onChange={(event) => setNewUsername(event.target.value)}
-									/>
+				{/* Notification Settings */}
+				<div className="card bg-base-100 shadow-2xl">
+					<div className="card-body">
+						<h3 className="card-title text-xl mb-4">Notification Settings</h3>
+
+						<div className="space-y-4">
+							{/* Browser Permission Status */}
+							<div className="form-control">
+								<label className="label" htmlFor="browser-notifications">
+									<span className="label-text">Browser notifications</span>
+								</label>
+								<div className="flex items-center justify-between">
+									<div className="flex items-center gap-3">
+										<div
+											className={`badge ${getBrowserPermissionColor()}`}
+											id="browser-notifications"
+										>
+											{getBrowserPermissionText()}
+										</div>
+									</div>
 									<button
-										className="btn btn-primary btn-sm"
-										onClick={handleUsernameUpdate}
+										className="btn btn-outline btn-primary btn-sm"
+										onClick={() => checkBrowserPermission()}
 									>
-										Save
+										Refresh
 									</button>
+								</div>
+							</div>
+
+							{/* App Notification Status */}
+							<div className="form-control">
+								<label className="label" htmlFor="app-notifications">
+									<span className="label-text">App notifications</span>
+								</label>
+								<div className="flex items-center justify-between">
+									<div className="flex items-center gap-3">
+										<div
+											className={`badge ${isSubscribed ? "badge-success" : "badge-neutral"}`}
+											id="app-notifications"
+										>
+											{isSubscribed ? "Enabled" : "Disabled"}
+										</div>
+									</div>
 									<button
-										className="btn btn-outline btn-sm"
-										onClick={() => setIsEditing(false)}
+										className={`btn btn-sm ${isSubscribed ? "btn-outline btn-error" : "btn-primary"}`}
+										onClick={() => void handleNotificationToggle()}
+									>
+										{isSubscribed ? "Disable" : "Enable"}
+									</button>
+								</div>
+							</div>
+
+							{/* Error Messages */}
+							{notificationError && (
+								<div className="alert alert-error">
+									<span>{notificationError}</span>
+								</div>
+							)}
+
+							{browserPermission === "denied" && (
+								<div className="alert alert-warning">
+									<span>
+										Browser notifications are blocked. Please enable them in
+										your browser settings to receive notifications.
+									</span>
+								</div>
+							)}
+
+							<div className="text-sm text-base-content/70">
+								Receive notifications about important updates and events.
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{/* Avatar Builder Modal */}
+				{isSelectingAvatar &&
+					profile &&
+					createPortal(
+						<div className="modal modal-open fixed inset-0 z-[9999] bg-black bg-opacity-50">
+							<div className="modal-box relative w-11/12 max-w-5xl max-h-[90vh] mx-auto my-8 overflow-y-auto bg-base-100">
+								<div className="mb-4">
+									<h3 className="font-bold text-lg">Customize Your Avatar</h3>
+									<p className="text-sm text-base-content/70">
+										Create a unique avatar that represents you
+									</p>
+								</div>
+
+								<div className="max-h-[calc(90vh-12rem)] overflow-y-auto">
+									<AvatarBuilder
+										ref={avatarBuilderRef}
+										initialOptions={avatarOptions}
+										onAvatarChange={setAvatarOptions}
+									/>
+								</div>
+
+								<div className="modal-action sticky bottom-0 bg-base-100 pt-4 mt-4 border-t border-base-300">
+									<button
+										className="btn btn-outline"
+										onClick={() => setIsSelectingAvatar(false)}
+										disabled={isUploading}
 									>
 										Cancel
 									</button>
+									<button
+										className="btn btn-primary"
+										onClick={() => void handleAvatarSave()}
+										disabled={!avatarOptions || isUploading}
+									>
+										{isUploading ? <LoadingSpinner /> : "Save Avatar"}
+									</button>
 								</div>
-							) : (
-								<div className="flex items-center gap-3">
-									<span className="text-base-content">{profile?.username}</span>
-									{!profile?.hasChangedUsername && (
-										<button
-											className="btn btn-outline btn-xs"
-											onClick={() => {
-												setNewUsername(profile?.username || "");
-												setIsEditing(true);
-											}}
-										>
-											Change
-										</button>
-									)}
-								</div>
-							)}
-						</div>
-
-						{/* Email */}
-						<div className="form-control">
-							<label className="label">
-								<span className="label-text font-medium">Email</span>
-							</label>
-							<div className="text-base-content">{user?.email}</div>
-						</div>
-
-						{/* Account Created */}
-						<div className="form-control">
-							<label className="label">
-								<span className="label-text font-medium">Account Created</span>
-							</label>
-							<div className="text-base-content">
-								{new Date(profile?.createdAt || "").toLocaleDateString()}
 							</div>
+						</div>,
+						document.body
+					)}
+
+				{/* Upload Status */}
+				{uploadStatus && (
+					<div className="alert alert-info">
+						<div className="flex items-center">
+							<span className="loading loading-spinner loading-sm mr-2"></span>
+							<span>{uploadStatus}</span>
 						</div>
 					</div>
-				</div>
-			</div>
-
-			{/* Notification Settings */}
-			<div className="card bg-base-100 shadow-xl">
-				<div className="card-body">
-					<h3 className="card-title text-xl mb-4">Notification Settings</h3>
-
-					<div className="space-y-4">
-						{/* Browser Permission Status */}
-						<div className="flex items-center justify-between">
-							<div className="flex items-center gap-3">
-								<span className="text-base-content">
-									Browser notifications:
-								</span>
-								<div className={`badge ${getBrowserPermissionColor()}`}>
-									{getBrowserPermissionText()}
-								</div>
-							</div>
-							<button
-								className="btn btn-outline btn-sm"
-								onClick={() => checkBrowserPermission()}
-							>
-								Refresh
-							</button>
-						</div>
-
-						{/* App Notification Status */}
-						<div className="flex items-center justify-between">
-							<div className="flex items-center gap-3">
-								<span className="text-base-content">App notifications:</span>
-								<div
-									className={`badge ${isSubscribed ? "badge-success" : "badge-neutral"}`}
-								>
-									{isSubscribed ? "Enabled" : "Disabled"}
-								</div>
-							</div>
-							<button
-								className={`btn btn-sm ${isSubscribed ? "btn-error" : "btn-primary"}`}
-								onClick={() => void handleNotificationToggle()}
-							>
-								{isSubscribed ? "Disable" : "Enable"}
-							</button>
-						</div>
-
-						{/* Error Messages */}
-						{notificationError && (
-							<div className="alert alert-error">
-								<span>{notificationError}</span>
-							</div>
-						)}
-
-						{browserPermission === "denied" && (
-							<div className="alert alert-warning">
-								<span>
-									Browser notifications are blocked. Please enable them in your
-									browser settings to receive notifications.
-								</span>
-							</div>
-						)}
-
-						<div className="text-sm text-base-content/70">
-							Receive notifications about important updates and events.
-						</div>
-					</div>
-				</div>
-			</div>
-
-			{/* Avatar Builder Modal */}
-			{isSelectingAvatar &&
-				profile &&
-				createPortal(
-					<div className="modal modal-open fixed inset-0 z-[9999] bg-black bg-opacity-50">
-						<div className="modal-box relative w-11/12 max-w-5xl max-h-[90vh] mx-auto my-8 overflow-y-auto bg-base-100">
-							<div className="mb-4">
-								<h3 className="font-bold text-lg">Customize Your Avatar</h3>
-								<p className="text-sm text-base-content/70">
-									Create a unique avatar that represents you
-								</p>
-							</div>
-
-							<div className="max-h-[calc(90vh-12rem)] overflow-y-auto">
-								<AvatarBuilder
-									ref={avatarBuilderRef}
-									initialOptions={avatarOptions}
-									onAvatarChange={setAvatarOptions}
-								/>
-							</div>
-
-							<div className="modal-action sticky bottom-0 bg-base-100 pt-4 mt-4 border-t border-base-300">
-								<button
-									className="btn btn-outline"
-									onClick={() => setIsSelectingAvatar(false)}
-									disabled={isUploading}
-								>
-									Cancel
-								</button>
-								<button
-									className={`btn btn-primary ${isUploading ? "loading" : ""}`}
-									onClick={() => void handleAvatarSave()}
-									disabled={!avatarOptions || isUploading}
-								>
-									{isUploading ? "Saving..." : "Save Avatar"}
-								</button>
-							</div>
-						</div>
-					</div>,
-					document.body
 				)}
 
-			{/* Upload Status */}
-			{uploadStatus && (
-				<div className="alert alert-info">
-					<div className="flex items-center">
-						<span className="loading loading-spinner loading-sm mr-2"></span>
-						<span>{uploadStatus}</span>
+				{/* Error Alert */}
+				{error && (
+					<div className="alert alert-error mb-4">
+						<span>{error}</span>
 					</div>
-				</div>
-			)}
-
-			{/* Error Alert */}
-			{error && (
-				<div className="alert alert-error">
-					<span>{error}</span>
-				</div>
-			)}
+				)}
+			</div>
 		</div>
 	);
 };

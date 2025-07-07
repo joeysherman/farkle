@@ -1,5 +1,5 @@
 import { useRouteContext, useRouter } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { FunctionComponent } from "../common/types";
 import { supabase } from "../lib/supabaseClient";
 import {
@@ -16,6 +16,15 @@ interface OnboardingData {
 		notifications: boolean;
 		newsletter: boolean;
 	};
+}
+
+// Loading spinner component
+function LoadingSpinner(): JSX.Element {
+	return (
+		<div className="flex justify-center items-center">
+			<div className="loading loading-spinner loading-lg text-primary"></div>
+		</div>
+	);
 }
 
 // update the user profile where the id is the user id and the data is the data to update
@@ -37,6 +46,13 @@ export const Onboarding = (): FunctionComponent => {
 	const router = useRouter();
 	const avatarBuilderRef = useRef<AvatarBuilderRef>(null);
 	const { uploadAvatar, uploadStatus, isUploading } = useAvatarUpload();
+	const usernameInputRef = useRef<HTMLInputElement>(null);
+	const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(
+		null
+	);
+	const [checkingUsername, setCheckingUsername] = useState(false);
+	const [usernameError, setUsernameError] = useState<string>("");
+	const debounceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	// Current step (1, 2, or 3)
 	const [currentStep, setCurrentStep] = useState(
@@ -54,6 +70,60 @@ export const Onboarding = (): FunctionComponent => {
 			newsletter: false,
 		},
 	});
+
+	const currentUsername = context.auth.profile?.username || "";
+
+	// Autofocus username input on first step
+	useEffect(() => {
+		if (currentStep === 1 && usernameInputRef.current) {
+			usernameInputRef.current.focus();
+		}
+	}, [currentStep]);
+
+	// Debounced Supabase username check
+	useEffect(() => {
+		if (currentStep !== 1) return;
+		const trimmed = data.username.trim();
+		if (!trimmed || trimmed.length < 3) {
+			setUsernameAvailable(null);
+			setCheckingUsername(false);
+			setUsernameError("");
+			return;
+		}
+		// If input matches current username, treat as available
+		if (trimmed === currentUsername) {
+			setUsernameAvailable(true);
+			setCheckingUsername(false);
+			setUsernameError("");
+			return;
+		}
+		if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+		debounceTimeout.current = setTimeout(async () => {
+			setCheckingUsername(true);
+			setUsernameError("");
+			// Check username availability
+			const { data: profile, error } = await supabase
+				.from("profiles")
+				.select("id")
+				.eq("username", trimmed)
+				.maybeSingle();
+			if (!error && profile) {
+				setUsernameAvailable(false);
+				setUsernameError("This username is already taken.");
+			} else {
+				setUsernameAvailable(true);
+				if (error) {
+					setUsernameError("Error checking username");
+				} else {
+					setUsernameError("");
+				}
+			}
+			setCheckingUsername(false);
+		}, 500);
+		return () => {
+			if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+		};
+	}, [data.username, currentStep, currentUsername]);
 
 	// Validation functions
 	const validateStep1 = (): boolean => {
@@ -180,56 +250,88 @@ export const Onboarding = (): FunctionComponent => {
 	};
 
 	return (
-		<div className="min-h-screen bg-base-200">
-			<div
-				className={`container mx-auto px-4 py-8 ${currentStep === 2 ? "max-w-6xl" : "max-w-lg"}`}
-			>
+		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20">
+			<div className={`container mx-auto py-4`}>
 				{/* Progress Steps */}
-				<div className="mb-8">
-					<ul className="steps w-full">
-						<li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}>
-							Personal
-						</li>
-						<li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}>
-							Avatar
-						</li>
-						<li className={`step ${currentStep >= 3 ? "step-primary" : ""}`}>
-							Preferences
-						</li>
-					</ul>
+				<div className="card bg-base-100 shadow-2xl mb-4">
+					<div className="card-body p-4">
+						<ul className="steps  w-full">
+							<li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}>
+								Personal
+							</li>
+							<li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}>
+								Avatar
+							</li>
+							<li className={`step ${currentStep >= 3 ? "step-primary" : ""}`}>
+								Preferences
+							</li>
+						</ul>
+					</div>
 				</div>
+				{/* Error Message */}
+				{errors["general"] && (
+					<div className="alert alert-error mb-4 flex justify-center">
+						<span>{errors["general"]}</span>
+					</div>
+				)}
 
+				{errors["avatar"] && (
+					<div className="alert alert-error mb-4 flex justify-center">
+						<span>{errors["avatar"]}</span>
+					</div>
+				)}
+
+				{/* Upload Status */}
+				{uploadStatus && (
+					<div className="alert alert-info mb-4 flex justify-center">
+						<div className="flex items-center">
+							<span className="loading loading-spinner loading-sm mr-2"></span>
+							<span>{uploadStatus}</span>
+						</div>
+					</div>
+				)}
 				{/* Step Content */}
 				<div className="mb-6">
 					{currentStep === 1 && (
-						<div className="card bg-base-100 shadow-xl">
+						<div className="card bg-base-100 shadow-2xl max-w-lg mx-auto">
 							<div className="card-body">
-								<div className="text-center mb-6">
-									<h2 className="card-title text-2xl justify-center mb-2">
+								<div className="text-center mb-4">
+									<h2 className="card-title text-2xl justify-center">
 										What should we call you?
 									</h2>
-									<p className="text-base-content/70">
-										Choose a username that others will see
-									</p>
 								</div>
 
 								<div className="form-control w-full">
 									<label className="label">
-										<span className="label-text">Username</span>
+										<span className="label-text">
+											Choose a username that suits you best
+										</span>
 									</label>
 									<input
+										ref={usernameInputRef}
 										type="text"
 										placeholder="Enter your username"
 										maxLength={20}
 										value={data.username}
-										className={`input input-bordered w-full ${
+										className={`input input-bordered input-primary w-full ${
 											errors["username"] ? "input-error" : ""
 										}`}
 										onChange={(event) => {
+											const value = event.target.value;
 											setData((previous) => ({
 												...previous,
-												username: event.target.value,
+												username: value,
 											}));
+											// Clear feedback and show checking if input is long enough
+											if (value.trim().length >= 3) {
+												setUsernameAvailable(null);
+												setUsernameError("");
+												setCheckingUsername(true);
+											} else {
+												setUsernameAvailable(null);
+												setUsernameError("");
+												setCheckingUsername(false);
+											}
 										}}
 									/>
 									{errors["username"] && (
@@ -239,21 +341,45 @@ export const Onboarding = (): FunctionComponent => {
 											</span>
 										</label>
 									)}
+									{/* Username check feedback */}
+									{data.username.length >= 3 && (
+										<div className="mt-2 min-h-[1.5rem]">
+											{checkingUsername ? (
+												<span className="text-info text-sm flex items-center gap-1">
+													<span className="loading loading-spinner loading-xs"></span>
+													Checking username...
+												</span>
+											) : data.username.trim() === currentUsername ? (
+												<span className="text-info text-sm">
+													This is your current username
+												</span>
+											) : usernameAvailable === false ? (
+												<span className="text-error text-sm">
+													{usernameError || "This username is already taken."}
+												</span>
+											) : usernameAvailable === true && !usernameError ? (
+												<span className="text-success text-sm">
+													This username is available!
+												</span>
+											) : usernameError && usernameAvailable !== false ? (
+												<span className="text-error text-sm">
+													{usernameError}
+												</span>
+											) : null}
+										</div>
+									)}
 								</div>
 							</div>
 						</div>
 					)}
 
 					{currentStep === 2 && (
-						<div className="card bg-base-100 shadow-xl">
+						<div className="card bg-base-100 shadow-2xl">
 							<div className="card-body">
-								<div className="text-center mb-6">
+								<div className="text-center mb-2">
 									<h2 className="card-title text-2xl justify-center mb-2">
 										Choose your avatar
 									</h2>
-									<p className="text-base-content/70">
-										Pick an avatar that represents you
-									</p>
 								</div>
 
 								<AvatarBuilder
@@ -271,7 +397,7 @@ export const Onboarding = (): FunctionComponent => {
 					)}
 
 					{currentStep === 3 && (
-						<div className="card bg-base-100 shadow-xl">
+						<div className="card bg-base-100 shadow-2xl">
 							<div className="card-body">
 								<div className="text-center mb-6">
 									<h2 className="card-title text-2xl justify-center mb-2">
@@ -344,51 +470,39 @@ export const Onboarding = (): FunctionComponent => {
 					)}
 				</div>
 
-				{/* Error Message */}
-				{errors["general"] && (
-					<div className="alert alert-error">
-						<span>{errors["general"]}</span>
-					</div>
-				)}
-
-				{errors["avatar"] && (
-					<div className="alert alert-error">
-						<span>{errors["avatar"]}</span>
-					</div>
-				)}
-
-				{/* Upload Status */}
-				{uploadStatus && (
-					<div className="alert alert-info">
-						<div className="flex items-center">
-							<span className="loading loading-spinner loading-sm mr-2"></span>
-							<span>{uploadStatus}</span>
-						</div>
-					</div>
-				)}
-
 				{/* Navigation Buttons */}
-				<div className="flex justify-between items-center">
-					<button
-						className={`btn btn-outline ${currentStep === 1 ? "invisible" : ""}`}
-						disabled={isLoading || isUploading}
-						onClick={handleBack}
-					>
-						Back
-					</button>
+				<div className="card bg-base-100 shadow-2xl">
+					<div className="card-body flex flex-row justify-between items-center">
+						<button
+							className={`btn btn-outline ${currentStep === 1 ? "invisible" : ""}`}
+							disabled={isLoading || isUploading}
+							onClick={handleBack}
+						>
+							Back
+						</button>
 
-					<button
-						className={`btn btn-primary ${isLoading || isUploading ? "loading" : ""}`}
-						disabled={isLoading || isUploading}
-						onClick={() => void handleNext()}
-					>
-						{currentStep === 3 ? "Finish" : "Next"}
-						{(isLoading || isUploading) && currentStep === 2 && (
-							<span className="ml-2">
-								{uploadStatus ? "" : "Processing..."}
-							</span>
-						)}
-					</button>
+						<button
+							className={`btn btn-primary ${isLoading || isUploading ? "loading" : ""}`}
+							disabled={
+								isLoading ||
+								isUploading ||
+								(currentStep === 1 &&
+									(!data.username.trim() ||
+										data.username.trim().length < 3 ||
+										checkingUsername ||
+										(data.username.trim() !== currentUsername &&
+											usernameAvailable !== true)))
+							}
+							onClick={() => void handleNext()}
+						>
+							{currentStep === 3 ? "Finish" : "Next"}
+							{(isLoading || isUploading) && (
+								<span className="ml-2">
+									{isLoading || isUploading ? <LoadingSpinner /> : ""}
+								</span>
+							)}
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>

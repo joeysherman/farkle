@@ -20,6 +20,15 @@ interface GameHistory {
 	};
 }
 
+// Loading spinner component
+function LoadingSpinner(): JSX.Element {
+	return (
+		<div className="flex justify-center items-center">
+			<div className="loading loading-spinner loading-lg text-primary"></div>
+		</div>
+	);
+}
+
 export default function History(): JSX.Element {
 	const { user } = useAuth();
 
@@ -136,126 +145,135 @@ export default function History(): JSX.Element {
 		: "0";
 
 	return (
-		<div className="container mx-auto p-4 space-y-6">
-			<h1 className="text-3xl font-bold text-base-content mb-6">
-				Game History
-			</h1>
+		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 p-4 py-8">
+			<div className="container mx-auto max-w-4xl space-y-6">
+				<h1 className="text-3xl font-bold text-base-content mb-6">
+					Game History
+				</h1>
 
-			{/* User Stats Summary */}
-			{userStats && (
-				<div className="card bg-base-100 shadow-xl">
-					<div className="card-body">
-						<h2 className="card-title text-xl mb-6">Your Statistics</h2>
-						<div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-							{/* Primary Stats */}
-							<div className="col-span-2 lg:col-span-1 stat bg-primary/10 rounded-lg">
-								<div className="stat-title text-primary">Total Games</div>
-								<div className="stat-value text-primary text-3xl">
-									{userStats.totalGames}
+				{/* User Stats Summary */}
+				{userStats && (
+					<div className="card bg-base-100 shadow-2xl">
+						<div className="card-body">
+							<h2 className="card-title text-xl mb-6">Your Statistics</h2>
+							<div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+								{/* Primary Stats */}
+								<div className="col-span-2 lg:col-span-1 stat bg-base-200 rounded-lg">
+									<div className="stat-title text-base-content/70">
+										Total Games
+									</div>
+									<div className="stat-value text-primary text-3xl">
+										{userStats.totalGames}
+									</div>
 								</div>
-							</div>
 
-							<div className="stat bg-success/10 rounded-lg">
-								<div className="stat-title text-success">Games Won</div>
-								<div className="stat-value text-success text-3xl">
-									{userStats.gamesWon}
+								<div className="stat bg-base-200 rounded-lg">
+									<div className="stat-title text-base-content/70">
+										Games Won
+									</div>
+									<div className="stat-value text-success text-3xl">
+										{userStats.gamesWon}
+									</div>
 								</div>
-							</div>
 
-							<div className="stat bg-secondary/10 rounded-lg">
-								<div className="stat-title text-secondary">Win Rate</div>
-								<div className="stat-value text-secondary text-3xl">
-									{winRate}%
+								<div className="stat bg-base-200 rounded-lg">
+									<div className="stat-title text-base-content/70">
+										Win Rate
+									</div>
+									<div className="stat-value text-secondary text-3xl">
+										{winRate}%
+									</div>
 								</div>
-							</div>
 
-							{/* Additional Stats */}
-							<div className="stat bg-info/10 rounded-lg">
-								<div className="stat-title text-info">Avg Duration</div>
-								<div className="stat-value text-info text-2xl">
-									{userStats.averageDuration}
+								{/* Additional Stats */}
+								<div className="stat bg-base-200 rounded-lg">
+									<div className="stat-title text-base-content/70">
+										Avg Duration
+									</div>
+									<div className="stat-value text-info text-2xl">
+										{userStats.averageDuration}
+									</div>
 								</div>
-							</div>
 
-							<div className="stat bg-accent/10 rounded-lg">
-								<div className="stat-title text-accent">Last Played</div>
-								<div className="stat-value text-accent text-2xl">
-									{userStats.lastPlayed}
+								<div className="stat bg-base-200 rounded-lg">
+									<div className="stat-title text-base-content/70">
+										Last Played
+									</div>
+									<div className="stat-value text-accent text-2xl">
+										{userStats.lastPlayed}
+									</div>
 								</div>
 							</div>
 						</div>
 					</div>
-				</div>
-			)}
+				)}
 
-			{/* Game History Cards */}
-			<div className="card bg-base-100 shadow-xl">
-				<div className="card-body">
-					<h2 className="card-title text-xl mb-4">Recent Games</h2>
-					{isHistoryLoading ? (
-						<div className="flex justify-center items-center py-12">
-							<span className="loading loading-spinner loading-lg"></span>
-							<span className="ml-3 text-base-content/70">
-								Loading game history...
-							</span>
-						</div>
-					) : historyData && historyData.length > 0 ? (
-						<div className="space-y-2">
-							{historyData.map((game) => (
-								<div
-									key={game.id}
-									className="collapse collapse-arrow bg-base-200"
-								>
-									<input className="peer" type="checkbox" />
-									<div className="collapse-title">
-										<div className="grid grid-cols-12 items-center gap-2">
-											<div className="col-span-4">
-												<span className="font-medium text-base-content">
-													{game.game_room?.name || "Unnamed Game"}
-												</span>
-											</div>
-											<div className="col-span-4 text-center">
-												<div
-													className={`badge ${game.winner_id === user?.id ? "badge-primary" : "badge-neutral"}`}
-												>
-													{game.winner?.username || "Unknown"}
-													{game.winner_id === user?.id && " (You)"}
+				{/* Game History Cards */}
+				<div className="card bg-base-100 shadow-2xl">
+					<div className="card-body">
+						<h2 className="card-title text-xl mb-4">Recent Games</h2>
+						{isHistoryLoading ? (
+							<div className="flex justify-center items-center py-12">
+								<LoadingSpinner />
+							</div>
+						) : historyData && historyData.length > 0 ? (
+							<div className="space-y-2">
+								{historyData.map((game) => (
+									<div
+										key={game.id}
+										className="collapse collapse-arrow bg-base-200"
+									>
+										<input className="peer" type="checkbox" />
+										<div className="collapse-title">
+											<div className="grid grid-cols-12 items-center gap-2">
+												<div className="col-span-4">
+													<span className="font-medium text-base-content">
+														{game.game_room?.name || "Unnamed Game"}
+													</span>
+												</div>
+												<div className="col-span-4 text-center">
+													<div
+														className={`badge ${game.winner_id === user?.id ? "badge-primary" : "badge-neutral"}`}
+													>
+														{game.winner?.username || "Unknown"}
+														{game.winner_id === user?.id && " (You)"}
+													</div>
+												</div>
+												<div className="col-span-4 text-base-content/70 text-right">
+													{format(new Date(game.created_at), "MMM d, yyyy")}
 												</div>
 											</div>
-											<div className="col-span-4 text-base-content/70 text-right">
-												{format(new Date(game.created_at), "MMM d, yyyy")}
+										</div>
+										<div className="collapse-content bg-base-300/50">
+											<div className="py-4">
+												<div className="grid grid-cols-2 gap-4">
+													<div>
+														<div className="text-sm text-base-content/70">
+															Duration
+														</div>
+														<div className="font-medium text-base-content">
+															{formatDuration(game.duration)}
+														</div>
+													</div>
+													{/* Additional details can be added here later */}
+												</div>
 											</div>
 										</div>
 									</div>
-									<div className="collapse-content bg-base-300/50">
-										<div className="py-4">
-											<div className="grid grid-cols-2 gap-4">
-												<div>
-													<div className="text-sm text-base-content/70">
-														Duration
-													</div>
-													<div className="font-medium text-base-content">
-														{formatDuration(game.duration)}
-													</div>
-												</div>
-												{/* Additional details can be added here later */}
-											</div>
-										</div>
-									</div>
-								</div>
-							))}
-						</div>
-					) : (
-						<div className="text-center py-12">
-							<div className="text-6xl mb-4">🎲</div>
-							<h3 className="text-lg font-medium text-base-content mb-2">
-								No game history found
-							</h3>
-							<p className="text-base-content/70">
-								Play some games to see your history here!
-							</p>
-						</div>
-					)}
+								))}
+							</div>
+						) : (
+							<div className="text-center py-12">
+								<div className="text-6xl mb-4">🎲</div>
+								<h3 className="text-lg font-medium text-base-content mb-2">
+									No game history found
+								</h3>
+								<p className="text-base-content/70">
+									Play some games to see your history here!
+								</p>
+							</div>
+						)}
+					</div>
 				</div>
 			</div>
 		</div>
