@@ -79,7 +79,7 @@ export const useFriendInvites = (userId: string) => {
 export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	const navigate = useNavigate();
 	const router = useRouter();
-	const { user, isAuthChecking: isUserLoading, signOut } = useAuth();
+	const { user, isAuthChecking: isUserLoading, signOut, profile } = useAuth();
 	const friendInvitesSubscriptionRef = useRef<RealtimeChannel | null>(null);
 
 	const isProfileActive = useMatch({ from: "/profile", shouldThrow: false });
@@ -89,6 +89,9 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 		from: "/app/bot-tests",
 		shouldThrow: false,
 	});
+
+	// Check if user is in onboarding process
+	const isOnboarding = profile ? !profile.onboarding_completed : false;
 
 	const { data: profileData, isLoading: isProfileLoading } = useProfileData(
 		user?.id ?? ""
@@ -187,108 +190,119 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 					<div className="flex items-center">
 						{!loading && user && (
 							<div className="flex items-center">
-								<Menu as="div" className="relative inline-block text-left">
-									<MenuButton className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 relative">
-										<img
-											alt="User avatar"
-											className="w-6 h-6 sm:w-8 sm:h-8 rounded-full"
-											src={`${profileData?.avatar_name || "default"}`}
-										/>
-										{pendingInvitesCount > 0 && (
-											<span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-500 border-2 border-white"></span>
-										)}
-									</MenuButton>
-									<Transition
-										as={Fragment}
-										enter="transition ease-out duration-100"
-										enterFrom="transform opacity-0 scale-95"
-										enterTo="transform opacity-100 scale-100"
-										leave="transition ease-in duration-75"
-										leaveFrom="transform opacity-100 scale-100"
-										leaveTo="transform opacity-0 scale-95"
+								{isOnboarding ? (
+									// Show only sign out button during onboarding
+									<button
+										className="inline-flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+										onClick={handleSignOut}
 									>
-										<MenuItems className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-											<div className="px-1 py-1">
-												<MenuItem>
-													{({ active: isActive }): JSX.Element => (
-														<Link
-															className={`${
-																isActive || isProfileActive
-																	? "bg-indigo-500 text-white"
-																	: "text-gray-900"
-															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-															to="/app/profile"
-														>
-															Profile
-														</Link>
-													)}
-												</MenuItem>
-												<MenuItem>
-													{({ active: isActive }): JSX.Element => (
-														<Link
-															className={`${
-																isActive || isFriendsActive
-																	? "bg-indigo-500 text-white"
-																	: "text-gray-900"
-															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-															to="/app/friends"
-														>
-															<span className="flex-1">Friends</span>
-															{pendingInvitesCount > 0 && (
-																<span className="ml-2 inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-medium">
-																	{pendingInvitesCount}
-																</span>
-															)}
-														</Link>
-													)}
-												</MenuItem>
-												<MenuItem>
-													{({ active: isActive }): JSX.Element => (
-														<Link
-															className={`${
-																isActive || isHistoryActive
-																	? "bg-indigo-500 text-white"
-																	: "text-gray-900"
-															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-															to="/app/history"
-														>
-															History
-														</Link>
-													)}
-												</MenuItem>
-												<MenuItem>
-													{({ active: isActive }): JSX.Element => (
-														<Link
-															className={`${
-																isActive || isBotTestsActive
-																	? "bg-indigo-500 text-white"
-																	: "text-gray-900"
-															} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-															to="/app/bot-tests"
-														>
-															Bot Tests
-														</Link>
-													)}
-												</MenuItem>
-												<div className="my-1 h-px bg-gray-200"></div>
-												<MenuItem>
-													{({ active: isActive }): JSX.Element => (
-														<button
-															className={`${
-																isActive
-																	? "bg-red-500 text-white"
-																	: "text-red-600"
-															} group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium`}
-															onClick={handleSignOut}
-														>
-															Sign out
-														</button>
-													)}
-												</MenuItem>
-											</div>
-										</MenuItems>
-									</Transition>
-								</Menu>
+										Sign out
+									</button>
+								) : (
+									// Show full avatar menu when not onboarding
+									<Menu as="div" className="relative inline-block text-left">
+										<MenuButton className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 relative">
+											<img
+												alt="User avatar"
+												className="w-6 h-6 sm:w-8 sm:h-8 rounded-full"
+												src={`${profileData?.avatar_name || "default"}`}
+											/>
+											{pendingInvitesCount > 0 && (
+												<span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-500 border-2 border-white"></span>
+											)}
+										</MenuButton>
+										<Transition
+											as={Fragment}
+											enter="transition ease-out duration-100"
+											enterFrom="transform opacity-0 scale-95"
+											enterTo="transform opacity-100 scale-100"
+											leave="transition ease-in duration-75"
+											leaveFrom="transform opacity-100 scale-100"
+											leaveTo="transform opacity-0 scale-95"
+										>
+											<MenuItems className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+												<div className="px-1 py-1">
+													<MenuItem>
+														{({ active: isActive }): JSX.Element => (
+															<Link
+																className={`${
+																	isActive || isProfileActive
+																		? "bg-indigo-500 text-white"
+																		: "text-gray-900"
+																} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+																to="/app/profile"
+															>
+																Profile
+															</Link>
+														)}
+													</MenuItem>
+													<MenuItem>
+														{({ active: isActive }): JSX.Element => (
+															<Link
+																className={`${
+																	isActive || isFriendsActive
+																		? "bg-indigo-500 text-white"
+																		: "text-gray-900"
+																} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+																to="/app/friends"
+															>
+																<span className="flex-1">Friends</span>
+																{pendingInvitesCount > 0 && (
+																	<span className="ml-2 inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-medium">
+																		{pendingInvitesCount}
+																	</span>
+																)}
+															</Link>
+														)}
+													</MenuItem>
+													<MenuItem>
+														{({ active: isActive }): JSX.Element => (
+															<Link
+																className={`${
+																	isActive || isHistoryActive
+																		? "bg-indigo-500 text-white"
+																		: "text-gray-900"
+																} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+																to="/app/history"
+															>
+																History
+															</Link>
+														)}
+													</MenuItem>
+													<MenuItem>
+														{({ active: isActive }): JSX.Element => (
+															<Link
+																className={`${
+																	isActive || isBotTestsActive
+																		? "bg-indigo-500 text-white"
+																		: "text-gray-900"
+																} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+																to="/app/bot-tests"
+															>
+																Bot Tests
+															</Link>
+														)}
+													</MenuItem>
+													<div className="my-1 h-px bg-gray-200"></div>
+													<MenuItem>
+														{({ active: isActive }): JSX.Element => (
+															<button
+																className={`${
+																	isActive
+																		? "bg-red-500 text-white"
+																		: "text-red-600"
+																} group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium`}
+																onClick={handleSignOut}
+															>
+																Sign out
+															</button>
+														)}
+													</MenuItem>
+												</div>
+											</MenuItems>
+										</Transition>
+									</Menu>
+								)}
 							</div>
 						)}
 					</div>

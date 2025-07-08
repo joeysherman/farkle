@@ -253,34 +253,25 @@ export const Onboarding = (): FunctionComponent => {
 		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20">
 			<div className={`container mx-auto py-4`}>
 				{/* Progress Steps */}
-				<div className="card bg-base-100 shadow-2xl mb-4">
-					<div className="card-body p-4">
-						<ul className="steps  w-full">
-							<li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}>
-								Personal
-							</li>
-							<li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}>
-								Avatar
-							</li>
-							<li className={`step ${currentStep >= 3 ? "step-primary" : ""}`}>
-								Preferences
-							</li>
-						</ul>
-					</div>
+				<div className="flex justify-center mb-2">
+					<ul className="steps steps-horizontal w-auto">
+						<li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}>
+							Personal
+						</li>
+						<li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}>
+							Avatar
+						</li>
+						<li className={`step ${currentStep >= 3 ? "step-primary" : ""}`}>
+							Preferences
+						</li>
+					</ul>
 				</div>
 				{/* Error Message */}
 				{errors["general"] && (
-					<div className="alert alert-error mb-4 flex justify-center">
+					<div className="alert alert-error mb-2 flex justify-center">
 						<span>{errors["general"]}</span>
 					</div>
 				)}
-
-				{errors["avatar"] && (
-					<div className="alert alert-error mb-4 flex justify-center">
-						<span>{errors["avatar"]}</span>
-					</div>
-				)}
-
 				{/* Upload Status */}
 				{uploadStatus && (
 					<div className="alert alert-info mb-4 flex justify-center">
@@ -291,18 +282,15 @@ export const Onboarding = (): FunctionComponent => {
 					</div>
 				)}
 				{/* Step Content */}
-				<div className="mb-6">
+				<div className="flex justify-center items-center min-h-[60vh]">
 					{currentStep === 1 && (
-						<div className="card bg-base-100 shadow-2xl max-w-lg mx-auto">
-							<div className="card-body">
-								<div className="text-center mb-4">
-									<h2 className="card-title text-2xl justify-center">
-										What should we call you?
-									</h2>
-								</div>
-
-								<div className="form-control w-full">
-									<label className="label">
+						<div className="card bg-base-100 shadow-2xl w-full max-w-sm mx-auto">
+							<div className="card-body p-4">
+								<h2 className="card-title text-xl text-center mb-2">
+									What should we call you?
+								</h2>
+								<div className="form-control w-full mb-2">
+									<label className="label pb-1">
 										<span className="label-text">
 											Choose a username that suits you best
 										</span>
@@ -313,16 +301,13 @@ export const Onboarding = (): FunctionComponent => {
 										placeholder="Enter your username"
 										maxLength={20}
 										value={data.username}
-										className={`input input-bordered input-primary w-full ${
-											errors["username"] ? "input-error" : ""
-										}`}
+										className={`input input-bordered input-primary w-full ${errors["username"] ? "input-error" : ""}`}
 										onChange={(event) => {
 											const value = event.target.value;
 											setData((previous) => ({
 												...previous,
 												username: value,
 											}));
-											// Clear feedback and show checking if input is long enough
 											if (value.trim().length >= 3) {
 												setUsernameAvailable(null);
 												setUsernameError("");
@@ -335,53 +320,66 @@ export const Onboarding = (): FunctionComponent => {
 										}}
 									/>
 									{errors["username"] && (
-										<label className="label">
+										<label className="label pt-1">
 											<span className="label-text-alt text-error">
 												{errors["username"]}
 											</span>
 										</label>
 									)}
-									{/* Username check feedback */}
 									{data.username.length >= 3 && (
-										<div className="mt-2 min-h-[1.5rem]">
+										<div className="mt-1 min-h-[1.5rem]">
 											{checkingUsername ? (
-												<span className="text-info text-sm flex items-center gap-1">
+												<span className="text-info text-xs flex items-center gap-1">
 													<span className="loading loading-spinner loading-xs"></span>
 													Checking username...
 												</span>
 											) : data.username.trim() === currentUsername ? (
-												<span className="text-info text-sm">
+												<span className="text-info text-xs">
 													This is your current username
 												</span>
 											) : usernameAvailable === false ? (
-												<span className="text-error text-sm">
+												<span className="text-error text-xs">
 													{usernameError || "This username is already taken."}
 												</span>
 											) : usernameAvailable === true && !usernameError ? (
-												<span className="text-success text-sm">
+												<span className="text-success text-xs">
 													This username is available!
 												</span>
 											) : usernameError && usernameAvailable !== false ? (
-												<span className="text-error text-sm">
+												<span className="text-error text-xs">
 													{usernameError}
 												</span>
 											) : null}
 										</div>
 									)}
 								</div>
+								<div className="flex flex-row justify-between gap-2 mt-4">
+									<button
+										className={`btn btn-primary w-2/3 mx-auto ${isLoading || isUploading ? "loading" : ""}`}
+										disabled={
+											isLoading ||
+											isUploading ||
+											!data.username.trim() ||
+											data.username.trim().length < 3 ||
+											checkingUsername ||
+											(data.username.trim() !== currentUsername &&
+												usernameAvailable !== true)
+										}
+										onClick={() => void handleNext()}
+									>
+										Next
+									</button>
+								</div>
 							</div>
 						</div>
 					)}
 
 					{currentStep === 2 && (
-						<div className="card bg-base-100 shadow-2xl">
-							<div className="card-body">
-								<div className="text-center mb-2">
-									<h2 className="card-title text-2xl justify-center mb-2">
-										Choose your avatar
-									</h2>
-								</div>
-
+						<div className="card bg-base-100 shadow-2xl w-full mx-auto">
+							<div className="card-body p-4">
+								<h2 className="card-title text-xl text-center mb-2">
+									Choose your avatar
+								</h2>
 								<AvatarBuilder
 									ref={avatarBuilderRef}
 									initialOptions={data.avatarOptions}
@@ -392,23 +390,41 @@ export const Onboarding = (): FunctionComponent => {
 										}));
 									}}
 								/>
+								{errors["avatar"] && (
+									<div className="alert alert-error mt-2 flex justify-center">
+										<span>{errors["avatar"]}</span>
+									</div>
+								)}
+								<div className="flex flex-row justify-between gap-2 mt-4">
+									<button
+										className="btn btn-outline w-1/6"
+										disabled={isLoading || isUploading}
+										onClick={handleBack}
+									>
+										Back
+									</button>
+									<button
+										className={`btn btn-primary w-1/6 ${isLoading || isUploading ? "loading" : ""}`}
+										disabled={isLoading || isUploading || !data.avatarOptions}
+										onClick={() => void handleNext()}
+									>
+										Next
+									</button>
+								</div>
 							</div>
 						</div>
 					)}
 
 					{currentStep === 3 && (
-						<div className="card bg-base-100 shadow-2xl">
-							<div className="card-body">
-								<div className="text-center mb-6">
-									<h2 className="card-title text-2xl justify-center mb-2">
-										Almost done!
-									</h2>
-									<p className="text-base-content/70">
-										Set your preferences and finish setup
-									</p>
-								</div>
-
-								<div className="bg-base-200 rounded-lg p-4 mb-6">
+						<div className="card bg-base-100 shadow-2xl w-full max-w-sm mx-auto">
+							<div className="card-body p-4">
+								<h2 className="card-title text-xl text-center mb-2">
+									Almost done!
+								</h2>
+								<p className="text-base-content/70 text-center mb-4">
+									Set your preferences and finish setup
+								</p>
+								<div className="bg-base-200 rounded-lg p-4 mb-4">
 									<div className="flex items-center space-x-3">
 										<div className="avatar placeholder">
 											<div className="w-12 rounded-full bg-base-300">
@@ -423,7 +439,6 @@ export const Onboarding = (): FunctionComponent => {
 										</div>
 									</div>
 								</div>
-
 								<div className="space-y-4">
 									<div className="form-control">
 										<label className="label cursor-pointer justify-between">
@@ -465,44 +480,25 @@ export const Onboarding = (): FunctionComponent => {
 										</label>
 									</div>
 								</div>
+								<div className="flex flex-row justify-between gap-2 mt-4">
+									<button
+										className="btn btn-outline w-1/3"
+										disabled={isLoading || isUploading}
+										onClick={handleBack}
+									>
+										Back
+									</button>
+									<button
+										className={`btn btn-primary w-2/3 ${isLoading || isUploading ? "loading" : ""}`}
+										disabled={isLoading || isUploading}
+										onClick={() => void handleNext()}
+									>
+										Finish
+									</button>
+								</div>
 							</div>
 						</div>
 					)}
-				</div>
-
-				{/* Navigation Buttons */}
-				<div className="card bg-base-100 shadow-2xl">
-					<div className="card-body flex flex-row justify-between items-center">
-						<button
-							className={`btn btn-outline ${currentStep === 1 ? "invisible" : ""}`}
-							disabled={isLoading || isUploading}
-							onClick={handleBack}
-						>
-							Back
-						</button>
-
-						<button
-							className={`btn btn-primary ${isLoading || isUploading ? "loading" : ""}`}
-							disabled={
-								isLoading ||
-								isUploading ||
-								(currentStep === 1 &&
-									(!data.username.trim() ||
-										data.username.trim().length < 3 ||
-										checkingUsername ||
-										(data.username.trim() !== currentUsername &&
-											usernameAvailable !== true)))
-							}
-							onClick={() => void handleNext()}
-						>
-							{currentStep === 3 ? "Finish" : "Next"}
-							{(isLoading || isUploading) && (
-								<span className="ml-2">
-									{isLoading || isUploading ? <LoadingSpinner /> : ""}
-								</span>
-							)}
-						</button>
-					</div>
 				</div>
 			</div>
 		</div>

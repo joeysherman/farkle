@@ -6,6 +6,7 @@ import { nanoid } from "nanoid";
 import { generateRoomName } from "../utils/roomNames";
 import { GameInvites } from "../features/GameInvites";
 import { useAuth } from "../contexts/AuthContext";
+import { FriendsList } from "../components/FriendsList";
 
 interface GameRoom {
 	id: string;
@@ -36,8 +37,6 @@ function LoadingSpinner(): JSX.Element {
 export const Dashboard = (): FunctionComponent => {
 	const navigate = useNavigate();
 	const [loading, setLoading] = useState(false);
-	const [joinCodeLoading, setJoinCodeLoading] = useState(false);
-	const [joinCode, setJoinCode] = useState("");
 	const { isAuthChecking, user } = useAuth();
 	const [availableRooms, setAvailableRooms] = useState<Array<GameRoom> | null>(
 		null
@@ -176,36 +175,6 @@ export const Dashboard = (): FunctionComponent => {
 		}
 	};
 
-	const handleJoinByCode = async (): Promise<void> => {
-		if (!joinCode.trim()) return;
-
-		try {
-			setJoinCodeLoading(true);
-			setError("");
-
-			// Find room by invite code
-			const { data: room, error: roomError } = await supabase
-				.from("game_rooms")
-				.select("id")
-				.eq("invite_code", joinCode.trim())
-				.eq("status", "waiting")
-				.single();
-
-			if (roomError || !room) {
-				setError("Invalid or expired game code.");
-				return;
-			}
-
-			// Navigate to the room
-			void navigate({ to: "/app/room", search: { roomId: room.id } });
-		} catch (error) {
-			console.error("Error joining by code:", error);
-			setError("Failed to join game. Please try again.");
-		} finally {
-			setJoinCodeLoading(false);
-		}
-	};
-
 	const handleEndGame = async (roomId: string): Promise<void> => {
 		try {
 			const { error } = await supabase.rpc("end_game", {
@@ -300,34 +269,14 @@ export const Dashboard = (): FunctionComponent => {
 							<div className="card-body">
 								<h2 className="card-title text-2xl mb-4">Quick Actions</h2>
 
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div className="flex justify-center">
 									<button
+										className="btn btn-primary w-full max-w-md"
 										disabled={loading}
-										className="btn btn-primary w-full"
 										onClick={handleCreateRoom}
 									>
 										{loading ? <LoadingSpinner /> : "🎲 Create New Game"}
 									</button>
-
-									<div className="flex space-x-2">
-										<input
-											type="text"
-											placeholder="Enter game code"
-											value={joinCode}
-											onChange={(e) => setJoinCode(e.target.value)}
-											className="input input-bordered input-primary flex-1"
-											onKeyPress={(e) =>
-												e.key === "Enter" && handleJoinByCode()
-											}
-										/>
-										<button
-											disabled={joinCodeLoading || !joinCode.trim()}
-											className="btn btn-primary"
-											onClick={handleJoinByCode}
-										>
-											{joinCodeLoading ? <LoadingSpinner /> : "Join"}
-										</button>
-									</div>
 								</div>
 							</div>
 						</div>
@@ -551,20 +500,25 @@ export const Dashboard = (): FunctionComponent => {
 							</div>
 						</div>
 
-						{/* Friends List Placeholder */}
+						{/* Friends List */}
 						<div className="card bg-base-100 shadow-2xl">
 							<div className="card-body">
-								<h2 className="card-title text-xl mb-4">Friends</h2>
-
-								<div className="text-center py-8">
-									<div className="text-4xl mb-3">👋</div>
-									<h3 className="text-lg font-medium mb-2">
-										Friends Feature Coming Soon
-									</h3>
-									<p className="text-base-content/70 text-sm">
-										Connect with friends to play together!
-									</p>
+								<div className="flex items-center justify-between mb-4">
+									<h2 className="card-title text-xl">Friends</h2>
+									<button
+										className="btn btn-primary btn-sm"
+										onClick={() => navigate({ to: "/app/friends" })}
+									>
+										View All
+									</button>
 								</div>
+
+								<FriendsList
+									showSearch={false}
+									showInvites={false}
+									maxDisplay={3}
+									compact={true}
+								/>
 							</div>
 						</div>
 

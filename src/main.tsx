@@ -18,6 +18,9 @@ const router = createRouter({
 	context: {
 		auth: undefined!, // This will be set after we wrap the app in an AuthProvider
 	},
+	defaultPreload: "intent",
+	// Enable scroll restoration and reset scroll position on navigation
+	scrollRestoration: true,
 });
 
 declare module "@tanstack/react-router" {
