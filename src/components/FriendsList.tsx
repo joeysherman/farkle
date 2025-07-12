@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useFriendInvites } from "./layout/navbar/Navbar";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 
 interface Friend {
 	id: string;
@@ -67,6 +67,7 @@ export function FriendsList({
 	className = "",
 }: FriendsListProps): JSX.Element {
 	const { user } = useAuth();
+	const navigate = useNavigate();
 	const [loading, setLoading] = useState(true);
 	const [friends, setFriends] = useState<Friend[]>([]);
 	const [invites, setInvites] = useState<FriendInvite[]>([]);
@@ -520,18 +521,31 @@ export function FriendsList({
 													{result.username}
 												</span>
 											</div>
-											{result.is_friend ? (
-												<div className="badge badge-success">Friends</div>
-											) : result.has_pending_invite ? (
-												<div className="badge badge-warning">Pending</div>
-											) : (
+											<div className="flex items-center gap-2">
 												<button
-													className="btn btn-primary btn-sm"
-													onClick={() => void sendFriendInvite(result.id)}
+													className="btn btn-outline btn-sm"
+													onClick={() =>
+														navigate({
+															to: "/app/profile",
+															search: { id: result.id },
+														})
+													}
 												>
-													Add Friend
+													View Profile
 												</button>
-											)}
+												{result.is_friend ? (
+													<div className="badge badge-success">Friends</div>
+												) : result.has_pending_invite ? (
+													<div className="badge badge-warning">Pending</div>
+												) : (
+													<button
+														className="btn btn-primary btn-sm"
+														onClick={() => void sendFriendInvite(result.id)}
+													>
+														Add Friend
+													</button>
+												)}
+											</div>
 										</div>
 									</div>
 								</div>
@@ -609,12 +623,25 @@ export function FriendsList({
 												{friend.friend_profile.username}
 											</span>
 										</div>
-										<button
-											className={`btn btn-error btn-outline ${compact ? "btn-xs" : "btn-sm"}`}
-											onClick={() => void removeFriend(friend.friend_id)}
-										>
-											Remove
-										</button>
+										<div className="flex items-center gap-2">
+											<button
+												className={`btn btn-outline ${compact ? "btn-xs" : "btn-sm"}`}
+												onClick={() =>
+													navigate({
+														to: "/app/profile",
+														search: { id: friend.friend_id },
+													})
+												}
+											>
+												View Profile
+											</button>
+											<button
+												className={`btn btn-error btn-outline ${compact ? "btn-xs" : "btn-sm"}`}
+												onClick={() => void removeFriend(friend.friend_id)}
+											>
+												Remove
+											</button>
+										</div>
 									</div>
 								</div>
 							</div>
@@ -669,6 +696,17 @@ export function FriendsList({
 													</div>
 													<div className="flex gap-2">
 														<button
+															className="btn btn-outline btn-sm"
+															onClick={() =>
+																navigate({
+																	to: "/app/profile",
+																	search: { id: invite.sender_id },
+																})
+															}
+														>
+															View Profile
+														</button>
+														<button
 															className="btn btn-success btn-sm"
 															onClick={() => void acceptInvite(invite.id)}
 														>
@@ -722,7 +760,20 @@ export function FriendsList({
 															{invite.receiver.username}
 														</span>
 													</div>
-													<div className="badge badge-warning">Pending</div>
+													<div className="flex items-center gap-2">
+														<button
+															className="btn btn-outline btn-sm"
+															onClick={() =>
+																navigate({
+																	to: "/app/profile",
+																	search: { id: invite.receiver_id },
+																})
+															}
+														>
+															View Profile
+														</button>
+														<div className="badge badge-warning">Pending</div>
+													</div>
 												</div>
 											</div>
 										</div>

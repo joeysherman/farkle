@@ -1,7 +1,8 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabaseClient";
+import { toast } from "react-hot-toast";
 
 import type { User } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
@@ -44,6 +45,7 @@ function LoadingSpinner(): JSX.Element {
 export const Profile = (): FunctionComponent => {
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
+	const search = useSearch({ from: "/app/profile" });
 	const avatarBuilderRef = useRef<AvatarBuilderRef>(null);
 	const { uploadAvatar, uploadStatus, isUploading } = useAvatarUpload();
 	const {
@@ -64,16 +66,35 @@ export const Profile = (): FunctionComponent => {
 	const [avatarOptions, setAvatarOptions] = useState<AvatarOptions | undefined>(
 		undefined
 	);
+	const [userNotFound, setUserNotFound] = useState(false);
+	const [friendshipStatus, setFriendshipStatus] = useState<
+		"none" | "friends" | "pending" | "received"
+	>("none");
+	const [isLoadingFriendship, setIsLoadingFriendship] = useState(false);
+
+	// Check if we're viewing someone else's profile
+	const viewingOtherId = search?.id;
+	const isViewingOwnProfile = !viewingOtherId;
 
 	const fetchProfile = async (userId: string): Promise<void> => {
 		try {
+			setUserNotFound(false);
 			const { data, error } = await supabase
 				.from("profiles")
 				.select("*")
 				.eq("id", userId)
 				.single();
 
-			if (error) throw error;
+			if (error) {
+				if (error.code === "PGRST116") {
+					// No rows returned - user not found
+					setUserNotFound(true);
+					setProfile(null);
+				} else {
+					throw error;
+				}
+				return;
+			}
 
 			const dbProfile = data as DatabaseProfile;
 			const formattedProfile: Profile = {
@@ -88,6 +109,7 @@ export const Profile = (): FunctionComponent => {
 			setProfile(formattedProfile);
 		} catch (error) {
 			console.error("Error fetching profile:", error);
+			setError("Failed to load profile");
 		} finally {
 			setLoading(false);
 		}
@@ -103,11 +125,19 @@ export const Profile = (): FunctionComponent => {
 				return;
 			}
 			setUser(user);
-			await fetchProfile(user.id);
+
+			// Fetch the profile for the user we want to view
+			const userIdToFetch = viewingOtherId || user.id;
+			await fetchProfile(userIdToFetch);
+
+			// Check friendship status if viewing someone else's profile
+			if (viewingOtherId) {
+				await checkFriendshipStatus(user.id, viewingOtherId);
+			}
 		};
 
 		void checkAuth();
-	}, [navigate]);
+	}, [navigate, viewingOtherId]);
 
 	const handleUsernameUpdate = async (): Promise<void> => {
 		if (!user || !newUsername.trim() || !profile?.id) return;
@@ -189,6 +219,84 @@ export const Profile = (): FunctionComponent => {
 		};
 	}, [isSelectingAvatar]);
 
+	const checkFriendshipStatus = async (
+		currentUserId: string,
+		targetUserId: string
+	): Promise<void> => {
+		try {
+			setIsLoadingFriendship(true);
+
+			// Check if they are already friends
+			const { data: friendData, error: friendError } = await supabase
+				.from("friends")
+				.select("*")
+				.or(
+					`and(user_id.eq.${currentUserId},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${currentUserId})`
+				)
+				.eq("status", "accepted");
+
+			if (friendError) throw friendError;
+
+			if (friendData && friendData.length > 0) {
+				setFriendshipStatus("friends");
+				return;
+			}
+
+			// Check for pending invites
+			const { data: inviteData, error: inviteError } = await supabase
+				.from("friend_invites")
+				.select("*")
+				.or(
+					`and(sender_id.eq.${currentUserId},receiver_id.eq.${targetUserId}),and(sender_id.eq.${targetUserId},receiver_id.eq.${currentUserId})`
+				)
+				.eq("status", "pending");
+
+			if (inviteError) throw inviteError;
+
+			if (inviteData && inviteData.length > 0) {
+				const invite = inviteData[0];
+				if (invite.sender_id === currentUserId) {
+					setFriendshipStatus("pending");
+				} else {
+					setFriendshipStatus("received");
+				}
+				return;
+			}
+
+			setFriendshipStatus("none");
+		} catch (error) {
+			console.error("Error checking friendship status:", error);
+			setFriendshipStatus("none");
+		} finally {
+			setIsLoadingFriendship(false);
+		}
+	};
+
+	const sendFriendInvite = async (): Promise<void> => {
+		if (!user || !viewingOtherId) return;
+
+		try {
+			setIsLoadingFriendship(true);
+			const { error } = await supabase.from("friend_invites").insert([
+				{
+					sender_id: user.id,
+					receiver_id: viewingOtherId,
+					status: "pending",
+				},
+			]);
+
+			if (error) throw error;
+
+			setFriendshipStatus("pending");
+			toast.success("Friend request sent!");
+		} catch (error) {
+			console.error("Error sending friend invite:", error);
+			toast.error("Failed to send friend request");
+		} finally {
+			setIsLoadingFriendship(false);
+		}
+	};
+
 	const handleNotificationToggle = async (): Promise<void> => {
 		if (isSubscribed) {
 			await handleUnsubscribe();
@@ -233,13 +341,53 @@ export const Profile = (): FunctionComponent => {
 		);
 	}
 
+	// User not found view
+	if (userNotFound) {
+		return (
+			<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center p-4">
+				<div className="card bg-base-100 shadow-2xl max-w-md w-full">
+					<div className="card-body text-center">
+						<h2 className="card-title text-2xl justify-center mb-4">
+							User Not Found
+						</h2>
+						<p className="text-base-content/70 mb-6">
+							The user you're looking for doesn't exist or may have been
+							deleted.
+						</p>
+						<button
+							className="btn btn-primary"
+							onClick={() => navigate({ to: "/app/profile" })}
+						>
+							Go to My Profile
+						</button>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	// Render different content based on whether we're viewing our own profile or someone else's
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 p-4 py-8">
 			<div className="container mx-auto max-w-4xl space-y-6">
 				{/* Profile Information Card */}
 				<div className="card bg-base-100 shadow-2xl">
 					<div className="card-body">
-						<h2 className="card-title text-2xl mb-6">Profile Information</h2>
+						<div className="flex items-center justify-between mb-6">
+							<h2 className="card-title text-2xl">
+								{isViewingOwnProfile
+									? "Profile Information"
+									: `${profile?.username}'s Profile`}
+							</h2>
+							{!isViewingOwnProfile && (
+								<button
+									className="btn btn-outline btn-sm"
+									onClick={() => navigate({ to: "/app/profile" })}
+								>
+									View My Profile
+								</button>
+							)}
+						</div>
 
 						{/* Avatar Section */}
 						<div className="flex items-center gap-6 mb-8">
@@ -256,13 +404,43 @@ export const Profile = (): FunctionComponent => {
 								</div>
 							</div>
 							<div className="flex-1">
-								<button
-									className="btn btn-outline btn-primary"
-									onClick={() => setIsSelectingAvatar(true)}
-									disabled={isUploading}
-								>
-									{isUploading ? "Updating..." : "Change Avatar"}
-								</button>
+								{isViewingOwnProfile ? (
+									<button
+										className="btn btn-outline btn-primary"
+										onClick={() => setIsSelectingAvatar(true)}
+										disabled={isUploading}
+									>
+										{isUploading ? "Updating..." : "Change Avatar"}
+									</button>
+								) : (
+									<div className="flex items-center gap-3">
+										{isLoadingFriendship ? (
+											<div className="loading loading-spinner loading-sm"></div>
+										) : (
+											<>
+												{friendshipStatus === "friends" && (
+													<div className="badge badge-success">Friends</div>
+												)}
+												{friendshipStatus === "pending" && (
+													<div className="badge badge-warning">Pending</div>
+												)}
+												{friendshipStatus === "received" && (
+													<div className="badge badge-info">
+														Request Received
+													</div>
+												)}
+												{friendshipStatus === "none" && (
+													<button
+														className="btn btn-primary btn-sm"
+														onClick={() => void sendFriendInvite()}
+													>
+														Add Friend
+													</button>
+												)}
+											</>
+										)}
+									</div>
+								)}
 							</div>
 						</div>
 
@@ -273,7 +451,7 @@ export const Profile = (): FunctionComponent => {
 								<label className="label" htmlFor="username">
 									<span className="label-text">Username</span>
 								</label>
-								{isEditing ? (
+								{isEditing && isViewingOwnProfile ? (
 									<div className="flex gap-2">
 										<input
 											id="username"
@@ -301,7 +479,7 @@ export const Profile = (): FunctionComponent => {
 										<span className="text-base-content">
 											{profile?.username}
 										</span>
-										{!profile?.hasChangedUsername && (
+										{!profile?.hasChangedUsername && isViewingOwnProfile && (
 											<button
 												className="btn btn-outline btn-primary btn-sm"
 												onClick={() => {
@@ -316,18 +494,20 @@ export const Profile = (): FunctionComponent => {
 								)}
 							</div>
 
-							{/* Email */}
-							<div className="form-control">
-								<label className="label" htmlFor="email">
-									<span className="label-text">Email</span>
-								</label>
-								<div
-									className="input input-bordered bg-base-200 flex items-center px-4"
-									id="email"
-								>
-									{user?.email}
+							{/* Email - only show for own profile */}
+							{isViewingOwnProfile && (
+								<div className="form-control">
+									<label className="label" htmlFor="email">
+										<span className="label-text">Email</span>
+									</label>
+									<div
+										className="input input-bordered bg-base-200 flex items-center px-4"
+										id="email"
+									>
+										{user?.email}
+									</div>
 								</div>
-							</div>
+							)}
 
 							{/* Account Created */}
 							<div className="form-control">
@@ -345,84 +525,87 @@ export const Profile = (): FunctionComponent => {
 					</div>
 				</div>
 
-				{/* Notification Settings */}
-				<div className="card bg-base-100 shadow-2xl">
-					<div className="card-body">
-						<h3 className="card-title text-xl mb-4">Notification Settings</h3>
+				{/* Notification Settings - only show for own profile */}
+				{isViewingOwnProfile && (
+					<div className="card bg-base-100 shadow-2xl">
+						<div className="card-body">
+							<h3 className="card-title text-xl mb-4">Notification Settings</h3>
 
-						<div className="space-y-4">
-							{/* Browser Permission Status */}
-							<div className="form-control">
-								<label className="label" htmlFor="browser-notifications">
-									<span className="label-text">Browser notifications</span>
-								</label>
-								<div className="flex items-center justify-between">
-									<div className="flex items-center gap-3">
-										<div
-											className={`badge ${getBrowserPermissionColor()}`}
-											id="browser-notifications"
-										>
-											{getBrowserPermissionText()}
+							<div className="space-y-4">
+								{/* Browser Permission Status */}
+								<div className="form-control">
+									<label className="label" htmlFor="browser-notifications">
+										<span className="label-text">Browser notifications</span>
+									</label>
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-3">
+											<div
+												className={`badge ${getBrowserPermissionColor()}`}
+												id="browser-notifications"
+											>
+												{getBrowserPermissionText()}
+											</div>
 										</div>
-									</div>
-									<button
-										className="btn btn-outline btn-primary btn-sm"
-										onClick={() => checkBrowserPermission()}
-									>
-										Refresh
-									</button>
-								</div>
-							</div>
-
-							{/* App Notification Status */}
-							<div className="form-control">
-								<label className="label" htmlFor="app-notifications">
-									<span className="label-text">App notifications</span>
-								</label>
-								<div className="flex items-center justify-between">
-									<div className="flex items-center gap-3">
-										<div
-											className={`badge ${isSubscribed ? "badge-success" : "badge-neutral"}`}
-											id="app-notifications"
+										<button
+											className="btn btn-outline btn-primary btn-sm"
+											onClick={() => checkBrowserPermission()}
 										>
-											{isSubscribed ? "Enabled" : "Disabled"}
-										</div>
+											Refresh
+										</button>
 									</div>
-									<button
-										className={`btn btn-sm ${isSubscribed ? "btn-outline btn-error" : "btn-primary"}`}
-										onClick={() => void handleNotificationToggle()}
-									>
-										{isSubscribed ? "Disable" : "Enable"}
-									</button>
 								</div>
-							</div>
 
-							{/* Error Messages */}
-							{notificationError && (
-								<div className="alert alert-error">
-									<span>{notificationError}</span>
+								{/* App Notification Status */}
+								<div className="form-control">
+									<label className="label" htmlFor="app-notifications">
+										<span className="label-text">App notifications</span>
+									</label>
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-3">
+											<div
+												className={`badge ${isSubscribed ? "badge-success" : "badge-neutral"}`}
+												id="app-notifications"
+											>
+												{isSubscribed ? "Enabled" : "Disabled"}
+											</div>
+										</div>
+										<button
+											className={`btn btn-sm ${isSubscribed ? "btn-outline btn-error" : "btn-primary"}`}
+											onClick={() => void handleNotificationToggle()}
+										>
+											{isSubscribed ? "Disable" : "Enable"}
+										</button>
+									</div>
 								</div>
-							)}
 
-							{browserPermission === "denied" && (
-								<div className="alert alert-warning">
-									<span>
-										Browser notifications are blocked. Please enable them in
-										your browser settings to receive notifications.
-									</span>
+								{/* Error Messages */}
+								{notificationError && (
+									<div className="alert alert-error">
+										<span>{notificationError}</span>
+									</div>
+								)}
+
+								{browserPermission === "denied" && (
+									<div className="alert alert-warning">
+										<span>
+											Browser notifications are blocked. Please enable them in
+											your browser settings to receive notifications.
+										</span>
+									</div>
+								)}
+
+								<div className="text-sm text-base-content/70">
+									Receive notifications about important updates and events.
 								</div>
-							)}
-
-							<div className="text-sm text-base-content/70">
-								Receive notifications about important updates and events.
 							</div>
 						</div>
 					</div>
-				</div>
+				)}
 
-				{/* Avatar Builder Modal */}
+				{/* Avatar Builder Modal - only show for own profile */}
 				{isSelectingAvatar &&
 					profile &&
+					isViewingOwnProfile &&
 					createPortal(
 						<div className="modal modal-open fixed inset-0 z-[9999] bg-black bg-opacity-50">
 							<div className="modal-box relative w-11/12 max-w-5xl max-h-[90vh] mx-auto my-8 overflow-y-auto bg-base-100">
@@ -462,8 +645,8 @@ export const Profile = (): FunctionComponent => {
 						document.body
 					)}
 
-				{/* Upload Status */}
-				{uploadStatus && (
+				{/* Upload Status - only show for own profile */}
+				{uploadStatus && isViewingOwnProfile && (
 					<div className="alert alert-info">
 						<div className="flex items-center">
 							<span className="loading loading-spinner loading-sm mr-2"></span>
