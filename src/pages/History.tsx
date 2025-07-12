@@ -147,15 +147,11 @@ export default function History(): JSX.Element {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 p-4 py-8">
 			<div className="container mx-auto max-w-4xl space-y-6">
-				<h1 className="text-3xl font-bold text-base-content mb-6">
-					Game History
-				</h1>
-
 				{/* User Stats Summary */}
 				{userStats && (
 					<div className="card bg-base-100 shadow-2xl">
 						<div className="card-body">
-							<h2 className="card-title text-xl mb-6">Your Statistics</h2>
+							<h2 className="card-title text-2xl mb-6">Your Statistics</h2>
 							<div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
 								{/* Primary Stats */}
 								<div className="col-span-2 lg:col-span-1 stat bg-base-200 rounded-lg">
@@ -211,7 +207,7 @@ export default function History(): JSX.Element {
 				{/* Game History Cards */}
 				<div className="card bg-base-100 shadow-2xl">
 					<div className="card-body">
-						<h2 className="card-title text-xl mb-4">Recent Games</h2>
+						<h2 className="card-title text-2xl mb-4">Game History</h2>
 						{isHistoryLoading ? (
 							<div className="flex justify-center items-center py-12">
 								<LoadingSpinner />

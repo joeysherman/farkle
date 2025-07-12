@@ -199,6 +199,19 @@ export const Dashboard = (): FunctionComponent => {
 		}
 	};
 
+	const handleJoinRecentGame = (): void => {
+		if (currentRooms && currentRooms.length > 0) {
+			// Join the first (most recent) active game
+			const mostRecentRoom = currentRooms[0];
+			if (mostRecentRoom) {
+				void navigate({
+					to: "/app/room",
+					search: { roomId: mostRecentRoom.id },
+				});
+			}
+		}
+	};
+
 	if (isAuthChecking) {
 		return (
 			<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center p-4">
@@ -208,8 +221,8 @@ export const Dashboard = (): FunctionComponent => {
 	}
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 p-4 py-8">
-			<div className="container mx-auto max-w-7xl">
+		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 py-6">
+			<div className="container mx-auto max-w-4xl">
 				{/* Header */}
 				<div className="mb-8">
 					<h1 className="text-4xl font-bold text-base-content mb-2">
@@ -269,13 +282,43 @@ export const Dashboard = (): FunctionComponent => {
 							<div className="card-body">
 								<h2 className="card-title text-2xl mb-4">Quick Actions</h2>
 
-								<div className="flex justify-center">
+								<div className="flex flex-col sm:flex-row gap-4 justify-center">
 									<button
-										className="btn btn-primary w-full max-w-md"
+										className="btn btn-primary flex-1 max-w-md"
 										disabled={loading}
 										onClick={handleCreateRoom}
 									>
 										{loading ? <LoadingSpinner /> : "🎲 Create New Game"}
+									</button>
+
+									<button
+										className="btn btn-secondary flex-1 max-w-md h-auto py-3"
+										disabled={!currentRooms || currentRooms.length === 0}
+										onClick={handleJoinRecentGame}
+									>
+										{currentRooms &&
+										currentRooms.length > 0 &&
+										currentRooms[0] ? (
+											<div className="flex flex-col items-center gap-1">
+												<div className="flex items-center gap-2">
+													<span className="font-semibold">
+														Continue Last Game
+													</span>
+												</div>
+												<div className="text-xs opacity-80">
+													{currentRooms[0].name}
+												</div>
+												<div className="text-xs opacity-70">
+													👥 {currentRooms[0].current_players}/
+													{currentRooms[0].max_players} •{" "}
+													{currentRooms[0].status === "waiting"
+														? "⏳ Waiting"
+														: "🎲 In Progress"}
+												</div>
+											</div>
+										) : (
+											"🚀 Join Recent Game"
+										)}
 									</button>
 								</div>
 							</div>
@@ -381,7 +424,7 @@ export const Dashboard = (): FunctionComponent => {
 						</div>
 
 						{/* Available Games */}
-						<div className="card bg-base-100 shadow-2xl">
+						{/* <div className="card bg-base-100 shadow-2xl">
 							<div className="card-body">
 								<div className="flex items-center gap-3 mb-6">
 									<h2 className="card-title text-2xl">Available Games</h2>
@@ -449,49 +492,11 @@ export const Dashboard = (): FunctionComponent => {
 									)}
 								</div>
 							</div>
-						</div>
+						</div> */}
 					</div>
 
 					{/* Right Column - Secondary Info */}
 					<div className="space-y-6">
-						{/* Player Stats */}
-						{userStats && (
-							<div className="card bg-base-100 shadow-2xl">
-								<div className="card-body">
-									<h2 className="card-title text-xl mb-4">Your Stats</h2>
-
-									<div className="space-y-4">
-										<div className="stat bg-base-200 rounded-lg p-4">
-											<div className="stat-title text-base-content/70 text-sm">
-												Total Games
-											</div>
-											<div className="stat-value text-primary text-2xl font-bold">
-												{userStats.totalGames}
-											</div>
-										</div>
-
-										<div className="stat bg-base-200 rounded-lg p-4">
-											<div className="stat-title text-base-content/70 text-sm">
-												Games Won
-											</div>
-											<div className="stat-value text-success text-2xl font-bold">
-												{userStats.gamesWon}
-											</div>
-										</div>
-
-										<div className="stat bg-base-200 rounded-lg p-4">
-											<div className="stat-title text-base-content/70 text-sm">
-												Win Rate
-											</div>
-											<div className="stat-value text-accent text-2xl font-bold">
-												{userStats.winRate}%
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-						)}
-
 						{/* Game Invites */}
 						<div className="card bg-base-100 shadow-2xl">
 							<div className="card-body">
@@ -509,7 +514,21 @@ export const Dashboard = (): FunctionComponent => {
 										className="btn btn-primary btn-sm"
 										onClick={() => navigate({ to: "/app/friends" })}
 									>
-										View All
+										{/* show external link svg */}
+										<svg
+											className="w-4 h-4"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+											xmlns="http://www.w3.org/2000/svg"
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth="2"
+												d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+											/>
+										</svg>
 									</button>
 								</div>
 
@@ -519,34 +538,6 @@ export const Dashboard = (): FunctionComponent => {
 									maxDisplay={3}
 									compact={true}
 								/>
-							</div>
-						</div>
-
-						{/* Quick Tips */}
-						<div className="card bg-base-100 shadow-2xl">
-							<div className="card-body">
-								<h2 className="card-title text-xl mb-4">Quick Tips</h2>
-
-								<div className="space-y-3 text-sm">
-									<div className="p-3 bg-base-200 rounded-lg">
-										<span className="text-info">💎</span>
-										<span className="text-base-content/70 ml-2">
-											Three 1s = 1000 points!
-										</span>
-									</div>
-									<div className="p-3 bg-base-200 rounded-lg">
-										<span className="text-info">🎯</span>
-										<span className="text-base-content/70 ml-2">
-											Single 1s = 100 points each
-										</span>
-									</div>
-									<div className="p-3 bg-base-200 rounded-lg">
-										<span className="text-info">⚡</span>
-										<span className="text-base-content/70 ml-2">
-											Single 5s = 50 points each
-										</span>
-									</div>
-								</div>
 							</div>
 						</div>
 					</div>

@@ -98,32 +98,40 @@ export const Onboarding = (): FunctionComponent => {
 			return;
 		}
 		if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-		debounceTimeout.current = setTimeout(async () => {
-			setCheckingUsername(true);
-			setUsernameError("");
-			// Check username availability
-			const { data: profile, error } = await supabase
-				.from("profiles")
-				.select("id")
-				.eq("username", trimmed)
-				.maybeSingle();
-			if (!error && profile) {
-				setUsernameAvailable(false);
-				setUsernameError("This username is already taken.");
-			} else {
-				setUsernameAvailable(true);
-				if (error) {
-					setUsernameError("Error checking username");
+		debounceTimeout.current = setTimeout(() => {
+			void (async (): Promise<void> => {
+				setCheckingUsername(true);
+				setUsernameError("");
+				// Check username availability
+				const { data: profile, error } = await supabase
+					.from("profiles")
+					.select("id")
+					.eq("username", trimmed)
+					.maybeSingle();
+				if (!error && profile) {
+					setUsernameAvailable(false);
+					setUsernameError("This username is already taken.");
 				} else {
-					setUsernameError("");
+					setUsernameAvailable(true);
+					if (error) {
+						setUsernameError("Error checking username");
+					} else {
+						setUsernameError("");
+					}
 				}
-			}
-			setCheckingUsername(false);
+				setCheckingUsername(false);
+			})();
 		}, 500);
-		return () => {
+		return (): void => {
 			if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 		};
 	}, [data.username, currentStep, currentUsername]);
+
+	// react to the 3rd step
+	useEffect(() => {
+		console.log("currentStep", currentStep);
+		console.log("context", context);
+	}, [currentStep, context]);
 
 	// Validation functions
 	const validateStep1 = (): boolean => {
@@ -345,7 +353,7 @@ export const Onboarding = (): FunctionComponent => {
 												<span className="text-success text-xs">
 													This username is available!
 												</span>
-											) : usernameError && usernameAvailable !== false ? (
+											) : usernameError ? (
 												<span className="text-error text-xs">
 													{usernameError}
 												</span>

@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useFriendInvites } from "./layout/navbar/Navbar";
+import { Link } from "@tanstack/react-router";
 
 interface Friend {
 	id: string;
@@ -571,6 +572,12 @@ export function FriendsList({
 						>
 							No friends yet
 						</h3>
+						{/* link to friends page */}
+						{compact && (
+							<Link to="/app/friends">
+								<button className="btn btn-primary btn-sm">Add Friend</button>
+							</Link>
+						)}
 						{!compact && (
 							<p className="text-base-content/70 text-sm">
 								Search for users to add them as friends.

@@ -1,8 +1,8 @@
 import { Fragment, useEffect, useRef } from "react";
-import { Link, useMatch, useNavigate, useRouter } from "@tanstack/react-router";
+import { Link, useMatch, useNavigate } from "@tanstack/react-router";
 import { supabase } from "../../../lib/supabaseClient";
 import { useAuth } from "../../../contexts/AuthContext";
-import type { User, RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
 	Menu,
 	MenuButton,
@@ -11,12 +11,6 @@ import {
 	Transition,
 } from "@headlessui/react";
 import { useQuery } from "@tanstack/react-query";
-
-interface Profile {
-	id: string;
-	username: string;
-	avatar_name: string;
-}
 
 interface GameInfo {
 	name: string;
@@ -30,35 +24,6 @@ interface FriendInvite {
 	receiver_id: string;
 	status: string;
 }
-
-const useUserData = () => {
-	return useQuery({
-		queryKey: ["currentUser"],
-		queryFn: async () => {
-			const { data, error } = await supabase.auth.getUser();
-			if (error) {
-				throw error;
-			}
-			return data.user;
-		},
-	});
-};
-
-const useProfileData = (userId: string) => {
-	return useQuery({
-		enabled: !!userId,
-		queryKey: ["user", "profile", userId],
-		queryFn: async () => {
-			const { data: profileData } = await supabase
-				.from("profiles")
-				.select("id, username, avatar_name")
-				.eq("id", userId)
-				.single();
-
-			return profileData;
-		},
-	});
-};
 
 export const useFriendInvites = (userId: string) => {
 	return useQuery({
@@ -78,13 +43,21 @@ export const useFriendInvites = (userId: string) => {
 
 export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	const navigate = useNavigate();
-	const router = useRouter();
 	const { user, isAuthChecking: isUserLoading, signOut, profile } = useAuth();
 	const friendInvitesSubscriptionRef = useRef<RealtimeChannel | null>(null);
 
-	const isProfileActive = useMatch({ from: "/profile", shouldThrow: false });
-	const isFriendsActive = useMatch({ from: "/friends", shouldThrow: false });
-	const isHistoryActive = useMatch({ from: "/history", shouldThrow: false });
+	const isProfileActive = useMatch({
+		from: "/app/profile",
+		shouldThrow: false,
+	});
+	const isFriendsActive = useMatch({
+		from: "/app/friends",
+		shouldThrow: false,
+	});
+	const isHistoryActive = useMatch({
+		from: "/app/history",
+		shouldThrow: false,
+	});
 	const isBotTestsActive = useMatch({
 		from: "/app/bot-tests",
 		shouldThrow: false,
@@ -93,17 +66,13 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 	// Check if user is in onboarding process
 	const isOnboarding = profile ? !profile.onboarding_completed : false;
 
-	const { data: profileData, isLoading: isProfileLoading } = useProfileData(
-		user?.id ?? ""
-	);
-
 	const {
 		data: friendInvites = [],
 		isLoading: isInvitesLoading,
 		refetch: refetchFriendInvites,
 	} = useFriendInvites(user?.id ?? "");
 
-	const loading = isUserLoading || isProfileLoading || isInvitesLoading;
+	const loading = isUserLoading || isInvitesLoading;
 	const pendingInvitesCount = friendInvites.length;
 
 	// Set up subscription for friend invite updates
@@ -205,7 +174,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 											<img
 												alt="User avatar"
 												className="w-6 h-6 sm:w-8 sm:h-8 rounded-full"
-												src={`${profileData?.avatar_name || "default"}`}
+												src={`${profile?.avatar_name || "default"}`}
 											/>
 											{pendingInvitesCount > 0 && (
 												<span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-500 border-2 border-white"></span>
@@ -221,16 +190,16 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 											leaveTo="transform opacity-0 scale-95"
 										>
 											<MenuItems className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-												<div className="px-1 py-1">
+												<div className="p-2">
 													<MenuItem>
 														{({ active: isActive }): JSX.Element => (
 															<Link
+																to="/app/profile"
 																className={`${
 																	isActive || isProfileActive
 																		? "bg-indigo-500 text-white"
 																		: "text-gray-900"
-																} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-																to="/app/profile"
+																} group flex w-full items-center rounded-md px-2 py-2 text-sm my-1`}
 															>
 																Profile
 															</Link>
@@ -239,12 +208,12 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 													<MenuItem>
 														{({ active: isActive }): JSX.Element => (
 															<Link
+																to="/app/friends"
 																className={`${
 																	isActive || isFriendsActive
 																		? "bg-indigo-500 text-white"
 																		: "text-gray-900"
-																} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-																to="/app/friends"
+																} group flex w-full items-center rounded-md px-2 py-2 text-sm my-1`}
 															>
 																<span className="flex-1">Friends</span>
 																{pendingInvitesCount > 0 && (
@@ -258,12 +227,12 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 													<MenuItem>
 														{({ active: isActive }): JSX.Element => (
 															<Link
+																to="/app/history"
 																className={`${
 																	isActive || isHistoryActive
 																		? "bg-indigo-500 text-white"
 																		: "text-gray-900"
-																} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-																to="/app/history"
+																} group flex w-full items-center rounded-md px-2 py-2 text-sm my-1`}
 															>
 																History
 															</Link>
@@ -272,12 +241,12 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 													<MenuItem>
 														{({ active: isActive }): JSX.Element => (
 															<Link
+																to="/app/bot-tests"
 																className={`${
 																	isActive || isBotTestsActive
 																		? "bg-indigo-500 text-white"
 																		: "text-gray-900"
-																} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-																to="/app/bot-tests"
+																} group flex w-full items-center rounded-md px-2 py-2 text-sm my-1`}
 															>
 																Bot Tests
 															</Link>
@@ -287,12 +256,12 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 													<MenuItem>
 														{({ active: isActive }): JSX.Element => (
 															<button
+																onClick={handleSignOut}
 																className={`${
 																	isActive
 																		? "bg-red-500 text-white"
 																		: "text-red-600"
 																} group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium`}
-																onClick={handleSignOut}
 															>
 																Sign out
 															</button>

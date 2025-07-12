@@ -25,12 +25,10 @@ export const Friends = (): FunctionComponent => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 p-4 py-8">
 			<div className="container mx-auto max-w-4xl space-y-6">
-				<h1 className="text-3xl font-bold text-base-content mb-6">Friends</h1>
-
 				{/* Combined Friends Section */}
 				<div className="card bg-base-100 shadow-2xl">
 					<div className="card-body">
-						<h2 className="card-title text-xl mb-6">Manage Your Friends</h2>
+						<h2 className="card-title text-2xl mb-6">Friends</h2>
 
 						<FriendsList
 							showSearch={true}

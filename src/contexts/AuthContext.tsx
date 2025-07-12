@@ -198,6 +198,7 @@ export function AuthProvider({
 		const profileData = await fetchUserProfile(user.id);
 		console.log("📊 AuthContext: Fetched profile data:", profileData);
 		console.log("🔄 AuthContext: Setting profile in context");
+		debugger;
 		setProfile(profileData);
 		console.log(
 			"✅ AuthContext: Profile set in context - onboarding_completed:",

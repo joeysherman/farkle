@@ -1,4 +1,12 @@
-import { useState, useRef, forwardRef, useImperativeHandle } from "react";
+import {
+	useState,
+	useRef,
+	forwardRef,
+	useImperativeHandle,
+	useEffect,
+	useCallback,
+	useMemo,
+} from "react";
 import Avatar, { Piece } from "avataaars";
 
 // All available options for the avataaars package
@@ -253,14 +261,32 @@ export const AvatarBuilder = forwardRef<AvatarBuilderRef, AvatarBuilderProps>(
 
 		const [activeCategory, setActiveCategory] = useState<string>("hair");
 		const avatarRef = useRef<HTMLDivElement>(null);
+		const isMountedRef = useRef(true);
 
-		const updateOption = (key: keyof AvatarOptions, value: string): void => {
-			const newOptions = { ...avatarOptions, [key]: value };
-			setAvatarOptions(newOptions);
-			onAvatarChange?.(newOptions);
-		};
+		// Set up component lifecycle management
+		useEffect(() => {
+			isMountedRef.current = true;
+			return () => {
+				isMountedRef.current = false;
+			};
+		}, []);
 
-		const randomizeAvatar = (): void => {
+		const updateOption = useCallback(
+			(key: keyof AvatarOptions, value: string): void => {
+				if (!isMountedRef.current) return;
+
+				setAvatarOptions((prevOptions) => {
+					const newOptions = { ...prevOptions, [key]: value };
+					onAvatarChange?.(newOptions);
+					return newOptions;
+				});
+			},
+			[onAvatarChange]
+		);
+
+		const randomizeAvatar = useCallback((): void => {
+			if (!isMountedRef.current) return;
+
 			const randomOptions: AvatarOptions = {
 				avatarStyle: "Circle",
 				topType:
@@ -314,14 +340,14 @@ export const AvatarBuilder = forwardRef<AvatarBuilderRef, AvatarBuilderProps>(
 			};
 			setAvatarOptions(randomOptions);
 			onAvatarChange?.(randomOptions);
-		};
+		}, [onAvatarChange]);
 
-		const downloadAvatar = async (): Promise<void> => {
-			if (!avatarRef.current) return;
+		const downloadAvatar = useCallback(async (): Promise<void> => {
+			if (!avatarRef.current || !isMountedRef.current) return;
 
 			try {
 				const blob = await generateAvatarBlob();
-				if (blob) {
+				if (blob && isMountedRef.current) {
 					const url = URL.createObjectURL(blob);
 					const link = document.createElement("a");
 					link.href = url;
@@ -334,10 +360,10 @@ export const AvatarBuilder = forwardRef<AvatarBuilderRef, AvatarBuilderProps>(
 			} catch (error) {
 				console.error("Failed to download avatar:", error);
 			}
-		};
+		}, []);
 
-		const generateAvatarBlob = async (): Promise<Blob | null> => {
-			if (!avatarRef.current) return null;
+		const generateAvatarBlob = useCallback(async (): Promise<Blob | null> => {
+			if (!avatarRef.current || !isMountedRef.current) return null;
 
 			return new Promise((resolve, reject) => {
 				try {
@@ -370,6 +396,12 @@ export const AvatarBuilder = forwardRef<AvatarBuilderRef, AvatarBuilderProps>(
 
 					const img = new Image();
 					img.onload = (): void => {
+						if (!isMountedRef.current) {
+							URL.revokeObjectURL(svgUrl);
+							resolve(null);
+							return;
+						}
+
 						// Draw white background
 						context.fillStyle = "#ffffff";
 						context.fillRect(0, 0, size, size);
@@ -380,7 +412,11 @@ export const AvatarBuilder = forwardRef<AvatarBuilderRef, AvatarBuilderProps>(
 						// Convert canvas to blob
 						canvas.toBlob((blob) => {
 							URL.revokeObjectURL(svgUrl);
-							resolve(blob);
+							if (isMountedRef.current) {
+								resolve(blob);
+							} else {
+								resolve(null);
+							}
 						}, "image/png");
 					};
 
@@ -394,523 +430,532 @@ export const AvatarBuilder = forwardRef<AvatarBuilderRef, AvatarBuilderProps>(
 					reject(error);
 				}
 			});
-		};
+		}, []);
 
-		const renderOptionGrid = (
-			options: Array<string>,
-			currentValue: string,
-			onChange: (value: string) => void,
-			renderPreview?: (option: string) => JSX.Element
-		): JSX.Element => (
-			<div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
-				{options.map((option) => {
-					const displayName = option.replace(/([A-Z])/g, " $1").trim();
-					return (
+		const renderOptionGrid = useCallback(
+			(
+				options: Array<string>,
+				currentValue: string,
+				onChange: (value: string) => void,
+				renderPreview?: (option: string) => JSX.Element
+			): JSX.Element => (
+				<div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
+					{options.map((option) => {
+						const displayName = option.replace(/([A-Z])/g, " $1").trim();
+						return (
+							<div
+								key={option}
+								className="tooltip tooltip-top"
+								data-tip={displayName}
+							>
+								<button
+									className={`relative w-full aspect-square p-2 rounded-lg border-2 transition-all duration-200 hover:scale-105 bg-base-100 hover:shadow-md ${
+										currentValue === option
+											? "border-primary ring-2 ring-primary ring-opacity-50"
+											: "border-base-300 hover:border-primary"
+									}`}
+									onClick={() => {
+										onChange(option);
+									}}
+								>
+									<div className="w-full h-full flex items-center justify-center">
+										{renderPreview ? (
+											<div className="w-full h-full flex items-center justify-center overflow-hidden">
+												{renderPreview(option)}
+											</div>
+										) : (
+											<span className="text-xs font-medium text-center leading-tight">
+												{option.slice(0, 3)}
+											</span>
+										)}
+									</div>
+								</button>
+							</div>
+						);
+					})}
+				</div>
+			),
+			[]
+		);
+
+		const renderColorPicker = useCallback(
+			(
+				colors: Array<string>,
+				currentValue: string,
+				onChange: (value: string) => void
+			): JSX.Element => (
+				<div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
+					{colors.map((color) => (
 						<div
-							key={option}
+							key={color}
 							className="tooltip tooltip-top"
-							data-tip={displayName}
+							data-tip={color.replace(/([A-Z])/g, " $1").trim()}
 						>
 							<button
-								className={`relative w-full aspect-square p-2 rounded-lg border-2 transition-all duration-200 hover:scale-105 bg-base-100 hover:shadow-md ${
-									currentValue === option
-										? "border-primary ring-2 ring-primary ring-opacity-50"
+								className={`w-full aspect-square rounded-lg border-2 hover:scale-110 transition-all duration-200 shadow-md hover:shadow-lg p-2 ${
+									currentValue === color
+										? "border-primary border-4 ring-2 ring-primary ring-opacity-50"
 										: "border-base-300 hover:border-primary"
 								}`}
 								onClick={() => {
-									onChange(option);
+									onChange(color);
 								}}
 							>
-								<div className="w-full h-full flex items-center justify-center">
-									{renderPreview ? (
-										<div className="w-full h-full flex items-center justify-center overflow-hidden">
-											{renderPreview(option)}
-										</div>
-									) : (
-										<span className="text-xs font-medium text-center leading-tight">
-											{option.slice(0, 3)}
-										</span>
-									)}
-								</div>
+								<div
+									className="w-full h-full rounded-md"
+									style={{
+										backgroundColor:
+											COLOR_DISPLAY[color as keyof typeof COLOR_DISPLAY] ||
+											"#ccc",
+									}}
+								/>
 							</button>
 						</div>
-					);
-				})}
-			</div>
+					))}
+				</div>
+			),
+			[]
 		);
 
-		const renderColorPicker = (
-			colors: Array<string>,
-			currentValue: string,
-			onChange: (value: string) => void
-		): JSX.Element => (
-			<div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
-				{colors.map((color) => (
-					<div
-						key={color}
-						className="tooltip tooltip-top"
-						data-tip={color.replace(/([A-Z])/g, " $1").trim()}
-					>
-						<button
-							className={`w-full aspect-square rounded-lg border-2 hover:scale-110 transition-all duration-200 shadow-md hover:shadow-lg p-2 ${
-								currentValue === color
-									? "border-primary border-4 ring-2 ring-primary ring-opacity-50"
-									: "border-base-300 hover:border-primary"
-							}`}
-							onClick={() => {
-								onChange(color);
-							}}
-						>
-							<div
-								className="w-full h-full rounded-md"
-								style={{
-									backgroundColor:
-										COLOR_DISPLAY[color as keyof typeof COLOR_DISPLAY] ||
-										"#ccc",
-								}}
-							/>
-						</button>
-					</div>
-				))}
-			</div>
+		const categories = useMemo(
+			() => [
+				{
+					id: "all",
+					name: "All Options",
+					icon: "🎨",
+					sections: [
+						{
+							title: "Hair Styles",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.topType,
+								avatarOptions.topType,
+								(value) => {
+									updateOption("topType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										hairColor={avatarOptions.hairColor}
+										pieceSize="100"
+										pieceType="top"
+										topType={option}
+									/>
+								)
+							),
+						},
+						{
+							title: "Eyes",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.eyeType,
+								avatarOptions.eyeType,
+								(value) => {
+									updateOption("eyeType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										eyeType={option}
+										pieceSize="400"
+										pieceType="eyes"
+									/>
+								)
+							),
+						},
+						{
+							title: "Eyebrows",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.eyebrowType,
+								avatarOptions.eyebrowType,
+								(value) => {
+									updateOption("eyebrowType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										eyebrowType={option}
+										pieceSize="100"
+										pieceType="eyebrows"
+									/>
+								)
+							),
+						},
+						{
+							title: "Mouth",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.mouthType,
+								avatarOptions.mouthType,
+								(value) => {
+									updateOption("mouthType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										mouthType={option}
+										pieceSize="100"
+										pieceType="mouth"
+									/>
+								)
+							),
+						},
+						{
+							title: "Facial Hair",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.facialHairType,
+								avatarOptions.facialHairType,
+								(value) => {
+									updateOption("facialHairType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										facialHairColor={avatarOptions.facialHairColor}
+										facialHairType={option}
+										pieceSize="100"
+										pieceType="facialHair"
+									/>
+								)
+							),
+						},
+						{
+							title: "Accessories",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.accessoriesType,
+								avatarOptions.accessoriesType,
+								(value) => {
+									updateOption("accessoriesType", value);
+								},
+								(option) => (
+									<Piece
+										accessoriesType={option}
+										avatarStyle="Transparent"
+										pieceSize="100"
+										pieceType="accessories"
+									/>
+								)
+							),
+						},
+						{
+							title: "Clothing",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.clotheType,
+								avatarOptions.clotheType,
+								(value) => {
+									updateOption("clotheType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										clotheColor={avatarOptions.clotheColor}
+										clotheType={option}
+										pieceSize="100"
+										pieceType="clothe"
+									/>
+								)
+							),
+						},
+						{
+							title: "Graphics",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.graphicType,
+								avatarOptions.graphicType,
+								(value) => {
+									updateOption("graphicType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										graphicType={option}
+										pieceSize="100"
+										pieceType="graphics"
+									/>
+								)
+							),
+						},
+						{
+							title: "Skin",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.skinColor,
+								avatarOptions.skinColor,
+								(value) => {
+									updateOption("skinColor", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										pieceSize="100"
+										pieceType="skin"
+										skinColor={option}
+									/>
+								)
+							),
+						},
+						{
+							title: "Hair Colors",
+							content: renderColorPicker(
+								AVATAR_OPTIONS.hairColor,
+								avatarOptions.hairColor,
+								(value) => {
+									updateOption("hairColor", value);
+								}
+							),
+						},
+						{
+							title: "Skin Colors",
+							content: renderColorPicker(
+								AVATAR_OPTIONS.skinColor,
+								avatarOptions.skinColor,
+								(value) => {
+									updateOption("skinColor", value);
+								}
+							),
+						},
+						{
+							title: "Facial Hair Colors",
+							content: renderColorPicker(
+								AVATAR_OPTIONS.facialHairColor,
+								avatarOptions.facialHairColor,
+								(value) => {
+									updateOption("facialHairColor", value);
+								}
+							),
+						},
+						{
+							title: "Clothing Colors",
+							content: renderColorPicker(
+								AVATAR_OPTIONS.clotheColor,
+								avatarOptions.clotheColor,
+								(value) => {
+									updateOption("clotheColor", value);
+								}
+							),
+						},
+					],
+				},
+				{
+					id: "hair",
+					name: "Hair",
+					icon: "💇",
+					sections: [
+						{
+							title: "Style",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.topType,
+								avatarOptions.topType,
+								(value) => {
+									updateOption("topType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										hairColor={avatarOptions.hairColor}
+										pieceSize="100"
+										pieceType="top"
+										topType={option}
+									/>
+								)
+							),
+						},
+						{
+							title: "Color",
+							content: renderColorPicker(
+								AVATAR_OPTIONS.hairColor,
+								avatarOptions.hairColor,
+								(value) => {
+									updateOption("hairColor", value);
+								}
+							),
+						},
+					],
+				},
+				{
+					id: "face",
+					name: "Face",
+					icon: "😊",
+					sections: [
+						{
+							title: "Skin",
+							content: renderColorPicker(
+								AVATAR_OPTIONS.skinColor,
+								avatarOptions.skinColor,
+								(value) => {
+									updateOption("skinColor", value);
+								}
+							),
+						},
+						{
+							title: "Eyes",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.eyeType,
+								avatarOptions.eyeType,
+								(value) => {
+									updateOption("eyeType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										eyeType={option}
+										pieceSize="100"
+										pieceType="eyes"
+									/>
+								)
+							),
+						},
+						{
+							title: "Eyebrows",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.eyebrowType,
+								avatarOptions.eyebrowType,
+								(value) => {
+									updateOption("eyebrowType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										eyebrowType={option}
+										pieceSize="100"
+										pieceType="eyebrows"
+									/>
+								)
+							),
+						},
+						{
+							title: "Mouth",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.mouthType,
+								avatarOptions.mouthType,
+								(value) => {
+									updateOption("mouthType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										mouthType={option}
+										pieceSize="100"
+										pieceType="mouth"
+									/>
+								)
+							),
+						},
+					],
+				},
+				{
+					id: "facial",
+					name: "Facial Hair",
+					icon: "🧔",
+					sections: [
+						{
+							title: "Style",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.facialHairType,
+								avatarOptions.facialHairType,
+								(value) => {
+									updateOption("facialHairType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										facialHairColor={avatarOptions.facialHairColor}
+										facialHairType={option}
+										pieceSize="100"
+										pieceType="facialHair"
+									/>
+								)
+							),
+						},
+						{
+							title: "Color",
+							content: renderColorPicker(
+								AVATAR_OPTIONS.facialHairColor,
+								avatarOptions.facialHairColor,
+								(value) => {
+									updateOption("facialHairColor", value);
+								}
+							),
+						},
+					],
+				},
+				{
+					id: "accessories",
+					name: "Accessories",
+					icon: "🕶️",
+					sections: [
+						{
+							title: "Glasses & More",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.accessoriesType,
+								avatarOptions.accessoriesType,
+								(value) => {
+									updateOption("accessoriesType", value);
+								},
+								(option) => (
+									<Piece
+										accessoriesType={option}
+										avatarStyle="Transparent"
+										pieceSize="100"
+										pieceType="accessories"
+									/>
+								)
+							),
+						},
+					],
+				},
+				{
+					id: "clothing",
+					name: "Clothing",
+					icon: "👕",
+					sections: [
+						{
+							title: "Style",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.clotheType,
+								avatarOptions.clotheType,
+								(value) => {
+									updateOption("clotheType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										clotheColor={avatarOptions.clotheColor}
+										clotheType={option}
+										pieceSize="100"
+										pieceType="clothe"
+									/>
+								)
+							),
+						},
+						{
+							title: "Color",
+							content: renderColorPicker(
+								AVATAR_OPTIONS.clotheColor,
+								avatarOptions.clotheColor,
+								(value) => {
+									updateOption("clotheColor", value);
+								}
+							),
+						},
+						{
+							title: "Graphics",
+							content: renderOptionGrid(
+								AVATAR_OPTIONS.graphicType,
+								avatarOptions.graphicType,
+								(value) => {
+									updateOption("graphicType", value);
+								},
+								(option) => (
+									<Piece
+										avatarStyle="Transparent"
+										graphicType={option}
+										pieceSize="100"
+										pieceType="graphics"
+									/>
+								)
+							),
+						},
+					],
+				},
+			],
+			[avatarOptions, renderOptionGrid, renderColorPicker, updateOption]
 		);
-
-		const categories = [
-			{
-				id: "all",
-				name: "All Options",
-				icon: "🎨",
-				sections: [
-					{
-						title: "Hair Styles",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.topType,
-							avatarOptions.topType,
-							(value) => {
-								updateOption("topType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									hairColor={avatarOptions.hairColor}
-									pieceSize="100"
-									pieceType="top"
-									topType={option}
-								/>
-							)
-						),
-					},
-					{
-						title: "Eyes",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.eyeType,
-							avatarOptions.eyeType,
-							(value) => {
-								updateOption("eyeType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									eyeType={option}
-									pieceSize="400"
-									pieceType="eyes"
-								/>
-							)
-						),
-					},
-					{
-						title: "Eyebrows",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.eyebrowType,
-							avatarOptions.eyebrowType,
-							(value) => {
-								updateOption("eyebrowType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									eyebrowType={option}
-									pieceSize="100"
-									pieceType="eyebrows"
-								/>
-							)
-						),
-					},
-					{
-						title: "Mouth",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.mouthType,
-							avatarOptions.mouthType,
-							(value) => {
-								updateOption("mouthType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									mouthType={option}
-									pieceSize="100"
-									pieceType="mouth"
-								/>
-							)
-						),
-					},
-					{
-						title: "Facial Hair",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.facialHairType,
-							avatarOptions.facialHairType,
-							(value) => {
-								updateOption("facialHairType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									facialHairColor={avatarOptions.facialHairColor}
-									facialHairType={option}
-									pieceSize="100"
-									pieceType="facialHair"
-								/>
-							)
-						),
-					},
-					{
-						title: "Accessories",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.accessoriesType,
-							avatarOptions.accessoriesType,
-							(value) => {
-								updateOption("accessoriesType", value);
-							},
-							(option) => (
-								<Piece
-									accessoriesType={option}
-									avatarStyle="Transparent"
-									pieceSize="100"
-									pieceType="accessories"
-								/>
-							)
-						),
-					},
-					{
-						title: "Clothing",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.clotheType,
-							avatarOptions.clotheType,
-							(value) => {
-								updateOption("clotheType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									clotheColor={avatarOptions.clotheColor}
-									clotheType={option}
-									pieceSize="100"
-									pieceType="clothe"
-								/>
-							)
-						),
-					},
-					{
-						title: "Graphics",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.graphicType,
-							avatarOptions.graphicType,
-							(value) => {
-								updateOption("graphicType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									graphicType={option}
-									pieceSize="100"
-									pieceType="graphics"
-								/>
-							)
-						),
-					},
-					{
-						title: "Skin",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.skinColor,
-							avatarOptions.skinColor,
-							(value) => {
-								updateOption("skinColor", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									pieceSize="100"
-									pieceType="skin"
-									skinColor={option}
-								/>
-							)
-						),
-					},
-					{
-						title: "Hair Colors",
-						content: renderColorPicker(
-							AVATAR_OPTIONS.hairColor,
-							avatarOptions.hairColor,
-							(value) => {
-								updateOption("hairColor", value);
-							}
-						),
-					},
-					{
-						title: "Skin Colors",
-						content: renderColorPicker(
-							AVATAR_OPTIONS.skinColor,
-							avatarOptions.skinColor,
-							(value) => {
-								updateOption("skinColor", value);
-							}
-						),
-					},
-					{
-						title: "Facial Hair Colors",
-						content: renderColorPicker(
-							AVATAR_OPTIONS.facialHairColor,
-							avatarOptions.facialHairColor,
-							(value) => {
-								updateOption("facialHairColor", value);
-							}
-						),
-					},
-					{
-						title: "Clothing Colors",
-						content: renderColorPicker(
-							AVATAR_OPTIONS.clotheColor,
-							avatarOptions.clotheColor,
-							(value) => {
-								updateOption("clotheColor", value);
-							}
-						),
-					},
-				],
-			},
-			{
-				id: "hair",
-				name: "Hair",
-				icon: "💇",
-				sections: [
-					{
-						title: "Style",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.topType,
-							avatarOptions.topType,
-							(value) => {
-								updateOption("topType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									hairColor={avatarOptions.hairColor}
-									pieceSize="100"
-									pieceType="top"
-									topType={option}
-								/>
-							)
-						),
-					},
-					{
-						title: "Color",
-						content: renderColorPicker(
-							AVATAR_OPTIONS.hairColor,
-							avatarOptions.hairColor,
-							(value) => {
-								updateOption("hairColor", value);
-							}
-						),
-					},
-				],
-			},
-			{
-				id: "face",
-				name: "Face",
-				icon: "😊",
-				sections: [
-					{
-						title: "Skin",
-						content: renderColorPicker(
-							AVATAR_OPTIONS.skinColor,
-							avatarOptions.skinColor,
-							(value) => {
-								updateOption("skinColor", value);
-							}
-						),
-					},
-					{
-						title: "Eyes",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.eyeType,
-							avatarOptions.eyeType,
-							(value) => {
-								updateOption("eyeType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									eyeType={option}
-									pieceSize="100"
-									pieceType="eyes"
-								/>
-							)
-						),
-					},
-					{
-						title: "Eyebrows",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.eyebrowType,
-							avatarOptions.eyebrowType,
-							(value) => {
-								updateOption("eyebrowType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									eyebrowType={option}
-									pieceSize="100"
-									pieceType="eyebrows"
-								/>
-							)
-						),
-					},
-					{
-						title: "Mouth",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.mouthType,
-							avatarOptions.mouthType,
-							(value) => {
-								updateOption("mouthType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									mouthType={option}
-									pieceSize="100"
-									pieceType="mouth"
-								/>
-							)
-						),
-					},
-				],
-			},
-			{
-				id: "facial",
-				name: "Facial Hair",
-				icon: "🧔",
-				sections: [
-					{
-						title: "Style",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.facialHairType,
-							avatarOptions.facialHairType,
-							(value) => {
-								updateOption("facialHairType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									facialHairColor={avatarOptions.facialHairColor}
-									facialHairType={option}
-									pieceSize="100"
-									pieceType="facialHair"
-								/>
-							)
-						),
-					},
-					{
-						title: "Color",
-						content: renderColorPicker(
-							AVATAR_OPTIONS.facialHairColor,
-							avatarOptions.facialHairColor,
-							(value) => {
-								updateOption("facialHairColor", value);
-							}
-						),
-					},
-				],
-			},
-			{
-				id: "accessories",
-				name: "Accessories",
-				icon: "🕶️",
-				sections: [
-					{
-						title: "Glasses & More",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.accessoriesType,
-							avatarOptions.accessoriesType,
-							(value) => {
-								updateOption("accessoriesType", value);
-							},
-							(option) => (
-								<Piece
-									accessoriesType={option}
-									avatarStyle="Transparent"
-									pieceSize="100"
-									pieceType="accessories"
-								/>
-							)
-						),
-					},
-				],
-			},
-			{
-				id: "clothing",
-				name: "Clothing",
-				icon: "👕",
-				sections: [
-					{
-						title: "Style",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.clotheType,
-							avatarOptions.clotheType,
-							(value) => {
-								updateOption("clotheType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									clotheColor={avatarOptions.clotheColor}
-									clotheType={option}
-									pieceSize="100"
-									pieceType="clothe"
-								/>
-							)
-						),
-					},
-					{
-						title: "Color",
-						content: renderColorPicker(
-							AVATAR_OPTIONS.clotheColor,
-							avatarOptions.clotheColor,
-							(value) => {
-								updateOption("clotheColor", value);
-							}
-						),
-					},
-					{
-						title: "Graphics",
-						content: renderOptionGrid(
-							AVATAR_OPTIONS.graphicType,
-							avatarOptions.graphicType,
-							(value) => {
-								updateOption("graphicType", value);
-							},
-							(option) => (
-								<Piece
-									avatarStyle="Transparent"
-									graphicType={option}
-									pieceSize="100"
-									pieceType="graphics"
-								/>
-							)
-						),
-					},
-				],
-			},
-		];
 
 		useImperativeHandle(ref, () => ({
 			generateAvatarBlob,
