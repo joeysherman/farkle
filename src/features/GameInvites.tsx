@@ -118,11 +118,7 @@ export function GameInvites(): JSX.Element {
 	}
 
 	if (invites.length === 0) {
-		return (
-			<div className="text-center py-4 text-gray-500">
-				No pending game invites
-			</div>
-		);
+		return <div className="text-center text-gray-500">No game invites</div>;
 	}
 
 	return (

@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useFriendInvites } from "./layout/navbar/Navbar";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { Combobox } from "@headlessui/react";
 
 interface Friend {
 	id: string;
@@ -35,6 +36,14 @@ interface FriendInvite {
 		username: string;
 		avatar_name: string;
 	};
+}
+
+interface SearchResult {
+	id: string;
+	username: string;
+	avatar_name: string;
+	isFriend: boolean;
+	hasPendingInvite: boolean;
 }
 
 interface FriendsListProps {
@@ -69,83 +78,18 @@ export function FriendsList({
 	const { user } = useAuth();
 	const navigate = useNavigate();
 	const [loading, setLoading] = useState(true);
-	const [friends, setFriends] = useState<Friend[]>([]);
-	const [invites, setInvites] = useState<FriendInvite[]>([]);
+	const [friends, setFriends] = useState<Array<Friend>>([]);
+	const [invites, setInvites] = useState<Array<FriendInvite>>([]);
 	const [searchQuery, setSearchQuery] = useState("");
-	const [searchResults, setSearchResults] = useState<any[]>([]);
+	const [searchResults, setSearchResults] = useState<Array<SearchResult>>([]);
 	const [isSearching, setIsSearching] = useState(false);
 	const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(
 		null
 	);
 
-	const {
-		data: friendInvites = [],
-		isLoading: isInvitesLoading,
-		refetch: refetchFriendInvites,
-	} = useFriendInvites(user?.id ?? "");
+	const { refetch: refetchFriendInvites } = useFriendInvites(user?.id ?? "");
 
-	const friendsSubscriptionRef = useRef<RealtimeChannel | null>(null);
 	const friendInvitesSubscriptionRef = useRef<RealtimeChannel | null>(null);
-
-	useEffect(() => {
-		if (user?.id) {
-			void fetchFriends();
-			if (showInvites) {
-				void fetchInvites();
-			}
-		}
-	}, [user?.id, showInvites]);
-
-	// Set up real-time subscriptions for friend invite updates
-	useEffect(() => {
-		if (user?.id && !friendInvitesSubscriptionRef.current) {
-			friendInvitesSubscriptionRef.current = supabase
-				.channel("friend_invites_changes")
-				.on(
-					"postgres_changes",
-					{
-						event: "UPDATE",
-						schema: "public",
-						table: "friend_invites",
-						filter: `receiver_id=eq.${user.id}`,
-					},
-					(payload) => {
-						console.log("payload update", payload);
-						void refetchFriendInvites();
-					}
-				)
-				.on(
-					"postgres_changes",
-					{
-						event: "INSERT",
-						schema: "public",
-						table: "friend_invites",
-						filter: `receiver_id=eq.${user.id}`,
-					},
-					(payload) => {
-						console.log("payload insert", payload);
-						void refetchFriendInvites();
-					}
-				)
-				.subscribe();
-
-			return () => {
-				if (friendInvitesSubscriptionRef.current) {
-					console.log("unsubscribing from friend invites");
-					void friendInvitesSubscriptionRef.current.unsubscribe();
-					friendInvitesSubscriptionRef.current = null;
-				}
-			};
-		}
-	}, [user?.id, refetchFriendInvites]);
-
-	useEffect(() => {
-		return () => {
-			if (debounceTimer) {
-				clearTimeout(debounceTimer);
-			}
-		};
-	}, [debounceTimer]);
 
 	const fetchFriends = async (): Promise<void> => {
 		try {
@@ -167,7 +111,7 @@ export function FriendsList({
 			if (error) throw error;
 
 			// Get all friend IDs
-			const friendIds = data?.map((friend) => friend.friend_id) || [];
+			const friendIds = data?.map((friend: any) => friend.friend_id) || [];
 
 			// Fetch profiles for all friends
 			const { data: profiles, error: profilesError } = await supabase
@@ -185,13 +129,13 @@ export function FriendsList({
 
 			// Create a map of user IDs to profiles
 			const profileMap = new Map();
-			profiles?.forEach((profile) => {
+			profiles?.forEach((profile: any) => {
 				profileMap.set(profile.id, profile);
 			});
 
 			// Combine friends with profile data
-			const friendsWithProfiles =
-				data?.map((friend) => ({
+			const friendsWithProfiles: Array<Friend> =
+				data?.map((friend: any) => ({
 					...friend,
 					friend_profile: profileMap.get(friend.friend_id),
 				})) || [];
@@ -245,7 +189,7 @@ export function FriendsList({
 			const allInvites = [...(receivedInvites || []), ...(sentInvites || [])];
 			const userIds = new Set<string>();
 
-			allInvites.forEach((invite) => {
+			allInvites.forEach((invite: any) => {
 				userIds.add(invite.sender_id);
 				userIds.add(invite.receiver_id);
 			});
@@ -266,16 +210,18 @@ export function FriendsList({
 
 			// Create a map of user IDs to profiles
 			const profileMap = new Map();
-			profiles?.forEach((profile) => {
+			profiles?.forEach((profile: any) => {
 				profileMap.set(profile.id, profile);
 			});
 
 			// Combine invites with profile data
-			const invitesWithProfiles = allInvites.map((invite) => ({
-				...invite,
-				sender: profileMap.get(invite.sender_id),
-				receiver: profileMap.get(invite.receiver_id),
-			}));
+			const invitesWithProfiles: Array<FriendInvite> = allInvites.map(
+				(invite: any) => ({
+					...invite,
+					sender: profileMap.get(invite.sender_id),
+					receiver: profileMap.get(invite.receiver_id),
+				})
+			);
 
 			setInvites(invitesWithProfiles);
 		} catch (error) {
@@ -283,6 +229,66 @@ export function FriendsList({
 			toast.error("Failed to load friend invites");
 		}
 	};
+
+	useEffect(() => {
+		if (user?.id) {
+			void fetchFriends();
+			if (showInvites) {
+				void fetchInvites();
+			}
+		}
+	}, [user?.id, showInvites]);
+
+	// Set up real-time subscriptions for friend invite updates
+	useEffect(() => {
+		if (user?.id && !friendInvitesSubscriptionRef.current) {
+			friendInvitesSubscriptionRef.current = supabase
+				.channel("friend_invites_changes")
+				.on(
+					"postgres_changes",
+					{
+						event: "UPDATE",
+						schema: "public",
+						table: "friend_invites",
+						filter: `receiver_id=eq.${user.id}`,
+					},
+					(payload) => {
+						console.log("payload update", payload);
+						void refetchFriendInvites();
+					}
+				)
+				.on(
+					"postgres_changes",
+					{
+						event: "INSERT",
+						schema: "public",
+						table: "friend_invites",
+						filter: `receiver_id=eq.${user.id}`,
+					},
+					(payload) => {
+						console.log("payload insert", payload);
+						void refetchFriendInvites();
+					}
+				)
+				.subscribe();
+
+			return (): void => {
+				if (friendInvitesSubscriptionRef.current) {
+					console.log("unsubscribing from friend invites");
+					void friendInvitesSubscriptionRef.current.unsubscribe();
+					friendInvitesSubscriptionRef.current = null;
+				}
+			};
+		}
+	}, [user?.id, refetchFriendInvites]);
+
+	useEffect(() => {
+		return (): void => {
+			if (debounceTimer) {
+				clearTimeout(debounceTimer);
+			}
+		};
+	}, [debounceTimer]);
 
 	const searchUsers = async (): Promise<void> => {
 		if (!searchQuery.trim()) {
@@ -302,13 +308,15 @@ export function FriendsList({
         `
 				)
 				.ilike("username", `%${searchQuery}%`)
+				// onboarding_completed is true
+				.eq("onboarding_completed", true)
 				.neq("id", user?.id)
 				.limit(10);
 
 			if (error) throw error;
 
 			// Check if users are already friends or have pending invites
-			const userIds = data?.map((profile) => profile.id) || [];
+			const userIds = data?.map((profile: any) => profile.id) || [];
 
 			// Get friends
 			const { data: friendsData } = await supabase
@@ -317,7 +325,9 @@ export function FriendsList({
 				.eq("user_id", user?.id)
 				.in("friend_id", userIds);
 
-			const friendIds = new Set(friendsData?.map((f) => f.friend_id) || []);
+			const friendIds = new Set(
+				friendsData?.map((friend: any) => friend.friend_id) || []
+			);
 
 			// Get pending invites
 			const { data: invitesData } = await supabase
@@ -328,17 +338,19 @@ export function FriendsList({
 				.in("receiver_id", userIds);
 
 			const pendingInviteIds = new Set(
-				invitesData?.map((i) =>
-					i.sender_id === user?.id ? i.receiver_id : i.sender_id
+				invitesData?.map((invite: any) =>
+					invite.sender_id === user?.id ? invite.receiver_id : invite.sender_id
 				) || []
 			);
 
 			// Combine results
-			const results =
-				data?.map((profile) => ({
-					...profile,
-					is_friend: friendIds.has(profile.id),
-					has_pending_invite: pendingInviteIds.has(profile.id),
+			const results: Array<SearchResult> =
+				data?.map((profile: any) => ({
+					id: profile.id,
+					username: profile.username,
+					avatar_name: profile.avatar_name,
+					isFriend: friendIds.has(profile.id),
+					hasPendingInvite: pendingInviteIds.has(profile.id),
 				})) || [];
 
 			setSearchResults(results);
@@ -370,13 +382,6 @@ export function FriendsList({
 		}
 	};
 
-	const handleSearch = (event: React.FormEvent): void => {
-		event.preventDefault();
-		if (searchQuery.trim()) {
-			void searchUsers();
-		}
-	};
-
 	const sendFriendInvite = async (userId: string): Promise<void> => {
 		try {
 			const { error } = await supabase.rpc("send_friend_invite", {
@@ -386,11 +391,9 @@ export function FriendsList({
 			if (error) throw error;
 
 			// Update search results
-			setSearchResults((prev) =>
-				prev.map((result) =>
-					result.id === userId
-						? { ...result, has_pending_invite: true }
-						: result
+			setSearchResults((previous) =>
+				previous.map((result) =>
+					result.id === userId ? { ...result, hasPendingInvite: true } : result
 				)
 			);
 			toast.success("Friend request sent successfully!");
@@ -471,93 +474,117 @@ export function FriendsList({
 			{/* Search Section */}
 			{showSearch && (
 				<div className="space-y-4">
-					<form onSubmit={handleSearch}>
-						<div className="join w-full">
-							<input
-								className="input input-bordered input-primary join-item flex-1"
+					<Combobox value="" onChange={() => {}}>
+						<div className="relative">
+							<Combobox.Input
+								className="input input-bordered input-primary w-full pr-10"
 								placeholder="Search by username"
-								type="text"
-								value={searchQuery}
+								displayValue={(query: string) => query}
 								onChange={handleSearchInput}
 							/>
-							<button
-								className="btn btn-primary join-item"
-								type="submit"
-								disabled={isSearching}
-							>
+							<div className="absolute inset-y-0 right-0 flex items-center pr-2 z-20">
 								{isSearching ? (
 									<span className="loading loading-spinner loading-sm"></span>
-								) : (
-									"Search"
-								)}
-							</button>
-						</div>
-					</form>
+								) : searchQuery ? (
+									<button
+										className="btn btn-ghost btn-sm btn-circle"
+										onClick={() => {
+											setSearchQuery("");
+											setSearchResults([]);
+										}}
+										type="button"
+									>
+										<svg
+											className="h-4 w-4"
+											fill="currentColor"
+											viewBox="0 0 20 20"
+										>
+											<path
+												clipRule="evenodd"
+												d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+												fillRule="evenodd"
+											/>
+										</svg>
+									</button>
+								) : null}
+							</div>
 
-					{/* Search Results */}
-					{searchResults.length > 0 && (
-						<div className="space-y-3">
-							<h3 className="text-sm font-medium text-base-content/70">
-								Search Results
-							</h3>
-							{searchResults.map((result) => (
-								<div key={result.id} className="card bg-base-200 shadow-sm">
-									<div className="card-body p-4">
-										<div className="flex items-center justify-between">
-											<div className="flex items-center gap-3">
-												<div className="avatar">
-													<div
-														className={`${compact ? "w-8" : "w-10"} rounded-full`}
-													>
-														<img
-															alt={`${result.username}'s avatar`}
-															src={`${result?.avatar_name || "default"}`}
-														/>
+							<Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-base-100 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+								{searchResults.length === 0 && searchQuery && !isSearching ? (
+									<div className="relative cursor-default select-none py-2 px-4 text-base-content/70">
+										No users found matching "{searchQuery}"
+									</div>
+								) : (
+									searchResults.map((result) => (
+										<div
+											key={result.id}
+											className="relative cursor-default select-none py-3 pl-4 pr-4 hover:bg-base-100 border-b border-base-300/50 last:border-b-0 transition-colors"
+										>
+											<div className="flex items-center justify-between">
+												<div className="flex items-center gap-3">
+													<div className="avatar">
+														<div
+															className={`${compact ? "w-8" : "w-10"} rounded-full ring-2 ring-base-300/20`}
+														>
+															<img
+																alt={`${result.username}'s avatar`}
+																src={`${result.avatar_name || "default"}`}
+															/>
+														</div>
+													</div>
+													<div className="flex flex-col">
+														<span
+															className={`font-medium text-base-content ${compact ? "text-sm" : ""}`}
+														>
+															{result.username}
+														</span>
+														<span className="text-xs text-base-content/60">
+															{result.isFriend
+																? "Already friends"
+																: "Click to add"}
+														</span>
 													</div>
 												</div>
-												<span
-													className={`font-medium text-base-content ${compact ? "text-sm" : ""}`}
-												>
-													{result.username}
-												</span>
-											</div>
-											<div className="flex items-center gap-2">
-												<button
-													className="btn btn-outline btn-sm"
-													onClick={() =>
-														navigate({
-															to: "/app/profile",
-															search: { id: result.id },
-														})
-													}
-												>
-													View Profile
-												</button>
-												{result.is_friend ? (
-													<div className="badge badge-success">Friends</div>
-												) : result.has_pending_invite ? (
-													<div className="badge badge-warning">Pending</div>
-												) : (
+												<div className="flex items-center gap-2">
 													<button
-														className="btn btn-primary btn-sm"
-														onClick={() => void sendFriendInvite(result.id)}
+														className="btn btn-ghost btn-xs text-base-content/70 hover:text-base-content"
+														onClick={(event) => {
+															event.stopPropagation();
+															void navigate({
+																to: "/app/profile",
+																search: { id: result.id },
+															});
+														}}
 													>
-														Add Friend
+														View Profile
 													</button>
-												)}
+													{result.isFriend ? (
+														<div className="badge badge-success badge-sm">
+															Friends
+														</div>
+													) : result.hasPendingInvite ? (
+														<div className="badge badge-warning badge-sm">
+															Pending
+														</div>
+													) : (
+														<button
+															className="btn btn-neutral btn-xs hover:btn-success"
+															onClick={(event) => {
+																event.stopPropagation();
+																void sendFriendInvite(result.id);
+															}}
+														>
+															Add Friend
+														</button>
+													)}
+												</div>
 											</div>
 										</div>
-									</div>
-								</div>
-							))}
+									))
+								)}
+							</Combobox.Options>
 						</div>
-					)}
-
-					{searchQuery && searchResults.length === 0 && !isSearching && (
-						<div className="alert alert-info">
-							<span>No users found matching "{searchQuery}"</span>
-						</div>
-					)}
+					</Combobox>
 				</div>
 			)}
 
@@ -752,7 +779,7 @@ export function FriendsList({
 															<div className="w-10 rounded-full">
 																<img
 																	alt={`${invite.receiver.username}'s avatar`}
-																	src={`/avatars/${invite.receiver.avatar_name}.svg`}
+																	src={`${invite.receiver?.avatar_name || "default"}`}
 																/>
 															</div>
 														</div>
@@ -761,6 +788,7 @@ export function FriendsList({
 														</span>
 													</div>
 													<div className="flex items-center gap-2">
+														<div className="badge badge-warning">Pending</div>
 														<button
 															className="btn btn-outline btn-sm"
 															onClick={() =>
@@ -772,7 +800,6 @@ export function FriendsList({
 														>
 															View Profile
 														</button>
-														<div className="badge badge-warning">Pending</div>
 													</div>
 												</div>
 											</div>

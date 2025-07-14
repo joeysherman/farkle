@@ -274,7 +274,7 @@ export const Dashboard = (): FunctionComponent => {
 					</div>
 				)}
 
-				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+				<div className="grid grid-cols-1 grid-rows-none auto-rows-min lg:grid-cols-3 gap-6">
 					{/* Left Column - Primary Actions and Active Games */}
 					<div className="lg:col-span-2 space-y-6">
 						{/* Quick Actions Card */}
@@ -291,7 +291,7 @@ export const Dashboard = (): FunctionComponent => {
 										{loading ? <LoadingSpinner /> : "🎲 Create New Game"}
 									</button>
 
-									<button
+									{/* <button
 										className="btn btn-secondary flex-1 max-w-md h-auto py-3"
 										disabled={!currentRooms || currentRooms.length === 0}
 										onClick={handleJoinRecentGame}
@@ -319,11 +319,93 @@ export const Dashboard = (): FunctionComponent => {
 										) : (
 											"🚀 Join Recent Game"
 										)}
-									</button>
+									</button> */}
 								</div>
 							</div>
 						</div>
 
+						{/* Available Games */}
+						{/* <div className="card bg-base-100 shadow-2xl">
+							<div className="card-body">
+								<div className="flex items-center gap-3 mb-6">
+									<h2 className="card-title text-2xl">Available Games</h2>
+									{availableRooms && availableRooms.length > 0 && (
+										<div className="badge badge-success">
+											{availableRooms.length}
+										</div>
+									)}
+								</div>
+
+								<div className="space-y-4">
+									{availableRooms &&
+										availableRooms.length > 0 &&
+										availableRooms.slice(0, 3).map((room) => (
+											<div
+												key={room.id}
+												className="p-4 bg-base-200 rounded-lg border border-base-300 hover:border-success/50 transition-colors"
+											>
+												<div className="flex justify-between items-center">
+													<div>
+														<h3 className="text-lg font-bold mb-1">
+															{room.name}
+														</h3>
+														<span className="text-success font-medium text-sm">
+															👥 {room.current_players}/{room.max_players}{" "}
+															players
+														</span>
+													</div>
+													<button
+														className="btn btn-success btn-sm"
+														onClick={() =>
+															navigate({
+																to: "/app/room",
+																search: { roomId: room.id },
+															})
+														}
+													>
+														🚀 Join
+													</button>
+												</div>
+											</div>
+										))}
+
+									{availableRooms === null && (
+										<div className="space-y-4">
+											{[1, 2].map((index) => (
+												<div
+													key={index}
+													className="skeleton h-20 w-full bg-base-200 rounded-lg"
+												></div>
+											))}
+										</div>
+									)}
+
+									{availableRooms && availableRooms.length === 0 && (
+										<div className="text-center py-8">
+											<div className="text-4xl mb-3">🎯</div>
+											<h3 className="text-lg font-medium mb-2">
+												No games available
+											</h3>
+											<p className="text-base-content/70">
+												Be the first to create a game!
+											</p>
+										</div>
+									)}
+								</div>
+							</div>
+						</div> */}
+					</div>
+					{/* Right Column - Secondary Info */}
+					<div className="flex">
+						{/* Game Invites */}
+						<div className="card bg-base-100 shadow-2xl flex-1">
+							<div className="card-body">
+								<h2 className="card-title text-lg mb-4">Game Invites</h2>
+								<GameInvites />
+							</div>
+						</div>
+					</div>
+					<div className="lg:col-span-2 space-y-6">
 						{/* Active Games */}
 						<div className="card bg-base-100 shadow-2xl">
 							<div className="card-body">
@@ -422,91 +504,12 @@ export const Dashboard = (): FunctionComponent => {
 								</div>
 							</div>
 						</div>
-
-						{/* Available Games */}
-						{/* <div className="card bg-base-100 shadow-2xl">
-							<div className="card-body">
-								<div className="flex items-center gap-3 mb-6">
-									<h2 className="card-title text-2xl">Available Games</h2>
-									{availableRooms && availableRooms.length > 0 && (
-										<div className="badge badge-success">
-											{availableRooms.length}
-										</div>
-									)}
-								</div>
-
-								<div className="space-y-4">
-									{availableRooms &&
-										availableRooms.length > 0 &&
-										availableRooms.slice(0, 3).map((room) => (
-											<div
-												key={room.id}
-												className="p-4 bg-base-200 rounded-lg border border-base-300 hover:border-success/50 transition-colors"
-											>
-												<div className="flex justify-between items-center">
-													<div>
-														<h3 className="text-lg font-bold mb-1">
-															{room.name}
-														</h3>
-														<span className="text-success font-medium text-sm">
-															👥 {room.current_players}/{room.max_players}{" "}
-															players
-														</span>
-													</div>
-													<button
-														className="btn btn-success btn-sm"
-														onClick={() =>
-															navigate({
-																to: "/app/room",
-																search: { roomId: room.id },
-															})
-														}
-													>
-														🚀 Join
-													</button>
-												</div>
-											</div>
-										))}
-
-									{availableRooms === null && (
-										<div className="space-y-4">
-											{[1, 2].map((index) => (
-												<div
-													key={index}
-													className="skeleton h-20 w-full bg-base-200 rounded-lg"
-												></div>
-											))}
-										</div>
-									)}
-
-									{availableRooms && availableRooms.length === 0 && (
-										<div className="text-center py-8">
-											<div className="text-4xl mb-3">🎯</div>
-											<h3 className="text-lg font-medium mb-2">
-												No games available
-											</h3>
-											<p className="text-base-content/70">
-												Be the first to create a game!
-											</p>
-										</div>
-									)}
-								</div>
-							</div>
-						</div> */}
 					</div>
 
 					{/* Right Column - Secondary Info */}
-					<div className="space-y-6">
-						{/* Game Invites */}
-						<div className="card bg-base-100 shadow-2xl">
-							<div className="card-body">
-								<h2 className="card-title text-xl mb-4">Game Invites</h2>
-								<GameInvites />
-							</div>
-						</div>
-
+					<div className="flex">
 						{/* Friends List */}
-						<div className="card bg-base-100 shadow-2xl">
+						<div className="card bg-base-100 shadow-2xl flex-1">
 							<div className="card-body">
 								<div className="flex items-center justify-between mb-4">
 									<h2 className="card-title text-xl">Friends</h2>
@@ -514,7 +517,6 @@ export const Dashboard = (): FunctionComponent => {
 										className="btn btn-primary btn-sm"
 										onClick={() => navigate({ to: "/app/friends" })}
 									>
-										{/* show external link svg */}
 										<svg
 											className="w-4 h-4"
 											fill="none"
