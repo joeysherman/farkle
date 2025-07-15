@@ -214,84 +214,79 @@ export const Dashboard = (): FunctionComponent => {
 
 	if (isAuthChecking) {
 		return (
-			<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center p-4">
+			<div className="bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center p-4">
 				<LoadingSpinner />
 			</div>
 		);
 	}
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 py-6">
-			<div className="container mx-auto max-w-4xl">
-				{/* Header */}
-				<div className="mb-8">
-					<h1 className="text-4xl font-bold text-base-content mb-2">
-						Welcome back!
-					</h1>
-					<p className="text-base-content/70 text-lg">
-						Ready to roll some dice?
-					</p>
-				</div>
+		<div className="container mx-auto pt-6">
+			{/* Header */}
+			<div className="rounded-xl p-6 bg-gradient-to-r from-indigo-50 via-white to-sky-50 shadow-inner mb-8">
+				<h1 className="text-4xl font-bold text-neutral mb-1">Welcome back!</h1>
+				<p className="text-slate-500 text-md">Ready to roll some dice?</p>
+			</div>
 
-				{/* Error Alert */}
-				{error && (
-					<div className="alert alert-error mb-6">
+			{/* Error Alert */}
+			{error && (
+				<div className="alert alert-error mb-6">
+					<svg
+						className="stroke-current shrink-0 h-6 w-6"
+						fill="none"
+						viewBox="0 0 24 24"
+						xmlns="http://www.w3.org/2000/svg"
+					>
+						<path
+							d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth="2"
+						/>
+					</svg>
+					<span>{error}</span>
+					<button
+						className="btn btn-sm btn-circle btn-ghost"
+						onClick={() => {
+							setError("");
+						}}
+					>
 						<svg
-							className="stroke-current shrink-0 h-6 w-6"
+							className="h-4 w-4"
 							fill="none"
+							stroke="currentColor"
 							viewBox="0 0 24 24"
 							xmlns="http://www.w3.org/2000/svg"
 						>
 							<path
-								d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+								d="M6 18L18 6M6 6l12 12"
 								strokeLinecap="round"
 								strokeLinejoin="round"
 								strokeWidth="2"
 							/>
 						</svg>
-						<span>{error}</span>
-						<button
-							className="btn btn-sm btn-circle btn-ghost"
-							onClick={() => {
-								setError("");
-							}}
-						>
-							<svg
-								className="h-4 w-4"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-								xmlns="http://www.w3.org/2000/svg"
-							>
-								<path
-									d="M6 18L18 6M6 6l12 12"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth="2"
-								/>
-							</svg>
-						</button>
-					</div>
-				)}
+					</button>
+				</div>
+			)}
 
-				<div className="grid grid-cols-1 grid-rows-none auto-rows-min lg:grid-cols-3 gap-6">
-					{/* Left Column - Primary Actions and Active Games */}
-					<div className="lg:col-span-2 space-y-6">
-						{/* Quick Actions Card */}
-						<div className="card bg-base-100 shadow-2xl">
-							<div className="card-body">
-								<h2 className="card-title text-2xl mb-4">Quick Actions</h2>
+			<div className="grid grid-cols-1 grid-rows-none auto-rows-min lg:grid-cols-3 gap-6">
+				{/* Left Column - Primary Actions and Active Games */}
+				<div className="lg:col-span-2 space-y-6">
+					{/* Quick Actions Card */}
+					<div className="card bg-base-100 shadow-md ring-1 ring-base-300">
+						<div className="card-body">
+							<h2 className="card-title text-2xl mb-4">Quick Actions</h2>
 
-								<div className="flex flex-col sm:flex-row gap-4 justify-center">
-									<button
-										className="btn btn-primary flex-1 max-w-md"
-										disabled={loading}
-										onClick={handleCreateRoom}
-									>
-										{loading ? <LoadingSpinner /> : "🎲 Create New Game"}
-									</button>
+							<div className="flex flex-col sm:flex-row gap-4 justify-center">
+								<button
+									className="btn btn-primary flex-1 max-w-md"
+									disabled={loading}
+									onClick={handleCreateRoom}
+								>
+									{loading ? <LoadingSpinner /> : "🎲 Create New Game"}
+								</button>
 
-									{/* <button
+								{/* <button
 										className="btn btn-secondary flex-1 max-w-md h-auto py-3"
 										disabled={!currentRooms || currentRooms.length === 0}
 										onClick={handleJoinRecentGame}
@@ -320,12 +315,12 @@ export const Dashboard = (): FunctionComponent => {
 											"🚀 Join Recent Game"
 										)}
 									</button> */}
-								</div>
 							</div>
 						</div>
+					</div>
 
-						{/* Available Games */}
-						{/* <div className="card bg-base-100 shadow-2xl">
+					{/* Available Games */}
+					{/* <div className="card bg-base-100 shadow-2xl">
 							<div className="card-body">
 								<div className="flex items-center gap-3 mb-6">
 									<h2 className="card-title text-2xl">Available Games</h2>
@@ -394,153 +389,151 @@ export const Dashboard = (): FunctionComponent => {
 								</div>
 							</div>
 						</div> */}
-					</div>
-					{/* Right Column - Secondary Info */}
-					<div className="flex">
-						{/* Game Invites */}
-						<div className="card bg-base-100 shadow-2xl flex-1">
-							<div className="card-body">
-								<h2 className="card-title text-lg mb-4">Game Invites</h2>
-								<GameInvites />
-							</div>
+				</div>
+				{/* Right Column - Secondary Info */}
+				<div className="flex">
+					{/* Game Invites */}
+					<div className="card bg-base-100 shadow-md ring-1 ring-base-300 flex-1">
+						<div className="card-body">
+							<h2 className="card-title text-lg mb-4">Game Invites</h2>
+							<GameInvites />
 						</div>
 					</div>
-					<div className="lg:col-span-2 space-y-6">
-						{/* Active Games */}
-						<div className="card bg-base-100 shadow-2xl">
-							<div className="card-body">
-								<div className="flex items-center gap-3 mb-6">
-									<h2 className="card-title text-2xl">Your Active Games</h2>
-									{currentRooms && currentRooms.length > 0 && (
-										<div className="badge badge-primary">
-											{currentRooms.length}
-										</div>
-									)}
-								</div>
+				</div>
+				<div className="lg:col-span-2 space-y-6">
+					{/* Active Games */}
+					<div className="card bg-base-100 shadow-md ring-1 ring-base-300">
+						<div className="card-body">
+							<div className="flex items-center gap-3 mb-6">
+								<h2 className="card-title text-2xl">Your Active Games</h2>
+								{currentRooms && currentRooms.length > 0 && (
+									<div className="badge badge-accent">
+										{currentRooms.length}
+									</div>
+								)}
+							</div>
 
-								<div className="space-y-4">
-									{currentRooms &&
-										currentRooms.length > 0 &&
-										currentRooms.map((room) => (
-											<div
-												key={room.id}
-												className="p-4 bg-base-200 rounded-lg border border-base-300 hover:border-primary/50 transition-colors"
-											>
-												<div className="flex justify-between items-start mb-3">
-													<h3 className="text-lg font-bold">{room.name}</h3>
-													<div
-														className={`badge ${
-															room?.status === "waiting"
-																? "badge-warning"
-																: "badge-success"
-														}`}
-													>
-														{room?.status === "waiting"
-															? "⏳ Waiting"
-															: "🎲 In Progress"}
-													</div>
-												</div>
-
-												<div className="flex justify-between items-center mb-4">
-													<div className="flex items-center space-x-4 text-sm">
-														<span className="text-base-content/70">
-															👤{" "}
-															{room.created_by === user?.id ? "You" : "Friend"}
-														</span>
-														<span className="text-primary font-bold">
-															👥 {room.current_players}/{room.max_players}
-														</span>
-													</div>
-												</div>
-
-												<div className="flex justify-end gap-3">
-													<button
-														className="btn btn-primary btn-sm"
-														onClick={() =>
-															navigate({
-																to: "/app/room",
-																search: { roomId: room.id },
-															})
-														}
-													>
-														Continue
-													</button>
-													{user &&
-														room.created_by === user.id &&
-														room?.status === "in_progress" && (
-															<button
-																className="btn btn-error btn-sm"
-																onClick={() => handleEndGame(room.id)}
-															>
-																End
-															</button>
-														)}
+							<div className="space-y-4">
+								{currentRooms &&
+									currentRooms.length > 0 &&
+									currentRooms.map((room) => (
+										<div
+											key={room.id}
+											className="p-4 bg-base-200 rounded-lg border border-base-300 transition-all duration-200 hover:ring-accent/40 hover:bg-base-100"
+										>
+											<div className="flex justify-between items-start mb-3">
+												<h3 className="text-lg font-bold">{room.name}</h3>
+												<div
+													className={`badge ${
+														room?.status === "waiting"
+															? "badge-warning"
+															: "badge-success"
+													}`}
+												>
+													{room?.status === "waiting"
+														? "⏳ Waiting"
+														: "🎲 In Progress"}
 												</div>
 											</div>
+
+											<div className="flex justify-between items-center mb-4">
+												<div className="flex items-center space-x-4 text-sm">
+													<span className="text-base-content/70">
+														👤 {room.created_by === user?.id ? "You" : "Friend"}
+													</span>
+													<span className="text-accent font-bold">
+														👥 {room.current_players}/{room.max_players}
+													</span>
+												</div>
+											</div>
+
+											<div className="flex justify-end gap-3">
+												<button
+													className="btn btn-accent btn-sm"
+													onClick={() =>
+														navigate({
+															to: "/app/room",
+															search: { roomId: room.id },
+														})
+													}
+												>
+													Continue
+												</button>
+												{user &&
+													room.created_by === user.id &&
+													room?.status === "in_progress" && (
+														<button
+															className="btn btn-error btn-sm"
+															onClick={() => handleEndGame(room.id)}
+														>
+															End
+														</button>
+													)}
+											</div>
+										</div>
+									))}
+
+								{currentRooms === null && (
+									<div className="space-y-4">
+										{[1, 2].map((index) => (
+											<div
+												key={index}
+												className="skeleton h-24 w-full bg-base-300 rounded-lg ring-1 ring-base-200"
+											></div>
 										))}
+									</div>
+								)}
 
-									{currentRooms === null && (
-										<div className="space-y-4">
-											{[1, 2].map((index) => (
-												<div
-													key={index}
-													className="skeleton h-24 w-full bg-base-200 rounded-lg"
-												></div>
-											))}
-										</div>
-									)}
-
-									{currentRooms && currentRooms.length === 0 && (
-										<div className="text-center py-8">
-											<div className="text-4xl mb-3">🎲</div>
-											<h3 className="text-lg font-medium mb-2">
-												No active games
-											</h3>
-											<p className="text-base-content/70">
-												Create a new game to get started!
-											</p>
-										</div>
-									)}
-								</div>
+								{currentRooms && currentRooms.length === 0 && (
+									<div className="text-center py-8">
+										<div className="text-4xl mb-3">🎲</div>
+										<h3 className="text-lg font-medium mb-2">
+											No active games
+										</h3>
+										<p className="text-base-content/70">
+											Create a new game to get started!
+										</p>
+									</div>
+								)}
 							</div>
 						</div>
 					</div>
+				</div>
 
-					{/* Right Column - Secondary Info */}
-					<div className="flex">
-						{/* Friends List */}
-						<div className="card bg-base-100 shadow-2xl flex-1">
-							<div className="card-body">
-								<div className="flex items-center justify-between mb-4">
-									<h2 className="card-title text-xl">Friends</h2>
-									<button
-										className="btn btn-primary btn-sm"
-										onClick={() => navigate({ to: "/app/friends" })}
+				{/* Right Column - Secondary Info */}
+				<div className="flex">
+					{/* Friends List */}
+					<div className="card bg-base-100 shadow-md ring-1 ring-base-300 flex-1">
+						<div className="card-body">
+							<div className="flex items-center justify-between mb-4">
+								<h2 className="card-title text-xl">Friends</h2>
+								<button
+									className="btn btn-primary btn-sm"
+									onClick={() => navigate({ to: "/app/friends" })}
+								>
+									<svg
+										className="w-4 h-4"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										xmlns="http://www.w3.org/2000/svg"
 									>
-										<svg
-											className="w-4 h-4"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-											xmlns="http://www.w3.org/2000/svg"
-										>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth="2"
-												d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-											/>
-										</svg>
-									</button>
-								</div>
-
-								<FriendsList
-									showSearch={false}
-									showInvites={false}
-									maxDisplay={3}
-									compact={true}
-								/>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth="2"
+											d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+										/>
+									</svg>
+								</button>
 							</div>
+
+							<FriendsList
+								showSearch={false}
+								showInvites={false}
+								maxDisplay={3}
+								compact={true}
+							/>
 						</div>
 					</div>
 				</div>

@@ -22,7 +22,7 @@ interface OnboardingData {
 function LoadingSpinner(): JSX.Element {
 	return (
 		<div className="flex justify-center items-center">
-			<div className="loading loading-spinner loading-lg text-primary"></div>
+			<div className="loading loading-spinner loading-lg text-accent"></div>
 		</div>
 	);
 }
@@ -258,18 +258,18 @@ export const Onboarding = (): FunctionComponent => {
 	};
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20">
-			<div className={`container mx-auto py-4`}>
+		<div className="min-h-screen bg-gradient-to-br from-base-200 to-base-100 py-6">
+			<div className={`container mx-auto`}>
 				{/* Progress Steps */}
 				<div className="flex justify-center mb-2">
 					<ul className="steps steps-horizontal w-auto">
-						<li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}>
+						<li className={`step ${currentStep >= 1 ? "step-accent" : ""}`}>
 							Personal
 						</li>
-						<li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}>
+						<li className={`step ${currentStep >= 2 ? "step-accent" : ""}`}>
 							Avatar
 						</li>
-						<li className={`step ${currentStep >= 3 ? "step-primary" : ""}`}>
+						<li className={`step ${currentStep >= 3 ? "step-accent" : ""}`}>
 							Preferences
 						</li>
 					</ul>
@@ -292,9 +292,9 @@ export const Onboarding = (): FunctionComponent => {
 				{/* Step Content */}
 				<div className="flex justify-center items-center min-h-[60vh]">
 					{currentStep === 1 && (
-						<div className="card bg-base-100 shadow-2xl w-full max-w-sm mx-auto">
+						<div className="card bg-base-100 shadow-md ring-1 ring-base-300 w-full max-w-sm mx-auto">
 							<div className="card-body p-4">
-								<h2 className="card-title text-xl text-center mb-2">
+								<h2 className="card-title text-xl text-center mb-2 text-neutral">
 									What should we call you?
 								</h2>
 								<div className="form-control w-full mb-2">
@@ -309,7 +309,7 @@ export const Onboarding = (): FunctionComponent => {
 										placeholder="Enter your username"
 										maxLength={20}
 										value={data.username}
-										className={`input input-bordered input-primary w-full ${errors["username"] ? "input-error" : ""}`}
+										className={`input input-bordered w-full ${errors["username"] ? "input-error" : ""}`}
 										onChange={(event) => {
 											const value = event.target.value;
 											setData((previous) => ({
@@ -383,9 +383,9 @@ export const Onboarding = (): FunctionComponent => {
 					)}
 
 					{currentStep === 2 && (
-						<div className="card bg-base-100 shadow-2xl w-full mx-auto">
+						<div className="card bg-base-100 shadow-md ring-1 ring-base-300 w-full mx-auto">
 							<div className="card-body p-4">
-								<h2 className="card-title text-xl text-center mb-2">
+								<h2 className="card-title text-xl text-center mb-2 text-neutral">
 									Choose your avatar
 								</h2>
 								<AvatarBuilder
@@ -424,12 +424,12 @@ export const Onboarding = (): FunctionComponent => {
 					)}
 
 					{currentStep === 3 && (
-						<div className="card bg-base-100 shadow-2xl w-full max-w-sm mx-auto">
+						<div className="card bg-base-100 shadow-md ring-1 ring-base-300 w-full max-w-sm mx-auto">
 							<div className="card-body p-4">
-								<h2 className="card-title text-xl text-center mb-2">
+								<h2 className="card-title text-xl text-center mb-2 text-neutral">
 									Almost done!
 								</h2>
-								<p className="text-base-content/70 text-center mb-4">
+								<p className="text-slate-500 text-md text-center mb-4">
 									Set your preferences and finish setup
 								</p>
 								<div className="bg-base-200 rounded-lg p-4 mb-4">
@@ -453,7 +453,7 @@ export const Onboarding = (): FunctionComponent => {
 											<span className="label-text">Email notifications</span>
 											<input
 												type="checkbox"
-												className="checkbox checkbox-primary"
+												className="checkbox checkbox-accent"
 												checked={data.preferences.notifications}
 												onChange={(event) => {
 													setData((previous) => ({
@@ -473,7 +473,7 @@ export const Onboarding = (): FunctionComponent => {
 											<span className="label-text">Newsletter updates</span>
 											<input
 												type="checkbox"
-												className="checkbox checkbox-primary"
+												className="checkbox checkbox-accent"
 												checked={data.preferences.newsletter}
 												onChange={(event) => {
 													setData((previous) => ({

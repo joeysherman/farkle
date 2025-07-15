@@ -39,7 +39,7 @@ export function TurnActions({
 		return (
 			<div className="rounded p-1.5 text-sm">
 				<div className="flex items-center gap-2">
-					<span className="text-gray-500 min-w-[60px]">
+					<span className="text-slate-500 min-w-[60px]">
 						{isLatest ? "Latest Roll:" : "Roll " + action.action_number + ":"}
 					</span>
 
@@ -62,7 +62,7 @@ export function TurnActions({
 								return (
 									<div
 										key={index}
-										className="w-6 h-6 flex items-center justify-center text-xs rounded bg-green-100 border border-green-300 text-green-700"
+										className="w-6 h-6 flex items-center justify-center text-xs rounded bg-success/20 border border-success/40 text-success"
 									>
 										{value}
 									</div>
@@ -71,7 +71,7 @@ export function TurnActions({
 								return (
 									<div
 										key={index}
-										className="w-6 h-6 flex items-center justify-center text-xs rounded bg-white border border-gray-300 text-gray-700"
+										className="w-6 h-6 flex items-center justify-center text-xs rounded bg-base-100 border border-base-300 text-base-content"
 									>
 										{value}
 									</div>
@@ -81,14 +81,14 @@ export function TurnActions({
 
 						{/* Show Farkle or empty state */}
 						{remainingDice.length === 0 && action.scoring_dice.length === 0 && (
-							<span className="text-red-500 text-xs font-medium">Farkle!</span>
+							<span className="text-error text-xs font-medium">Farkle!</span>
 						)}
 					</div>
 
 					{/* Score indicator */}
 					<div
 						className={`min-w-[50px] text-right font-medium ${
-							action.score > 0 ? "text-green-600" : "text-red-500"
+							action.score > 0 ? "text-success" : "text-error"
 						} ${isLatest ? "" : "pr-6"}`}
 					>
 						{action.score > 0 ? `+${action.score}` : "+0"}
@@ -131,7 +131,6 @@ export function TurnActions({
 		// 			</div>
 		// 		</div>
 		// 	);
-		// }
 		return null;
 	}
 
@@ -140,7 +139,7 @@ export function TurnActions({
 			{/* Mobile view */}
 			<div className="md:hidden">
 				{latestAction && (
-					<div className="collapse bg-white rounded-lg border">
+					<div className="collapse bg-base-100 rounded-lg border">
 						<input
 							type="checkbox"
 							className="peer"
@@ -152,7 +151,7 @@ export function TurnActions({
 							</div>
 							{previousActions.length > 0 && (
 								<div className="flex items-center justify-center w-8 h-full">
-									<div className="w-4 h-4 text-gray-400">
+									<div className="w-4 h-4 text-base-content/50">
 										<svg
 											className="w-full h-full transform peer-checked:rotate-180 transition-transform duration-200"
 											fill="none"

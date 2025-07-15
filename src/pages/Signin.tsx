@@ -46,17 +46,15 @@ export function Signin(): JSX.Element {
 	);
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center p-4">
+		<div className="min-h-screen bg-gradient-to-br from-base-200 to-base-100 flex items-center justify-center p-4">
 			<BouncingDice />
-			<div className="card w-full max-w-md bg-base-100 shadow-2xl">
+			<div className="card w-full max-w-md bg-base-100 shadow-md ring-1 ring-base-300">
 				<div className="card-body">
 					<div className="text-center mb-6">
-						<h2 className="card-title text-2xl justify-center mb-2">
+						<h2 className="card-title text-2xl justify-center mb-2 text-neutral">
 							Welcome back!
 						</h2>
-						<p className="text-base-content/70">
-							Sign in to continue your game
-						</p>
+						<p className="text-slate-500">Sign in to continue your game</p>
 					</div>
 
 					{message && (
@@ -79,7 +77,7 @@ export function Signin(): JSX.Element {
 								autoComplete="username email"
 								required
 								placeholder="Enter your email"
-								className="input input-bordered input-primary"
+								className="input input-bordered"
 								disabled={loading}
 								value={email}
 								onChange={(event): void => {
@@ -99,7 +97,7 @@ export function Signin(): JSX.Element {
 								autoComplete="current-password"
 								required
 								placeholder="Enter your password"
-								className="input input-bordered input-primary"
+								className="input input-bordered"
 								disabled={loading}
 								value={password}
 								onChange={(event): void => {
@@ -111,7 +109,7 @@ export function Signin(): JSX.Element {
 						<div className="form-control mt-6">
 							<button
 								type="submit"
-								className={`btn btn-primary ${loading ? "loading" : ""}`}
+								className={`btn btn-accent ${loading ? "loading" : ""}`}
 								disabled={loading}
 							>
 								{loading ? "Signing in..." : "Sign in"}
@@ -122,10 +120,8 @@ export function Signin(): JSX.Element {
 					<div className="divider">OR</div>
 
 					<div className="text-center">
-						<p className="text-base-content/70 mb-3">
-							Don't have an account yet?
-						</p>
-						<Link className="btn btn-outline btn-primary w-full" to="/signup">
+						<p className="text-slate-500 mb-3">Don't have an account yet?</p>
+						<Link className="btn btn-outline btn-accent w-full" to="/signup">
 							Sign up
 						</Link>
 					</div>

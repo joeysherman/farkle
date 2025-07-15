@@ -67,13 +67,13 @@ const BotTestResults: React.FC = () => {
 
 	if (loading) {
 		return (
-			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+			<div className="min-h-screen bg-gradient-to-br from-base-200 to-base-100 flex items-center justify-center p-8">
 				<div className="text-center">
-					<ArrowPathIcon className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" />
-					<h2 className="text-lg font-medium text-gray-900 mb-2">
+					<ArrowPathIcon className="animate-spin h-8 w-8 text-accent mx-auto mb-4" />
+					<h2 className="text-lg font-medium text-neutral mb-2">
 						Running Bot Decision Tests
 					</h2>
-					<p className="text-gray-500">
+					<p className="text-slate-500">
 						Please wait while we execute the bot decision analysis...
 					</p>
 				</div>
@@ -83,17 +83,14 @@ const BotTestResults: React.FC = () => {
 
 	if (error) {
 		return (
-			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+			<div className="min-h-screen bg-gradient-to-br from-base-200 to-base-100 flex items-center justify-center p-8">
 				<div className="text-center max-w-md mx-auto">
-					<ExclamationTriangleIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
-					<h2 className="text-lg font-medium text-gray-900 mb-2">
+					<ExclamationTriangleIcon className="h-12 w-12 text-error mx-auto mb-4" />
+					<h2 className="text-lg font-medium text-neutral mb-2">
 						Failed to Load Test Data
 					</h2>
-					<p className="text-gray-500 mb-4">{error}</p>
-					<button
-						className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-						onClick={loadTestData}
-					>
+					<p className="text-slate-500 mb-4">{error}</p>
+					<button className="btn btn-accent" onClick={loadTestData}>
 						<ArrowPathIcon className="w-4 h-4" />
 						Retry
 					</button>
@@ -104,18 +101,18 @@ const BotTestResults: React.FC = () => {
 
 	if (!testData) {
 		return (
-			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+			<div className="min-h-screen bg-gradient-to-br from-base-200 to-base-100 flex items-center justify-center p-8">
 				<div className="text-center max-w-md mx-auto">
-					<PlayIcon className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-					<h2 className="text-lg font-medium text-gray-900 mb-2">
+					<PlayIcon className="h-12 w-12 text-accent mx-auto mb-4" />
+					<h2 className="text-lg font-medium text-neutral mb-2">
 						Ready to Run Bot Decision Tests
 					</h2>
-					<p className="text-gray-500 mb-6">
+					<p className="text-slate-500 mb-6">
 						Execute comprehensive bot decision analysis with 47 different test
 						scenarios.
 					</p>
 					<button
-						className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+						className="btn btn-accent"
 						disabled={loading}
 						onClick={loadTestData}
 					>
@@ -128,7 +125,7 @@ const BotTestResults: React.FC = () => {
 	}
 
 	return (
-		<div className="min-h-screen bg-gray-50">
+		<div className="min-h-screen bg-gradient-to-br from-base-200 to-base-100">
 			<BotTestVisualizer
 				isRunningTests={loading}
 				testData={testData}

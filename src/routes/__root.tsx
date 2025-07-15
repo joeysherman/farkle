@@ -11,11 +11,7 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-	component: () => (
-		<div className="">
-			<Outlet />
-		</div>
-	),
+	component: () => <Outlet />,
 	beforeLoad: ({ context, location }) => {
 		console.log("🛡️ Root guard: Checking route", location.pathname);
 		console.log("🛡️ Root guard: Auth state", {

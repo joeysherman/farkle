@@ -23,19 +23,17 @@ export const Friends = (): FunctionComponent => {
 	}, [navigate]);
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 p-4 py-8">
-			<div className="container mx-auto max-w-4xl space-y-6">
-				{/* Combined Friends Section */}
-				<div className="card bg-base-100 shadow-2xl">
-					<div className="card-body">
-						<h2 className="card-title text-2xl mb-6">Friends</h2>
+		<div className="container mx-auto pt-6">
+			{/* Combined Friends Section */}
+			<div className="card bg-base-100 shadow-md ring-1 ring-base-300">
+				<div className="card-body">
+					<h2 className="card-title text-2xl mb-6 text-neutral">Friends</h2>
 
-						<FriendsList
-							showSearch={true}
-							showInvites={true}
-							className="space-y-6"
-						/>
-					</div>
+					<FriendsList
+						showSearch={true}
+						showInvites={true}
+						className="space-y-6"
+					/>
 				</div>
 			</div>
 		</div>

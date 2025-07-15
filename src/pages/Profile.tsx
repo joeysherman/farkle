@@ -37,7 +37,7 @@ interface DatabaseProfile {
 function LoadingSpinner(): JSX.Element {
 	return (
 		<div className="flex justify-center items-center">
-			<div className="loading loading-spinner loading-lg text-primary"></div>
+			<div className="loading loading-spinner loading-lg text-accent"></div>
 		</div>
 	);
 }
@@ -335,7 +335,7 @@ export const Profile = (): FunctionComponent => {
 
 	if (loading) {
 		return (
-			<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center p-4">
+			<div className="min-h-screen bg-gradient-to-br from-base-200 to-base-100 flex items-center justify-center p-4">
 				<LoadingSpinner />
 			</div>
 		);
@@ -344,18 +344,18 @@ export const Profile = (): FunctionComponent => {
 	// User not found view
 	if (userNotFound) {
 		return (
-			<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center p-4">
-				<div className="card bg-base-100 shadow-2xl max-w-md w-full">
+			<div className="min-h-screen bg-gradient-to-br from-base-200 to-base-100 flex items-center justify-center p-4">
+				<div className="card bg-base-100 shadow-md ring-1 ring-base-300 max-w-md w-full">
 					<div className="card-body text-center">
-						<h2 className="card-title text-2xl justify-center mb-4">
+						<h2 className="card-title text-2xl justify-center mb-4 text-neutral">
 							User Not Found
 						</h2>
-						<p className="text-base-content/70 mb-6">
+						<p className="text-slate-500 text-md mb-6">
 							The user you're looking for doesn't exist or may have been
 							deleted.
 						</p>
 						<button
-							className="btn btn-primary"
+							className="btn btn-accent"
 							onClick={() => navigate({ to: "/app/profile" })}
 						>
 							Go to My Profile
@@ -368,300 +368,300 @@ export const Profile = (): FunctionComponent => {
 
 	// Render different content based on whether we're viewing our own profile or someone else's
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-primary/20 to-secondary/20 p-4 py-8">
-			<div className="container mx-auto max-w-4xl space-y-6">
-				{/* Profile Information Card */}
-				<div className="card bg-base-100 shadow-2xl">
-					<div className="card-body">
-						<div className="flex items-center justify-between mb-6">
-							<h2 className="card-title text-2xl">
-								{isViewingOwnProfile
-									? "Profile Information"
-									: `${profile?.username}'s Profile`}
-							</h2>
-							{!isViewingOwnProfile && (
+		<div className="container mx-auto pt-6">
+			{/* Profile Information Card */}
+			<div className="card bg-base-100 shadow-md ring-1 ring-base-300">
+				<div className="card-body">
+					<div className="flex items-center justify-between mb-6">
+						<h2 className="card-title text-2xl text-neutral">
+							{isViewingOwnProfile
+								? "Profile Information"
+								: `${profile?.username}'s Profile`}
+						</h2>
+						{!isViewingOwnProfile && (
+							<button
+								className="btn btn-outline btn-sm"
+								onClick={() => navigate({ to: "/app/profile" })}
+							>
+								View My Profile
+							</button>
+						)}
+					</div>
+
+					{/* Avatar Section */}
+					<div className="flex items-center gap-6 mb-8">
+						<div className="avatar">
+							<div className="w-24 rounded-full ring ring-accent ring-offset-base-100 ring-offset-2">
+								<img
+									alt="Profile"
+									src={profile?.avatarName || "/avatars/default.svg"}
+									onError={(e) => {
+										const target = e.target as HTMLImageElement;
+										target.src = "/avatars/default.svg";
+									}}
+								/>
+							</div>
+						</div>
+						<div className="flex-1">
+							{isViewingOwnProfile ? (
 								<button
-									className="btn btn-outline btn-sm"
-									onClick={() => navigate({ to: "/app/profile" })}
+									className="btn btn-outline btn-accent"
+									onClick={() => setIsSelectingAvatar(true)}
+									disabled={isUploading}
 								>
-									View My Profile
+									{isUploading ? "Updating..." : "Change Avatar"}
 								</button>
+							) : (
+								<div className="flex items-center gap-3">
+									{isLoadingFriendship ? (
+										<div className="loading loading-spinner loading-sm"></div>
+									) : (
+										<>
+											{friendshipStatus === "friends" && (
+												<div className="badge badge-success">Friends</div>
+											)}
+											{friendshipStatus === "pending" && (
+												<div className="badge badge-warning">Pending</div>
+											)}
+											{friendshipStatus === "received" && (
+												<div className="badge badge-neutral">
+													Request Received
+												</div>
+											)}
+											{friendshipStatus === "none" && (
+												<button
+													className="btn btn-accent btn-sm"
+													onClick={() => void sendFriendInvite()}
+												>
+													Add Friend
+												</button>
+											)}
+										</>
+									)}
+								</div>
 							)}
 						</div>
+					</div>
 
-						{/* Avatar Section */}
-						<div className="flex items-center gap-6 mb-8">
-							<div className="avatar">
-								<div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-									<img
-										alt="Profile"
-										src={profile?.avatarName || "/avatars/default.svg"}
-										onError={(e) => {
-											const target = e.target as HTMLImageElement;
-											target.src = "/avatars/default.svg";
-										}}
+					{/* Profile Details */}
+					<div className="space-y-4">
+						{/* Username */}
+						<div className="form-control">
+							<label className="label" htmlFor="username">
+								<span className="label-text">Username</span>
+							</label>
+							{isEditing && isViewingOwnProfile ? (
+								<div className="flex gap-2">
+									<input
+										id="username"
+										className="input input-bordered flex-1"
+										placeholder="Enter new username"
+										type="text"
+										value={newUsername}
+										onChange={(event) => setNewUsername(event.target.value)}
 									/>
-								</div>
-							</div>
-							<div className="flex-1">
-								{isViewingOwnProfile ? (
 									<button
-										className="btn btn-outline btn-primary"
-										onClick={() => setIsSelectingAvatar(true)}
-										disabled={isUploading}
+										className="btn btn-accent"
+										onClick={handleUsernameUpdate}
 									>
-										{isUploading ? "Updating..." : "Change Avatar"}
+										Save
 									</button>
-								) : (
-									<div className="flex items-center gap-3">
-										{isLoadingFriendship ? (
-											<div className="loading loading-spinner loading-sm"></div>
-										) : (
-											<>
-												{friendshipStatus === "friends" && (
-													<div className="badge badge-success">Friends</div>
-												)}
-												{friendshipStatus === "pending" && (
-													<div className="badge badge-warning">Pending</div>
-												)}
-												{friendshipStatus === "received" && (
-													<div className="badge badge-info">
-														Request Received
-													</div>
-												)}
-												{friendshipStatus === "none" && (
-													<button
-														className="btn btn-primary btn-sm"
-														onClick={() => void sendFriendInvite()}
-													>
-														Add Friend
-													</button>
-												)}
-											</>
-										)}
-									</div>
-								)}
-							</div>
-						</div>
-
-						{/* Profile Details */}
-						<div className="space-y-4">
-							{/* Username */}
-							<div className="form-control">
-								<label className="label" htmlFor="username">
-									<span className="label-text">Username</span>
-								</label>
-								{isEditing && isViewingOwnProfile ? (
-									<div className="flex gap-2">
-										<input
-											id="username"
-											className="input input-bordered input-primary flex-1"
-											placeholder="Enter new username"
-											type="text"
-											value={newUsername}
-											onChange={(event) => setNewUsername(event.target.value)}
-										/>
-										<button
-											className="btn btn-primary"
-											onClick={handleUsernameUpdate}
-										>
-											Save
-										</button>
-										<button
-											className="btn btn-outline"
-											onClick={() => setIsEditing(false)}
-										>
-											Cancel
-										</button>
-									</div>
-								) : (
-									<div className="flex items-center gap-3">
-										<span className="text-base-content">
-											{profile?.username}
-										</span>
-										{!profile?.hasChangedUsername && isViewingOwnProfile && (
-											<button
-												className="btn btn-outline btn-primary btn-sm"
-												onClick={() => {
-													setNewUsername(profile?.username || "");
-													setIsEditing(true);
-												}}
-											>
-												Change
-											</button>
-										)}
-									</div>
-								)}
-							</div>
-
-							{/* Email - only show for own profile */}
-							{isViewingOwnProfile && (
-								<div className="form-control">
-									<label className="label" htmlFor="email">
-										<span className="label-text">Email</span>
-									</label>
-									<div
-										className="input input-bordered bg-base-200 flex items-center px-4"
-										id="email"
+									<button
+										className="btn btn-outline"
+										onClick={() => setIsEditing(false)}
 									>
-										{user?.email}
-									</div>
+										Cancel
+									</button>
+								</div>
+							) : (
+								<div className="flex items-center gap-3">
+									<span className="text-base-content">{profile?.username}</span>
+									{!profile?.hasChangedUsername && isViewingOwnProfile && (
+										<button
+											className="btn btn-outline btn-accent btn-sm"
+											onClick={() => {
+												setNewUsername(profile?.username || "");
+												setIsEditing(true);
+											}}
+										>
+											Change
+										</button>
+									)}
 								</div>
 							)}
+						</div>
 
-							{/* Account Created */}
+						{/* Email - only show for own profile */}
+						{isViewingOwnProfile && (
 							<div className="form-control">
-								<label className="label" htmlFor="created">
-									<span className="label-text">Account Created</span>
+								<label className="label" htmlFor="email">
+									<span className="label-text">Email</span>
 								</label>
 								<div
 									className="input input-bordered bg-base-200 flex items-center px-4"
-									id="created"
+									id="email"
 								>
-									{new Date(profile?.createdAt || "").toLocaleDateString()}
+									{user?.email}
 								</div>
+							</div>
+						)}
+
+						{/* Account Created */}
+						<div className="form-control">
+							<label className="label" htmlFor="created">
+								<span className="label-text">Account Created</span>
+							</label>
+							<div
+								className="input input-bordered bg-base-200 flex items-center px-4"
+								id="created"
+							>
+								{new Date(profile?.createdAt || "").toLocaleDateString()}
 							</div>
 						</div>
 					</div>
 				</div>
-
-				{/* Notification Settings - only show for own profile */}
-				{isViewingOwnProfile && (
-					<div className="card bg-base-100 shadow-2xl">
-						<div className="card-body">
-							<h3 className="card-title text-xl mb-4">Notification Settings</h3>
-
-							<div className="space-y-4">
-								{/* Browser Permission Status */}
-								<div className="form-control">
-									<label className="label" htmlFor="browser-notifications">
-										<span className="label-text">Browser notifications</span>
-									</label>
-									<div className="flex items-center justify-between">
-										<div className="flex items-center gap-3">
-											<div
-												className={`badge ${getBrowserPermissionColor()}`}
-												id="browser-notifications"
-											>
-												{getBrowserPermissionText()}
-											</div>
-										</div>
-										<button
-											className="btn btn-outline btn-primary btn-sm"
-											onClick={() => checkBrowserPermission()}
-										>
-											Refresh
-										</button>
-									</div>
-								</div>
-
-								{/* App Notification Status */}
-								<div className="form-control">
-									<label className="label" htmlFor="app-notifications">
-										<span className="label-text">App notifications</span>
-									</label>
-									<div className="flex items-center justify-between">
-										<div className="flex items-center gap-3">
-											<div
-												className={`badge ${isSubscribed ? "badge-success" : "badge-neutral"}`}
-												id="app-notifications"
-											>
-												{isSubscribed ? "Enabled" : "Disabled"}
-											</div>
-										</div>
-										<button
-											className={`btn btn-sm ${isSubscribed ? "btn-outline btn-error" : "btn-primary"}`}
-											onClick={() => void handleNotificationToggle()}
-										>
-											{isSubscribed ? "Disable" : "Enable"}
-										</button>
-									</div>
-								</div>
-
-								{/* Error Messages */}
-								{notificationError && (
-									<div className="alert alert-error">
-										<span>{notificationError}</span>
-									</div>
-								)}
-
-								{browserPermission === "denied" && (
-									<div className="alert alert-warning">
-										<span>
-											Browser notifications are blocked. Please enable them in
-											your browser settings to receive notifications.
-										</span>
-									</div>
-								)}
-
-								<div className="text-sm text-base-content/70">
-									Receive notifications about important updates and events.
-								</div>
-							</div>
-						</div>
-					</div>
-				)}
-
-				{/* Avatar Builder Modal - only show for own profile */}
-				{isSelectingAvatar &&
-					profile &&
-					isViewingOwnProfile &&
-					createPortal(
-						<div className="modal modal-open fixed inset-0 z-[9999] bg-black bg-opacity-50">
-							<div className="modal-box relative w-11/12 max-w-5xl max-h-[90vh] mx-auto my-8 overflow-y-auto bg-base-100">
-								<div className="mb-4">
-									<h3 className="font-bold text-lg">Customize Your Avatar</h3>
-									<p className="text-sm text-base-content/70">
-										Create a unique avatar that represents you
-									</p>
-								</div>
-
-								<div className="max-h-[calc(90vh-12rem)] overflow-y-auto">
-									<AvatarBuilder
-										ref={avatarBuilderRef}
-										initialOptions={avatarOptions}
-										onAvatarChange={setAvatarOptions}
-									/>
-								</div>
-
-								<div className="modal-action sticky bottom-0 bg-base-100 pt-4 mt-4 border-t border-base-300">
-									<button
-										className="btn btn-outline"
-										onClick={() => setIsSelectingAvatar(false)}
-										disabled={isUploading}
-									>
-										Cancel
-									</button>
-									<button
-										className="btn btn-primary"
-										onClick={() => void handleAvatarSave()}
-										disabled={!avatarOptions || isUploading}
-									>
-										{isUploading ? <LoadingSpinner /> : "Save Avatar"}
-									</button>
-								</div>
-							</div>
-						</div>,
-						document.body
-					)}
-
-				{/* Upload Status - only show for own profile */}
-				{uploadStatus && isViewingOwnProfile && (
-					<div className="alert alert-info">
-						<div className="flex items-center">
-							<span className="loading loading-spinner loading-sm mr-2"></span>
-							<span>{uploadStatus}</span>
-						</div>
-					</div>
-				)}
-
-				{/* Error Alert */}
-				{error && (
-					<div className="alert alert-error mb-4">
-						<span>{error}</span>
-					</div>
-				)}
 			</div>
+
+			{/* Notification Settings - only show for own profile */}
+			{isViewingOwnProfile && (
+				<div className="card bg-base-100 shadow-md ring-1 ring-base-300 mt-6">
+					<div className="card-body">
+						<h3 className="card-title text-xl mb-4 text-neutral">
+							Notification Settings
+						</h3>
+
+						<div className="space-y-4">
+							{/* Browser Permission Status */}
+							<div className="form-control">
+								<label className="label" htmlFor="browser-notifications">
+									<span className="label-text">Browser notifications</span>
+								</label>
+								<div className="flex items-center justify-between">
+									<div className="flex items-center gap-3">
+										<div
+											className={`badge ${getBrowserPermissionColor()}`}
+											id="browser-notifications"
+										>
+											{getBrowserPermissionText()}
+										</div>
+									</div>
+									<button
+										className="btn btn-outline btn-accent btn-sm"
+										onClick={() => checkBrowserPermission()}
+									>
+										Refresh
+									</button>
+								</div>
+							</div>
+
+							{/* App Notification Status */}
+							<div className="form-control">
+								<label className="label" htmlFor="app-notifications">
+									<span className="label-text">App notifications</span>
+								</label>
+								<div className="flex items-center justify-between">
+									<div className="flex items-center gap-3">
+										<div
+											className={`badge ${isSubscribed ? "badge-success" : "badge-neutral"}`}
+											id="app-notifications"
+										>
+											{isSubscribed ? "Enabled" : "Disabled"}
+										</div>
+									</div>
+									<button
+										className={`btn btn-sm ${isSubscribed ? "btn-outline btn-error" : "btn-accent"}`}
+										onClick={() => void handleNotificationToggle()}
+									>
+										{isSubscribed ? "Disable" : "Enable"}
+									</button>
+								</div>
+							</div>
+
+							{/* Error Messages */}
+							{notificationError && (
+								<div className="alert alert-error">
+									<span>{notificationError}</span>
+								</div>
+							)}
+
+							{browserPermission === "denied" && (
+								<div className="alert alert-warning">
+									<span>
+										Browser notifications are blocked. Please enable them in
+										your browser settings to receive notifications.
+									</span>
+								</div>
+							)}
+
+							<div className="text-sm text-base-content/70">
+								Receive notifications about important updates and events.
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Avatar Builder Modal - only show for own profile */}
+			{isSelectingAvatar &&
+				profile &&
+				isViewingOwnProfile &&
+				createPortal(
+					<div className="modal modal-open fixed inset-0 z-[9999] bg-black bg-opacity-50">
+						<div className="modal-box relative w-11/12 max-w-5xl max-h-[90vh] mx-auto my-8 overflow-y-auto bg-base-100">
+							<div className="mb-4">
+								<h3 className="font-bold text-lg text-neutral">
+									Customize Your Avatar
+								</h3>
+								<p className="text-sm text-slate-500">
+									Create a unique avatar that represents you
+								</p>
+							</div>
+
+							<div className="max-h-[calc(90vh-12rem)] overflow-y-auto">
+								<AvatarBuilder
+									ref={avatarBuilderRef}
+									initialOptions={avatarOptions}
+									onAvatarChange={setAvatarOptions}
+								/>
+							</div>
+
+							<div className="modal-action sticky bottom-0 bg-base-100 pt-4 mt-4 border-t border-base-300">
+								<button
+									className="btn btn-outline"
+									onClick={() => setIsSelectingAvatar(false)}
+									disabled={isUploading}
+								>
+									Cancel
+								</button>
+								<button
+									className="btn btn-accent"
+									onClick={() => void handleAvatarSave()}
+									disabled={!avatarOptions || isUploading}
+								>
+									{isUploading ? <LoadingSpinner /> : "Save Avatar"}
+								</button>
+							</div>
+						</div>
+					</div>,
+					document.body
+				)}
+
+			{/* Upload Status - only show for own profile */}
+			{uploadStatus && isViewingOwnProfile && (
+				<div className="alert alert-info">
+					<div className="flex items-center">
+						<span className="loading loading-spinner loading-sm mr-2"></span>
+						<span>{uploadStatus}</span>
+					</div>
+				</div>
+			)}
+
+			{/* Error Alert */}
+			{error && (
+				<div className="alert alert-error mb-4">
+					<span>{error}</span>
+				</div>
+			)}
 		</div>
 	);
 };

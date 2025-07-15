@@ -43,7 +43,7 @@ export const GameActions: React.FC<{
 		<div className="flex-none grid grid-cols-2 gap-4 py-2 sm:gap-3 sm:py-3 sm:px-4">
 			{isFarkle && latestAction ? (
 				<button
-					className="col-span-2 w-full inline-flex justify-center items-center px-4 sm:px-6 py-2 sm:py-3 border border-transparent text-base sm:text-lg font-semibold rounded-lg sm:rounded-xl shadow-sm text-white bg-red-500 hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 active:bg-red-600 transition-colors duration-200"
+					className="btn btn-error col-span-2 w-full"
 					onClick={() => {
 						if (latestAction?.scoring_dice) {
 							void onTurnAction(latestAction.scoring_dice, "bust");
@@ -55,7 +55,7 @@ export const GameActions: React.FC<{
 			) : turnActions.length === 0 || latestAction?.turn_action_outcome ? (
 				<button
 					disabled={isPending}
-					className="col-span-2 w-full inline-flex justify-center items-center px-4 sm:px-6 py-2 sm:py-3 border border-transparent text-base sm:text-lg font-semibold rounded-lg sm:rounded-xl shadow-sm text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 active:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+					className="btn btn-primary col-span-2 w-full"
 					onClick={(e) => {
 						e.preventDefault();
 						e.stopPropagation();
@@ -93,7 +93,7 @@ export const GameActions: React.FC<{
 			) : (
 				<>
 					<button
-						className="w-full inline-flex flex-col justify-center items-center px-4 sm:px-6 py-1 sm:py-2 border border-transparent text-sm sm:text-base font-semibold rounded-lg sm:rounded-xl shadow-sm text-white bg-green-600 hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 active:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+						className="btn btn-success w-full"
 						disabled={!canContinue || isPending}
 						onClick={(e) => {
 							e.preventDefault();
@@ -104,14 +104,16 @@ export const GameActions: React.FC<{
 							}
 						}}
 					>
-						<span>Bank Score</span>
-						<span className="text-xs sm:text-sm font-normal opacity-90">
-							{turnActions.reduce((acc, action) => acc + action.score, 0)}{" "}
-							points
-						</span>
+						<div className="flex flex-col">
+							<span>Bank Score</span>
+							<span className="text-xs sm:text-sm font-normal opacity-90">
+								{turnActions.reduce((acc, action) => acc + action.score, 0)}{" "}
+								points
+							</span>
+						</div>
 					</button>
 					<button
-						className="w-full inline-flex flex-col justify-center items-center px-4 sm:px-6 py-1 sm:py-2 border border-transparent text-sm sm:text-base font-semibold rounded-lg sm:rounded-xl shadow-sm text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 active:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+						className="btn btn-primary w-full"
 						disabled={isDisabled}
 						onClick={(e) => {
 							e.preventDefault();
@@ -126,14 +128,16 @@ export const GameActions: React.FC<{
 							}
 						}}
 					>
-						<span>Continue</span>
-						<span className="text-xs sm:text-sm font-normal opacity-90">
-							{latestAction.available_dice === 0 && latestAction.score > 0
-								? "Roll 6 dice"
-								: latestAction.available_dice > 0 && latestAction.score > 0
-									? `Roll ${latestAction.available_dice} dice`
-									: "Select dice"}
-						</span>
+						<div className="flex flex-col">
+							<span>Continue</span>
+							<span className="text-xs sm:text-sm font-normal opacity-90">
+								{latestAction.available_dice === 0 && latestAction.score > 0
+									? "Roll 6 dice"
+									: latestAction.available_dice > 0 && latestAction.score > 0
+										? `Roll ${latestAction.available_dice} dice`
+										: "Select dice"}
+							</span>
+						</div>
 					</button>
 				</>
 			)}

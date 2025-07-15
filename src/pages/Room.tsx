@@ -946,9 +946,9 @@ export function Room(): JSX.Element {
 
 	if (loading) {
 		return (
-			<div className="min-h-screen bg-gray-50">
+			<div className="min-h-screen bg-base-100">
 				<div className="flex items-center justify-center h-[calc(100dvh-64px)]">
-					<div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin"></div>
+					<div className="w-16 h-16 border-t-4 border-primary border-solid rounded-full animate-spin"></div>
 				</div>
 			</div>
 		);
@@ -957,8 +957,8 @@ export function Room(): JSX.Element {
 	// Show invite modal for users who need to join
 	if (showInviteModal) {
 		return (
-			<div className="min-h-screen bg-gray-50">
-				<div className="flex items-center justify-center h-[calc(100dvh-64px)]">
+			<div className="bg-base-100">
+				<div className="flex items-center justify-center h-[calc(100vh-48px)] sm:h-[calc(100vh-64px)]">
 					<InviteModal
 						room={room}
 						user={user}
@@ -982,10 +982,10 @@ export function Room(): JSX.Element {
 				isCurrentPlayerBot &&
 				room?.status === "in_progress" && (
 					<div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50">
-						<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-4">
+						<div className="bg-base-100/90 backdrop-blur-sm rounded-lg shadow-lg p-4">
 							<button
 								onClick={() => handleBotTurn(roomId)}
-								className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+								className="btn btn-primary"
 							>
 								Play Bot Turn
 							</button>
@@ -1003,7 +1003,7 @@ export function Room(): JSX.Element {
 			<div className="flex flex-col md:flex-row md:space-x-4 h-full">
 				{/* Left Column - Room Details (Hidden on mobile) */}
 				<div className="hidden md:relative md:block md:w-1/4 md:h-full">
-					<div className="h-full flex flex-col bg-white shadow-lg md:shadow-none">
+					<div className="h-full flex flex-col bg-base-100 shadow-lg md:shadow-none">
 						{room && user && (
 							<RoomHeader room={room} user={user}>
 								<div className="hidden md:block">
@@ -1058,7 +1058,7 @@ export function Room(): JSX.Element {
 					<div className="flex-1 relative">
 						{/* Game Controls Overlay */}
 						<div className="absolute top-0 left-0 right-0 z-10 p-2">
-							<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-1">
+							<div className="bg-base-100/90 backdrop-blur-sm rounded-lg shadow-md p-1">
 								<div className="flex flex-col">
 									{/* Mobile Room Controls and Players List */}
 									<div className="md:hidden">
@@ -1167,7 +1167,7 @@ export function Room(): JSX.Element {
 
 						{/* Absolute section at the bottom of the screen for the GameActions */}
 						<div className="absolute bottom-8 left-0 right-0 z-10 px-4">
-							<div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md">
+							<div className="bg-base-100/90 backdrop-blur-sm rounded-lg shadow-md">
 								<div className="flex flex-col">
 									{/* Game Actions */}
 									<div className="flex items-center justify-center">
@@ -1322,21 +1322,21 @@ function RoomHeader({
 	}
 
 	return (
-		<div className="p-4 border-b border-gray-200">
+		<div className="p-4 border-b border-base-300">
 			<div className="flex flex-col justify-between gap-4">
 				<div className="flex items-center space-x-3">
-					<h2 className="text-2xl font-bold text-gray-900 truncate">
+					<h2 className="text-2xl font-bold text-neutral truncate">
 						{room.name}
 					</h2>
 				</div>
-				<div className="flex items-center justify-between text-sm text-gray-500 gap-2">
+				<div className="flex items-center justify-between text-sm text-slate-500 gap-2">
 					<span
 						className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
 							room?.status === "waiting"
-								? "bg-yellow-100 text-yellow-800"
+								? "badge-warning"
 								: room?.status === "in_progress"
-									? "bg-green-100 text-green-800"
-									: "bg-gray-100 text-gray-800"
+									? "badge-success"
+									: "badge-neutral"
 						}`}
 					>
 						{status}
@@ -1385,36 +1385,36 @@ function TurnSummary({
 	}
 
 	return (
-		<div className="bg-gray-50/90 backdrop-blur-sm rounded-lg px-2 py-2 sm:px-4 sm:py-3 shadow-sm">
+		<div className="bg-base-200/90 backdrop-blur-sm rounded-lg px-2 py-2 sm:px-4 sm:py-3 shadow-sm">
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-2 sm:gap-3">
 					<div className="relative">
 						<img
 							alt="User avatar"
-							className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white shadow-sm"
+							className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-base-100 shadow-sm"
 							src={`${userData?.avatar_name || "default"}`}
 						/>
 						{isCurrentPlayerTurn && (
-							<div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white" />
+							<div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-success rounded-full border-2 border-base-100" />
 						)}
 					</div>
 					<div>
 						<div className="flex items-center gap-1 sm:gap-2">
-							<p className="text-sm sm:text-base font-semibold text-gray-900">
+							<p className="text-sm sm:text-base font-semibold text-neutral">
 								{userData?.username}
 							</p>
-							<span className="text-xs sm:text-sm font-medium text-gray-600">
+							<span className="text-xs sm:text-sm font-medium text-slate-500">
 								• Score: {currentPlayer.score}
 							</span>
 						</div>
 						<div className="flex items-center gap-1 sm:gap-2">
-							<span className="text-xs sm:text-sm font-medium text-gray-600">
+							<span className="text-xs sm:text-sm font-medium text-slate-500">
 								{room?.status === "rebuttal"
 									? "Rebuttal"
 									: `Turn ${gameState.current_turn_number}`}
 							</span>
 							{turnActions.length > 0 && (
-								<span className="text-xs text-gray-500">
+								<span className="text-xs text-slate-500">
 									• Roll {turnActions.length}
 								</span>
 							)}
@@ -1423,15 +1423,15 @@ function TurnSummary({
 				</div>
 				{turnActions.length > 0 && (
 					<div className="flex flex-col items-end">
-						<p className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">
+						<p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">
 							Roll Score
 						</p>
 						{isFarkle ? (
-							<p className="text-base sm:text-lg font-bold text-red-600">
+							<p className="text-base sm:text-lg font-bold text-error">
 								Farkle!
 							</p>
 						) : (
-							<p className="text-base sm:text-lg font-bold text-green-600">
+							<p className="text-base sm:text-lg font-bold text-success">
 								+{currentTurnScore}
 							</p>
 						)}
@@ -1481,30 +1481,30 @@ function MobileTurnSummary({
 				<div className="relative">
 					<img
 						alt="User avatar"
-						className="w-7 h-7 rounded-full border-2 border-white shadow-sm"
+						className="w-7 h-7 rounded-full border-2 border-base-100 shadow-sm"
 						src={`${userData?.avatar_name || "default"}`}
 					/>
 					{isCurrentPlayerTurn && (
-						<div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+						<div className="absolute -bottom-1 -right-1 w-3 h-3 bg-success rounded-full border-2 border-base-100" />
 					)}
 				</div>
 				<div>
 					<div className="flex items-center gap-1">
-						<p className="text-sm font-semibold text-gray-900">
+						<p className="text-sm font-semibold text-neutral">
 							{userData?.username}
 						</p>
-						<span className="text-xs font-medium text-gray-600">
+						<span className="text-xs font-medium text-slate-500">
 							• Score: {currentPlayer.score}
 						</span>
 					</div>
 					<div className="flex items-center gap-1">
-						<span className="text-xs font-medium text-gray-600">
+						<span className="text-xs font-medium text-slate-500">
 							{room?.status === "rebuttal"
 								? "Rebuttal"
 								: `Turn ${gameState.current_turn_number}`}
 						</span>
 						{turnActions.length > 0 && (
-							<span className="text-xs text-gray-500">
+							<span className="text-xs text-slate-500">
 								• Roll {turnActions.length}
 							</span>
 						)}
@@ -1513,13 +1513,13 @@ function MobileTurnSummary({
 			</div>
 			{turnActions.length > 0 && (
 				<div className="flex flex-col items-end">
-					<p className="text-xs text-gray-500 uppercase tracking-wide">
+					<p className="text-xs text-slate-500 uppercase tracking-wide">
 						Roll Score
 					</p>
 					{isFarkle ? (
-						<p className="text-sm font-bold text-red-600">Farkle!</p>
+						<p className="text-sm font-bold text-error">Farkle!</p>
 					) : (
-						<p className="text-sm font-bold text-green-600">
+						<p className="text-sm font-bold text-success">
 							+{currentTurnScore}
 						</p>
 					)}
@@ -1560,30 +1560,30 @@ function ShowWinner({
 	}
 
 	return (
-		<div className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg p-3 shadow-sm border border-amber-200">
+		<div className="bg-gradient-to-r from-success/20 to-success/30 rounded-lg p-3 shadow-sm border border-success/40">
 			<div className="flex items-center gap-3">
 				<div className="relative flex-shrink-0">
-					<div className="absolute inset-0 bg-amber-500 rounded-full animate-ping opacity-20"></div>
+					<div className="absolute inset-0 bg-success rounded-full animate-ping opacity-20"></div>
 					<img
 						alt={`${userData?.username}'s avatar`}
-						className="w-10 h-10 rounded-full border-2 border-amber-500 shadow relative z-10"
+						className="w-10 h-10 rounded-full border-2 border-success shadow relative z-10"
 						src={`${userData?.avatar_name || "default"}`}
 					/>
 				</div>
 				<div className="flex-1 min-w-0">
 					<div className="flex items-center gap-2">
-						<h3 className="text-base font-semibold text-gray-900 truncate">
+						<h3 className="text-base font-semibold text-neutral truncate">
 							{userData?.username}
 						</h3>
 						<svg
-							className="w-4 h-4 text-amber-500 flex-shrink-0"
+							className="w-4 h-4 text-success flex-shrink-0"
 							fill="currentColor"
 							viewBox="0 0 24 24"
 						>
 							<path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279-7.416-3.967-7.417 3.967 1.481-8.279-6.064-5.828 8.332-1.151z" />
 						</svg>
 					</div>
-					<p className="text-sm font-medium text-amber-600">
+					<p className="text-sm font-medium text-success-content">
 						Score: {winner.score}
 					</p>
 				</div>
@@ -1613,11 +1613,11 @@ function MobileShowWinner({
 				<div className="relative">
 					<img
 						alt={`${userData?.username}'s avatar`}
-						className="w-7 h-7 rounded-full border-2 border-amber-500 shadow"
+						className="w-7 h-7 rounded-full border-2 border-success shadow"
 						src={`${userData?.avatar_name || "default"}`}
 					/>
 					<svg
-						className="w-3 h-3 text-amber-500 absolute -top-1 -right-1"
+						className="w-3 h-3 text-success absolute -top-1 -right-1"
 						fill="currentColor"
 						viewBox="0 0 24 24"
 					>
@@ -1626,11 +1626,11 @@ function MobileShowWinner({
 				</div>
 				<div>
 					<div className="flex items-center gap-1">
-						<h3 className="text-sm font-semibold text-gray-900 truncate">
+						<h3 className="text-sm font-semibold text-neutral truncate">
 							{userData?.username}
 						</h3>
 					</div>
-					<p className="text-xs font-medium text-amber-600">
+					<p className="text-xs font-medium text-success-content">
 						Winner • Score: {winner.score}
 					</p>
 				</div>
