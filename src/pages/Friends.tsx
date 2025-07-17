@@ -29,11 +29,7 @@ export const Friends = (): FunctionComponent => {
 				<div className="card-body">
 					<h2 className="card-title text-2xl mb-6 text-neutral">Friends</h2>
 
-					<FriendsList
-						showSearch={true}
-						showInvites={true}
-						className="space-y-6"
-					/>
+					<FriendsList showSearch={true} showInvites={true} />
 				</div>
 			</div>
 		</div>

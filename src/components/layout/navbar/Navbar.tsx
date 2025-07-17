@@ -189,7 +189,7 @@ export function Navbar({ gameInfo }: { gameInfo?: GameInfo }): JSX.Element {
 											leaveFrom="transform opacity-100 scale-100"
 											leaveTo="transform opacity-0 scale-95"
 										>
-											<MenuItems className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+											<MenuItems className="absolute right-4 top-6 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-opacity-5 focus:outline-none z-50">
 												<div className="p-2">
 													<MenuItem>
 														{({ active: isActive }): JSX.Element => (

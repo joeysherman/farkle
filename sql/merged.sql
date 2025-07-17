@@ -2096,7 +2096,7 @@ BEGIN
       ) VALUES (
         v_easy_bot_id,
         'Wang_Bot',
-        'default',
+        'bot1',
         true
       );
     ELSE
@@ -2104,7 +2104,7 @@ BEGIN
       UPDATE public.profiles 
       SET 
         username = 'Wang_Bot',
-        avatar_name = 'default',
+        avatar_name = 'bot1',
         onboarding_completed = true
       WHERE id = v_easy_bot_id;
     END IF;
@@ -2146,7 +2146,7 @@ BEGIN
       ) VALUES (
         v_medium_bot_id,
         'Peter_Bot',
-        'default',
+        'bot2',
         true
       );
     ELSE
@@ -2154,7 +2154,7 @@ BEGIN
       UPDATE public.profiles 
       SET 
         username = 'Peter_Bot',
-        avatar_name = 'default',
+        avatar_name = 'bot2',
         onboarding_completed = true
       WHERE id = v_medium_bot_id;
     END IF;
@@ -2196,7 +2196,7 @@ BEGIN
       ) VALUES (
         v_hard_bot_id,
         'Johnson_Bot',
-        'default',
+        'bot3',
         true
       );
     ELSE
@@ -2204,7 +2204,7 @@ BEGIN
       UPDATE public.profiles 
       SET 
         username = 'Johnson_Bot',
-        avatar_name = 'default',
+        avatar_name = 'bot3',
         onboarding_completed = true
       WHERE id = v_hard_bot_id;
     END IF;
