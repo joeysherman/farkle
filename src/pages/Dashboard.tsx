@@ -221,7 +221,7 @@ export const Dashboard = (): FunctionComponent => {
 	}
 
 	return (
-		<div className="container mx-auto pt-6">
+		<div className="container mx-auto py-6">
 			{/* Header */}
 			<div className="rounded-xl p-6 bg-gradient-to-r from-indigo-50 via-white to-sky-50 shadow-inner mb-8">
 				<h1 className="text-4xl font-bold text-neutral mb-1">Welcome back!</h1>

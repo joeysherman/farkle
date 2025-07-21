@@ -329,20 +329,6 @@ export function FriendsList({
 				friendsData?.map((friend: any) => friend.friend_id) || []
 			);
 
-			// Get pending invites
-			const { data: invitesData } = await supabase
-				.from("friend_invites")
-				.select("sender_id, receiver_id")
-				.or(`sender_id.eq.${user?.id},receiver_id.eq.${user?.id}`)
-				.in("sender_id", userIds)
-				.in("receiver_id", userIds);
-
-			const pendingInviteIds = new Set(
-				invitesData?.map((invite: any) =>
-					invite.sender_id === user?.id ? invite.receiver_id : invite.sender_id
-				) || []
-			);
-
 			// Combine results
 			const results: Array<SearchResult> =
 				data?.map((profile: any) => ({
@@ -350,7 +336,9 @@ export function FriendsList({
 					username: profile.username,
 					avatar_name: profile.avatar_name,
 					isFriend: friendIds.has(profile.id),
-					hasPendingInvite: pendingInviteIds.has(profile.id),
+					hasPendingInvite: invites.some(
+						(invite) => invite.receiver_id === profile.id
+					),
 				})) || [];
 
 			setSearchResults(results);
@@ -477,6 +465,7 @@ export function FriendsList({
 					<Combobox value="" onChange={() => {}}>
 						<div className="relative">
 							<Combobox.Input
+								autoComplete="off"
 								className="input input-bordered input-primary w-full pr-10"
 								placeholder="Search by username"
 								displayValue={(query: string) => query}
@@ -492,7 +481,7 @@ export function FriendsList({
 									searchResults.map((result) => (
 										<div
 											key={result.id}
-											className="relative cursor-default select-none py-3 pl-4 pr-4 hover:bg-base-100 border-b border-base-300/50 last:border-b-0 transition-colors"
+											className="relative cursor-default select-none py-3 pl-4 pr-4 hover:bg-indigo-200 border-b border-base-300/50 last:border-b-0 transition-colors"
 										>
 											<div className="flex items-center justify-between">
 												<div className="flex items-center gap-3">
@@ -512,11 +501,6 @@ export function FriendsList({
 														>
 															{result.username}
 														</span>
-														<span className="text-xs text-base-content/60">
-															{result.isFriend
-																? "Already friends"
-																: "Click to add"}
-														</span>
 													</div>
 												</div>
 												<div className="flex items-center gap-2">
@@ -533,13 +517,9 @@ export function FriendsList({
 														View Profile
 													</button>
 													{result.isFriend ? (
-														<div className="badge badge-success badge-sm">
-															Friends
-														</div>
+														<div className="badge badge-success">Friends</div>
 													) : result.hasPendingInvite ? (
-														<div className="badge badge-warning badge-sm">
-															Pending
-														</div>
+														<div className="badge badge-warning">Pending</div>
 													) : (
 														<button
 															className="btn btn-neutral btn-xs hover:btn-success"
