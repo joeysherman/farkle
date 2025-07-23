@@ -20,7 +20,9 @@ const PlayerListItem: React.FC<PlayerListItemProps> = ({
 	const { data: userData } = useUser(player.user_id);
 
 	if (!userData) return null;
-
+	if (isCurrentTurn) {
+		debugger;
+	}
 	return (
 		<div
 			className={`p-2 md:p-2.5 rounded-lg ${
@@ -149,6 +151,7 @@ export const PlayersList: React.FC<{
 								// if (isCurrentTurn) {
 								// 	return null;
 								// }
+
 								return (
 									<PlayerListItem
 										key={player.id}
@@ -183,37 +186,6 @@ export const PlayersList: React.FC<{
 				<h3 className="text-sm font-medium text-gray-700 mb-2">
 					Players ({players.length}/{room.max_players})
 				</h3>
-				<div className="space-y-1.5">
-					{players.map((player) => {
-						const isCurrentTurn = gameState?.current_player_id === player.id;
-						const isCurrentUser = player.user_id === user?.id;
-						const isOnline = Boolean(onlineUsers[player.user_id]);
-
-						return (
-							<PlayerListItem
-								isCurrentTurn={isCurrentTurn}
-								isCurrentUser={isCurrentUser}
-								isOnline={isOnline}
-								key={player.id}
-								player={player}
-							/>
-						);
-					})}
-
-					{/* Empty Slots */}
-					{room?.status === "waiting" && (
-						<div className="space-y-1.5 mt-1.5">
-							{Array.from({ length: room.max_players - players.length }).map(
-								(_, index) => (
-									<EmptyPlayerSlot
-										key={`empty-${index}`}
-										slotNumber={players.length + index + 1}
-									/>
-								)
-							)}
-						</div>
-					)}
-				</div>
 			</div>
 		</div>
 	);

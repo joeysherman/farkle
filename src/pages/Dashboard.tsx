@@ -221,9 +221,9 @@ export const Dashboard = (): FunctionComponent => {
 	}
 
 	return (
-		<div className="container mx-auto py-6">
+		<div className="container mx-auto py-6 px-4 sm:px-0">
 			{/* Header */}
-			<div className="rounded-xl p-6 bg-gradient-to-r from-indigo-50 via-white to-sky-50 shadow-inner mb-8">
+			<div className="rounded-xl p-6 bg-gradient-to-r from-indigo-50 via-white to-sky-50 shadow-inner mb-6">
 				<h1 className="text-4xl font-bold text-neutral mb-1">Welcome back!</h1>
 				<p className="text-slate-500 text-md">Ready to roll some dice?</p>
 			</div>
@@ -286,35 +286,35 @@ export const Dashboard = (): FunctionComponent => {
 									{loading ? <LoadingSpinner /> : "🎲 Create New Game"}
 								</button>
 
-								{/* <button
-										className="btn btn-secondary flex-1 max-w-md h-auto py-3"
-										disabled={!currentRooms || currentRooms.length === 0}
-										onClick={handleJoinRecentGame}
-									>
-										{currentRooms &&
-										currentRooms.length > 0 &&
-										currentRooms[0] ? (
-											<div className="flex flex-col items-center gap-1">
-												<div className="flex items-center gap-2">
-													<span className="font-semibold">
-														Continue Last Game
-													</span>
-												</div>
-												<div className="text-xs opacity-80">
-													{currentRooms[0].name}
-												</div>
-												<div className="text-xs opacity-70">
-													👥 {currentRooms[0].current_players}/
-													{currentRooms[0].max_players} •{" "}
-													{currentRooms[0].status === "waiting"
-														? "⏳ Waiting"
-														: "🎲 In Progress"}
-												</div>
+								<button
+									className="btn btn-secondary flex-1 max-w-md h-auto py-3"
+									disabled={!currentRooms || currentRooms.length === 0}
+									onClick={handleJoinRecentGame}
+								>
+									{currentRooms &&
+									currentRooms.length > 0 &&
+									currentRooms[0] ? (
+										<div className="flex flex-col items-center gap-1">
+											<div className="flex items-center gap-2">
+												<span className="font-semibold">
+													Continue Last Game
+												</span>
 											</div>
-										) : (
-											"🚀 Join Recent Game"
-										)}
-									</button> */}
+											<div className="text-xs opacity-80">
+												{currentRooms[0].name}
+											</div>
+											<div className="text-xs opacity-70">
+												👥 {currentRooms[0].current_players}/
+												{currentRooms[0].max_players} •{" "}
+												{currentRooms[0].status === "waiting"
+													? "⏳ Waiting"
+													: "🎲 In Progress"}
+											</div>
+										</div>
+									) : (
+										"🚀 Join Recent Game"
+									)}
+								</button>
 							</div>
 						</div>
 					</div>

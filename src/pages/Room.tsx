@@ -1480,9 +1480,13 @@ function MobileTurnSummary({
 			<div className="flex items-center gap-2">
 				<div className="relative">
 					<img
-						alt="User avatar"
-						className="w-7 h-7 rounded-full border-2 border-base-100 shadow-sm"
-						src={`${userData?.avatar_name || "default"}`}
+						alt={`${userData.username}'s avatar`}
+						className="w-7 h-7 md:w-8 md:h-8 rounded-full"
+						src={
+							userData?.avatar_name && userData?.avatar_name.includes("bot")
+								? `/avatars/${userData?.avatar_name}.png`
+								: userData?.avatar_name
+						}
 					/>
 					{isCurrentPlayerTurn && (
 						<div className="absolute -bottom-1 -right-1 w-3 h-3 bg-success rounded-full border-2 border-base-100" />
